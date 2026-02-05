@@ -1,0 +1,619 @@
+import React, { useState, useEffect } from 'react';
+import { X, Plus, PiggyBank, Wallet, CreditCard, Calendar, DollarSign, User, FileText } from 'lucide-react';
+
+type AccountType = 'susu' | 'savings' | 'loan';
+
+interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
+interface AccountFormData {
+  customerId: string;
+  accountType: AccountType;
+  accountName: string;
+  description: string;
+  // Susu specific
+  susuAmount?: number;
+  susuFrequency?: 'daily' | 'weekly' | 'monthly';
+  susuDuration?: number; // in months
+  startDate?: string;
+  // Savings specific
+  initialDeposit?: number;
+  minimumBalance?: number;
+  interestRate?: number;
+  // Loan specific
+  loanAmount?: number;
+  interestRateLoan?: number;
+  loanTerm?: number; // in months
+  collateral?: string;
+  guarantor?: string;
+}
+
+interface AddAccountModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (accountData: AccountFormData) => void;
+  customers: Customer[];
+  isLoading?: boolean;
+}
+
+const AddAccountModal: React.FC<AddAccountModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  customers,
+  isLoading = false
+}) => {
+  const [formData, setFormData] = useState<AccountFormData>({
+    customerId: '',
+    accountType: 'susu',
+    accountName: '',
+    description: '',
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        customerId: '',
+        accountType: 'susu',
+        accountName: '',
+        description: '',
+      });
+      setErrors({});
+    }
+  }, [isOpen]);
+
+  const handleInputChange = (field: keyof AccountFormData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Common validations
+    if (!formData.customerId) newErrors.customerId = 'Please select a customer';
+    if (!formData.accountName.trim()) newErrors.accountName = 'Account name is required';
+
+    // Type-specific validations
+    switch (formData.accountType) {
+      case 'susu':
+        if (!formData.susuAmount || formData.susuAmount <= 0) {
+          newErrors.susuAmount = 'Susu amount must be greater than 0';
+        }
+        if (!formData.susuFrequency) newErrors.susuFrequency = 'Please select frequency';
+        if (!formData.susuDuration || formData.susuDuration <= 0) {
+          newErrors.susuDuration = 'Duration must be greater than 0';
+        }
+        if (!formData.startDate) newErrors.startDate = 'Start date is required';
+        break;
+
+      case 'savings':
+        if (!formData.initialDeposit || formData.initialDeposit < 0) {
+          newErrors.initialDeposit = 'Initial deposit must be 0 or greater';
+        }
+        if (!formData.minimumBalance || formData.minimumBalance < 0) {
+          newErrors.minimumBalance = 'Minimum balance must be 0 or greater';
+        }
+        if (formData.interestRate && (formData.interestRate < 0 || formData.interestRate > 100)) {
+          newErrors.interestRate = 'Interest rate must be between 0 and 100';
+        }
+        break;
+
+      case 'loan':
+        if (!formData.loanAmount || formData.loanAmount <= 0) {
+          newErrors.loanAmount = 'Loan amount must be greater than 0';
+        }
+        if (!formData.interestRateLoan || formData.interestRateLoan <= 0) {
+          newErrors.interestRateLoan = 'Interest rate is required and must be greater than 0';
+        }
+        if (!formData.loanTerm || formData.loanTerm <= 0) {
+          newErrors.loanTerm = 'Loan term must be greater than 0';
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      onSubmit(formData);
+    }
+  };
+
+  const getAccountIcon = (type: AccountType) => {
+    switch (type) {
+      case 'susu': return <PiggyBank className="h-5 w-5" />;
+      case 'savings': return <Wallet className="h-5 w-5" />;
+      case 'loan': return <CreditCard className="h-5 w-5" />;
+    }
+  };
+
+  const getAccountColor = (type: AccountType) => {
+    switch (type) {
+      case 'susu': return 'bg-green-100 text-green-800 border-green-200';
+      case 'savings': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'loan': return 'bg-purple-100 text-purple-800 border-purple-200';
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center">
+            <div className="bg-indigo-100 p-2 rounded-lg mr-3">
+              <Plus className="h-6 w-6 text-indigo-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Add New Account</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+            disabled={isLoading}
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="p-6 space-y-6">
+            {/* Customer Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <User className="h-4 w-4 inline mr-1" />
+                Customer *
+              </label>
+              <select
+                value={formData.customerId}
+                onChange={(e) => handleInputChange('customerId', e.target.value)}
+                className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                  errors.customerId ? 'border-red-300' : 'border-gray-300'
+                }`}
+                disabled={isLoading}
+              >
+                <option value="">Select a customer</option>
+                {customers.map(customer => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name} {customer.email && `(${customer.email})`}
+                  </option>
+                ))}
+              </select>
+              {errors.customerId && <p className="text-red-600 text-sm mt-1">{errors.customerId}</p>}
+            </div>
+
+            {/* Account Type Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Account Type *</label>
+              <div className="grid grid-cols-3 gap-3">
+                {(['susu', 'savings', 'loan'] as AccountType[]).map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => handleInputChange('accountType', type)}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      formData.accountType === type
+                        ? getAccountColor(type)
+                        : 'border-gray-200 bg-white hover:bg-gray-50'
+                    }`}
+                    disabled={isLoading}
+                  >
+                    <div className="flex flex-col items-center">
+                      {getAccountIcon(type)}
+                      <span className="text-sm font-medium capitalize mt-2">{type}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Account Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Account Name *
+              </label>
+              <input
+                type="text"
+                value={formData.accountName}
+                onChange={(e) => handleInputChange('accountName', e.target.value)}
+                placeholder="Enter account name"
+                className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                  errors.accountName ? 'border-red-300' : 'border-gray-300'
+                }`}
+                disabled={isLoading}
+              />
+              {errors.accountName && <p className="text-red-600 text-sm mt-1">{errors.accountName}</p>}
+            </div>
+
+            {/* Type-specific fields */}
+            {formData.accountType === 'susu' && (
+              <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                <h4 className="font-medium text-green-800 flex items-center">
+                  <PiggyBank className="h-4 w-4 mr-2" />
+                  Susu Account Details
+                </h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <DollarSign className="h-4 w-4 inline mr-1" />
+                      Susu Amount (¢) *
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.susuAmount || ''}
+                      onChange={(e) => handleInputChange('susuAmount', parseFloat(e.target.value))}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                        errors.susuAmount ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                    />
+                    {errors.susuAmount && <p className="text-red-600 text-sm mt-1">{errors.susuAmount}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Frequency *</label>
+                    <select
+                      value={formData.susuFrequency || ''}
+                      onChange={(e) => handleInputChange('susuFrequency', e.target.value)}
+                      className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                        errors.susuFrequency ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                    >
+                      <option value="">Select frequency</option>
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                    {errors.susuFrequency && <p className="text-red-600 text-sm mt-1">{errors.susuFrequency}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Duration (months) *
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.susuDuration || ''}
+                      onChange={(e) => handleInputChange('susuDuration', parseInt(e.target.value))}
+                      placeholder="12"
+                      min="1"
+                      className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                        errors.susuDuration ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                    />
+                    {errors.susuDuration && <p className="text-red-600 text-sm mt-1">{errors.susuDuration}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Calendar className="h-4 w-4 inline mr-1" />
+                      Start Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.startDate || ''}
+                      onChange={(e) => handleInputChange('startDate', e.target.value)}
+                      className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                        errors.startDate ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                    />
+                    {errors.startDate && <p className="text-red-600 text-sm mt-1">{errors.startDate}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.accountType === 'savings' && (
+              <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-blue-800 flex items-center">
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Savings Account Details
+                </h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Initial Deposit (¢) *
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.initialDeposit || ''}
+                      onChange={(e) => handleInputChange('initialDeposit', parseFloat(e.target.value))}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                        errors.initialDeposit ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                    />
+                    {errors.initialDeposit && <p className="text-red-600 text-sm mt-1">{errors.initialDeposit}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Minimum Balance (¢) *
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.minimumBalance || ''}
+                      onChange={(e) => handleInputChange('minimumBalance', parseFloat(e.target.value))}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                        errors.minimumBalance ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                    />
+                    {errors.minimumBalance && <p className="text-red-600 text-sm mt-1">{errors.minimumBalance}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Interest Rate (% per year)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.interestRate || ''}
+                    onChange={(e) => handleInputChange('interestRate', parseFloat(e.target.value))}
+                    placeholder="2.5"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      errors.interestRate ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    disabled={isLoading}
+                  />
+                  {errors.interestRate && <p className="text-red-600 text-sm mt-1">{errors.interestRate}</p>}
+                </div>
+              </div>
+            )}
+
+            {formData.accountType === 'loan' && (
+              <div className="space-y-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <h4 className="font-medium text-purple-800 flex items-center">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Loan Account Details
+                </h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Loan Amount (¢) *
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.loanAmount || ''}
+                      onChange={(e) => handleInputChange('loanAmount', parseFloat(e.target.value))}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                        errors.loanAmount ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                    />
+                    {errors.loanAmount && <p className="text-red-600 text-sm mt-1">{errors.loanAmount}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Interest Rate (% per year) *
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.interestRateLoan || ''}
+                      onChange={(e) => handleInputChange('interestRateLoan', parseFloat(e.target.value))}
+                      placeholder="15.0"
+                      min="0"
+                      step="0.1"
+                      className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                        errors.interestRateLoan ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                    />
+                    {errors.interestRateLoan && <p className="text-red-600 text-sm mt-1">{errors.interestRateLoan}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Loan Term (months) *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.loanTerm || ''}
+                    onChange={(e) => handleInputChange('loanTerm', parseInt(e.target.value))}
+                    placeholder="12"
+                    min="1"
+                    className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      errors.loanTerm ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    disabled={isLoading}
+                  />
+                  {errors.loanTerm && <p className="text-red-600 text-sm mt-1">{errors.loanTerm}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Collateral
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.collateral || ''}
+                    onChange={(e) => handleInputChange('collateral', e.target.value)}
+                    placeholder="Description of collateral (optional)"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Guarantor
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.guarantor || ''}
+                    onChange={(e) => handleInputChange('guarantor', e.target.value)}
+                    placeholder="Guarantor name and contact (optional)"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FileText className="h-4 w-4 inline mr-1" />
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Additional notes or description (optional)"
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex space-x-3 p-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating Account...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Account
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default AddAccountModal;
+
+// Example usage component
+export const AccountsPageWithModal: React.FC = () => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const mockCustomers: Customer[] = [
+    { id: '1', name: 'John Doe', email: 'john@example.com', phone: '+233 20 123 4567' },
+    { id: '2', name: 'Jane Smith', email: 'jane@example.com', phone: '+233 24 987 6543' },
+    { id: '3', name: 'Bob Johnson', email: 'bob@example.com', phone: '+233 26 456 7890' },
+  ];
+
+  const handleAddAccount = async (accountData: AccountFormData) => {
+    setIsLoading(true);
+    
+    try {
+      console.log('Creating account:', accountData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Here you would make your actual API call
+      // await createAccount(accountData);
+      
+      console.log('Account created successfully!');
+      setIsAddModalOpen(false);
+      
+      // Show success message or refresh data
+      
+    } catch (error) {
+      console.error('Error creating account:', error);
+      // Handle error - show error toast
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Accounts</h1>
+        <button
+          onClick={() => setIsAddModalOpen(true)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Add Account
+        </button>
+      </div>
+
+      {/* Your existing accounts list/table here */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <p className="text-gray-600">Your accounts will be displayed here...</p>
+      </div>
+
+      {/* Add Account Modal */}
+      <AddAccountModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleAddAccount}
+        customers={mockCustomers}
+        isLoading={isLoading}
+      />
+    </div>
+  );
+};
