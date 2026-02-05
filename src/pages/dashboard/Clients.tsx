@@ -98,22 +98,31 @@ const Clients: React.FC = () => {
       filtered.sort((a, b) => {
         let aValue, bValue;
         
-        switch(sortConfig.key) {
-          case 'name':
-            aValue = a.name.toLowerCase();
-            bValue = b.name.toLowerCase();
-            break;
-          case 'balance':
-            aValue = parseFloat(a.total_balance_across_all_accounts || 0);
-            bValue = parseFloat(b.total_balance_across_all_accounts || 0);
-            break;
-          case 'daily_rate':
-            aValue = parseFloat(a.daily_rate || 0);
-            bValue = parseFloat(b.daily_rate || 0);
-            break;
-          default:
-            return 0;
-        }
+       switch (sortConfig.key) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+
+        case 'balance':
+          aValue = parseFloat(a.total_balance_across_all_accounts || 0);
+          bValue = parseFloat(b.total_balance_across_all_accounts || 0);
+          break;
+
+        case 'daily_rate':
+          aValue = parseFloat(a.daily_rate || 0);
+          bValue = parseFloat(b.daily_rate || 0);
+          break;
+
+        case 'date_joined':
+          aValue = new Date(a.date_joined).getTime();
+          bValue = new Date(b.date_joined).getTime();
+          break;
+
+        default:
+          return 0;
+      }
+
         
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -523,8 +532,11 @@ const Clients: React.FC = () => {
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                   Location
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Join Date
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors group"
+                onClick={() => handleSort('date_joined')}
+                >
+                  <span>Join Date</span>
+                  {/* {getSortIcon('date_joined')} */}
                 </th>
                 <th 
                   onClick={() => handleSort('daily_rate')}

@@ -32,14 +32,14 @@ const Home: React.FC = () => {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-indigo-900 via-indigo-800 to-teal-700 text-white">
+      <section className="relative bg-gradient-to-br from-[#25391f] via-[#344a2e] to-teal-700 text-white">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl lg:text-6xl font-bold leading-tight mb-6">
-                Microfinance
-                <span className="block text-teal-300">Simplified</span>
+                Big God
+                <span className="block text-teal-300">Susu Enterprise</span>
               </h1>
               <p className="text-xl text-indigo-100 mb-8 leading-relaxed">
                 Transform traditional susu contribution schemes with modern digital efficiency. 
@@ -89,7 +89,7 @@ const Home: React.FC = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="text-3xl lg:text-4xl font-bold text-indigo-600 mb-2">
+                <div className="text-3xl lg:text-4xl font-bold text-[#344a2e] mb-2">
                   {stat.value}
                 </div>
                 <div className="text-gray-600 font-medium">{stat.label}</div>
@@ -117,7 +117,7 @@ const Home: React.FC = () => {
               const Icon = feature.icon;
               return (
                 <div key={index} className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <div className="bg-gradient-to-r from-indigo-600 to-teal-600 w-12 h-12 rounded-lg flex items-center justify-center mb-6">
+                  <div className="bg-gradient-to-r from-[#344a2e] to-teal-600 w-12 h-12 rounded-lg flex items-center justify-center mb-6">
                     <Icon className="h-6 w-6 text-white" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-4">
@@ -202,7 +202,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-indigo-600 to-teal-600">
+      <section className="py-20 bg-gradient-to-r from-[#344a2e] to-teal-600">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
             Ready to Transform Your Susu Operations?

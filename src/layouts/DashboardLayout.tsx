@@ -58,12 +58,17 @@ const DashboardLayout: React.FC = () => {
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
-            <div className="flex items-center space-x-2">
-              <div className="bg-gradient-to-r from-indigo-600 to-teal-600 p-2 rounded-lg">
-                <CreditCard className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">SusuPro</span>
-            </div>
+           <div className="flex items-center">
+                          <Link to="/" className="flex items-center">
+                           <img
+                             src="/logo.png"
+                             alt="SusuPro"
+                             className="h-20 w-auto"
+                           />
+                         </Link>
+           
+                           <span className="text-xl font-bold">Big God</span>
+                         </div>
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="lg:hidden text-gray-500 hover:text-gray-700"
@@ -86,8 +91,8 @@ const DashboardLayout: React.FC = () => {
                   onClick={() => setIsSidebarOpen(false)}
                   className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-indigo-50 text-indigo-700 border-r-2 border-indigo-700'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-indigo-700'
+                      ? 'bg-indigo-50 text-[#344a2e] border-r-2 border-[#344a2e]'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-[#344a2e]'
                   }`}
                 >
                   <Icon className="h-5 w-5 mr-3" />
@@ -100,7 +105,7 @@ const DashboardLayout: React.FC = () => {
           {/* Sidebar Footer */}
           <div className="p-6 border-t border-gray-200 flex-shrink-0">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-[#344a2e] rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
                   {company?.staffName?.charAt(0) || company?.companyName.charAt(0)}
                 </span>
@@ -157,7 +162,7 @@ const DashboardLayout: React.FC = () => {
                 <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
               </button>
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-[#344a2e] rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">
                     {companyName?.charAt(0) || userRole?.charAt(0)}
                   </span>

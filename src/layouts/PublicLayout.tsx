@@ -20,14 +20,25 @@ const PublicLayout: React.FC = () => {
       <nav className="bg-white fixed z-20 w-full shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center space-x-2">
-                <div className="bg-gradient-to-r from-indigo-600 to-teal-600 p-2 rounded-lg">
-                  <CreditCard className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-bold text-gray-900">SusuPro</span>
+            <div className="flex items-center gap-1">
+              <Link to="/" className="flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="SusuPro"
+                  className="
+                    h-10 sm:h-12 md:h-14 lg:h-16
+                    w-auto
+                    -mr-1
+                    object-contain
+                  "
+                />
               </Link>
+
+              <p className="text-sm sm:text-base md:text-lg font-medium">
+                Big God
+              </p>
             </div>
+
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
@@ -37,7 +48,7 @@ const PublicLayout: React.FC = () => {
                   to={item.href}
                   className={`text-sm font-medium transition-colors ${
                     location.pathname === item.href
-                      ? 'text-indigo-600'
+                      ? 'text-[#1f8e01]'
                       : 'text-gray-700 hover:text-indigo-600'
                   }`}
                 >
@@ -46,13 +57,13 @@ const PublicLayout: React.FC = () => {
               ))}
               <Link
                 to="/login"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+                className="bg-[#344a2e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#367126] transition-colors"
               >
                 Login
               </Link>
               <Link
                 to="/signup"
-                className="border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="border-2 border-[#344a2e] text-[#344a2e] hover:bg-[#344a2e] hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 Sign Up
               </Link>
@@ -118,10 +129,15 @@ const PublicLayout: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
-                <div className="bg-gradient-to-r from-indigo-600 to-teal-600 p-2 rounded-lg">
-                  <CreditCard className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">SusuPro</span>
+               <Link to="/" className="flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="SusuPro"
+                  className="h-20 w-auto"
+                />
+              </Link>
+
+                <span className="text-xl font-bold">Big God</span>
               </div>
               <p className="text-gray-400 max-w-md">
                 Modernizing traditional susu contribution schemes with digital efficiency and transparency.

@@ -169,7 +169,7 @@ const Overview: React.FC = () => {
     
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-teal-600 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-[#25391f] via-[#344a2e] to-teal-700 rounded-xl p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">Dashboard Overview</h1>
         <p className="text-indigo-100">Welcome back! Here's what's happening with your susu operations today.</p>
       </div>

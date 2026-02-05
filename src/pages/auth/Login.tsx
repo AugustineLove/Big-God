@@ -69,15 +69,19 @@ const saveCompany = async (company: Company) => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-indigo-800 to-teal-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#344a2e] via-[#344a2e] to-[#344a2e] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black opacity-20"></div>
       
       <div className="relative max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-indigo-600 to-teal-600 rounded-full mb-4">
-              <CreditCard className="h-8 w-8 text-white" />
+          <div className="text-center flex flex-col justify-center items-center content-center mb-8">
+            <div className='justify-center items-center content-center'>
+                <img
+                                  src="/logo.png"
+                                  alt="SusuPro"
+                                  className="h-[130px] w-[130px]"
+                                />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h1>
             <p className="text-gray-600">Sign in to your SusuPro account</p>
@@ -152,8 +156,8 @@ const saveCompany = async (company: Company) => {
               disabled={isLoading}
               className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors ${
                 isLoading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-indigo-600 to-teal-600 hover:from-indigo-700 hover:to-teal-700'
+                  ? 'bg-[#5c8750] cursor-not-allowed'
+                  : 'bg-gradient-to-r from-[#344a2e] to-[#588c4a] hover:from-[#344a2e] hover:to-[#588c4a]'
               }`}
             >
               {isLoading ? (
