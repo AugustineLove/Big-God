@@ -92,6 +92,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
     staked_by: selectedCustomer?.registered_by || transaction?.staked_by || '',
     company_id: companyId,
     staff_id: userUUID,
+    withdrawal_type: ''
   });
 
   const [customerSearch,  setCustomerSearch] = useState('');
@@ -228,6 +229,7 @@ const filteredCustomers = customers.filter(customer =>
     }
     if (!formData.staked_by) newErrors.staked_by = 'Please select who is creating this transaction';
     if(!formData.description || formData.description == '') newErrors.description = 'Description is required';
+    // if( formData.transaction_type === 'withdrawal' && !formData.withdrawal_type || formData.withdrawal_type == '') newErrors.withdrawal_type = 'Please select withdrawal type';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -598,26 +600,49 @@ const filteredCustomers = customers.filter(customer =>
                 </h4>
               </div>
 
-              <div>
+             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   <ArrowUpCircle className="w-4 h-4 mr-2 text-gray-500" />
                   Transaction Type
                   <span className="text-red-500 ml-1">*</span>
                 </label>
+
                 <select
                   name="transaction_type"
                   value={formData.transaction_type}
                   onChange={handleChange}
+                  required
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                 >
-                  <option value="deposit">
-                    Deposit (Add Money)
-                  </option>
-                  <option value="withdrawal">
-                    Withdrawal (Take Money)
-                  </option>
+                  <option value="deposit">Deposit (Add Money)</option>
+                  <option value="withdrawal">Withdrawal (Take Money)</option>
                 </select>
               </div>
+
+              {/* Withdrawal type (conditional) */}
+              {formData.transaction_type === 'withdrawal' && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Withdrawal Type
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+
+                  <select
+                    name="withdrawal_type"
+                    value={formData.withdrawal_type}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  >
+                    <option value="" disabled>
+                      Select withdrawal type
+                    </option>
+                    <option value="advance">Advance</option>
+                    <option value="commission">Commission-based</option>
+                  </select>
+                </div>
+              )}
+
 
              <FormField
               label="Amount"

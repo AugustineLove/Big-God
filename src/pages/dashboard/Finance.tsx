@@ -39,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
 import NewRevenueModal, { RevenueItem } from './Components/revenueModal';
 import { useBudget } from '../../contexts/dashboard/Budget';
+import PLModal from './Components/plModal';
 
 interface FinanceData{
   expenses: Expense[];
@@ -662,13 +663,23 @@ const calculateOperationalMetrics = () => {
 
   // Enhanced Overview Tab Component
   const OverviewTab = () => {
-    const totalExpenses = expenses.reduce((sum, e) => Number(sum) + (Number(e.amount) || 0), 0);
-    const totalAssets = assets.reduce((sum, a) => Number(sum) + (Number(a.value) || 0), 0);
-    const budgetAllocated = budgets.reduce((sum, b) => Number(sum) + (Number(b.allocated) || 0), 0);
-    const budgetSpent = budgets.reduce((sum, b) => Number(sum) + (Number(b.spent) || 0), 0);
-    const budgetUtilization = budgetAllocated > 0 ? (budgetSpent / budgetAllocated) * 100 : 0;
+  const [isPLModalOpen, setIsPLModalOpen] = useState(false);
+  
+  const totalExpenses = expenses.reduce((sum, e) => Number(sum) + (Number(e.amount) || 0), 0);
+  const totalAssets = assets.reduce((sum, a) => Number(sum) + (Number(a.value) || 0), 0);
+  const budgetAllocated = budgets.reduce((sum, b) => Number(sum) + (Number(b.allocated) || 0), 0);
+  const budgetSpent = budgets.reduce((sum, b) => Number(sum) + (Number(b.spent) || 0), 0);
+  const budgetUtilization = budgetAllocated > 0 ? (budgetSpent / budgetAllocated) * 100 : 0;
 
-    return (
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  return (
+    <>
       <div className="space-y-6">
         {/* Enhanced KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -821,8 +832,12 @@ const calculateOperationalMetrics = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Profit & Loss Summary (This Month)</h3>
-            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+            <button 
+              onClick={() => setIsPLModalOpen(true)}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all"
+            >
               View Detailed P&L
+              <ArrowUpRight className="w-4 h-4" />
             </button>
           </div>
           <div className="space-y-4">
@@ -872,7 +887,7 @@ const calculateOperationalMetrics = () => {
             <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">View All</button>
           </div>
           <div className="space-y-4">
-            {expenses.slice(0, 5).map((expense: any) => (
+            {expenses.slice(0, 5).map((expense) => (
               <div key={expense.id} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -886,7 +901,7 @@ const calculateOperationalMetrics = () => {
                 <div className="text-right">
                   <p className="text-sm font-semibold text-gray-900">-¢{expense.amount.toLocaleString()}</p>
                   <span className="text-xs text-gray-500">
-                    {formatDate(expense.expense_date)}
+                    {formatDate(expense.date)}
                   </span>
                 </div>
               </div>
@@ -894,8 +909,19 @@ const calculateOperationalMetrics = () => {
           </div>
         </div>
       </div>
-    );
-  };
+
+      {/* P&L Modal */}
+      {/* <PLModal 
+        isOpen={isPLModalOpen}
+        onClose={() => setIsPLModalOpen(false)}
+        operationalMetrics={operationalMetrics}
+        expenses={expenses}
+        commissionStats={commissionStats}
+        budgets={budgets}
+      /> */}
+    </>
+  );
+};
 
   // Revenue Tab Component
   const RevenueTab = () => {

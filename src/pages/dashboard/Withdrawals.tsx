@@ -8,6 +8,7 @@ import { companyId, companyName, makeSuSuProName, parentCompanyName, userPermiss
 import { CommissionModal } from '../../components/financeModals';
 import { FormDataState } from './Finance';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
+import { useAccounts } from '../../contexts/dashboard/Account';
 
 const Withdrawals: React.FC = () => {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>(mockWithdrawals);
@@ -25,6 +26,8 @@ const Withdrawals: React.FC = () => {
   }
   const [commissionFormData, setCommissionFormData] = useState<FormDataState>(defaultCommissionFormData);
   const { refreshCommissionStats } = useCommissionStats();
+   const { sendMessage } = useTransactions();
+   const { refreshAccounts } = useAccounts();
  
 
   const submitCommission = async (formData: FormDataState, transactionId: string, companyId: string) => {
@@ -86,8 +89,9 @@ const approvedWithdrawalsThisMonth = transactions.filter(w => {
   );
 });
 
-  const handleApproveClick = async (withdrawaId: string, customerPhone: string, customerName: string, withdrawalAmount: string, customerId: string, accountId: string, accountType: string, accountNumber: string) => {
+  const handleApproveClick = async (withdrawaId: string, withdrawalType: string, customerPhone: string, customerName: string, withdrawalAmount: string, customerId: string, accountId: string, accountType: string, accountNumber: string) => {
     if (isApproving) return;
+    console.log(`Checking whether to show commission modal or not ${withdrawalType}`)
 
     setIsApproving(true);
     const toastId = toast.loading('Approving transaction...');
@@ -108,9 +112,27 @@ const approvedWithdrawalsThisMonth = transactions.filter(w => {
   console.log(`Approval success withdrawalId: ${withdrawaId} : ${approvalSuccess}`);
   setCommissionTransactionId(withdrawaId);
 
+  const updatedAccounts = await refreshAccounts(customerId);
+        const newAccountBalance = updatedAccounts.find(a => a.id === accountId)?.balance;
+        console.log(`New account balance: ${newAccountBalance}`)
+
   if (approvalSuccess) {
     toast.success("Transaction approved successfully!", { id: toastId });
-    setShowCommissionModal(true);
+    if (withdrawalType === 'commission'){
+      setShowCommissionModal(true);
+    }
+     const finalMessageData = {
+                messageTo: customerPhone,
+                message: `An amount of GHS${withdrawalAmount} has been debited from your ${accountNumber} ${accountType} account. Your new balance is GHS${newAccountBalance}`,
+                messageFrom: makeSuSuProName(parentCompanyName)
+            } as Record<string, any>;
+            
+            // Send message (don't block on failure)
+            if (finalMessageData && Object.keys(finalMessageData).length > 0) {
+              sendMessage(finalMessageData).catch(err => 
+                console.warn('Message sending failed but transaction was approved:', err)
+              );
+            }
   } else {
     toast.error("Failed to approve transaction", {id: toastId });
   }
@@ -333,7 +355,7 @@ const approvedWithdrawalsThisMonth = transactions.filter(w => {
                         <button
                           onClick={()=>{
                             setCommissionData(withdrawal);
-                            handleApproveClick(withdrawal.transaction_id, withdrawal.customer_phone, withdrawal.customer_name, withdrawal.amount.toLocaleString(), withdrawal.customer_id, withdrawal.account_id, withdrawal.account_type, withdrawal.account_number)
+                            handleApproveClick(withdrawal.transaction_id, withdrawal.withdrawal_type, withdrawal.customer_phone, withdrawal.customer_name, withdrawal.amount.toLocaleString(), withdrawal.customer_id, withdrawal.account_id, withdrawal.account_type, withdrawal.account_number)
                           }}
                           className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition-colors"
                         >
