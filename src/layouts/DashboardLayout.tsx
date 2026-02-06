@@ -67,7 +67,10 @@ const DashboardLayout: React.FC = () => {
                            />
                          </Link>
            
-                           <span className="text-xl font-bold">Big God</span>
+                           <div>
+                              <span className="text-xl font-bold">Big God</span>
+                              <p className = 'text-gray-500 text-sm font-medium'>Susu Enterprise</p>
+                            </div>
                          </div>
             <button
               onClick={() => setIsSidebarOpen(false)}
