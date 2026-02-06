@@ -95,6 +95,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
     withdrawal_type: ''
   });
 
+ 
   const [customerSearch,  setCustomerSearch] = useState('');
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
