@@ -127,9 +127,9 @@ const DashboardLayout: React.FC = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              className="flex items-center w-full px-3 py-2 text-sm text-red-700 hover:bg-gray-50 rounded-lg transition-colors"
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="h-4 w-4 mr-2 text-red-800" />
               Logout
             </button>
           </div>
