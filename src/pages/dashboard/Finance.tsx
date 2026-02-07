@@ -911,14 +911,14 @@ const calculateOperationalMetrics = () => {
       </div>
 
       {/* P&L Modal */}
-      {/* <PLModal 
+      <PLModal 
         isOpen={isPLModalOpen}
         onClose={() => setIsPLModalOpen(false)}
         operationalMetrics={operationalMetrics}
         expenses={expenses}
         commissionStats={commissionStats}
         budgets={budgets}
-      /> */}
+      />
     </>
   );
 };

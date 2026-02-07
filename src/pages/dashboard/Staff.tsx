@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -23,91 +23,32 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
+import { useStaff } from '../../contexts/dashboard/Staff';
 
 const StaffManagement = () => {
   const [activeTab, setActiveTab] = useState('mobile-bankers');
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showExcessLossModal, setShowExcessLossModal] = useState(false);
+  const { dashboardStaffList, dashboardLoading, fetchDashboardStaff } = useStaff();
 
+   useEffect(() => {
+    // Optionally refresh data on mount
+    fetchDashboardStaff();
+  }, []);
+
+  
+    const mobileBankers = dashboardStaffList.filter(staff => staff.role === 'mobile_banker' || staff.role === 'teller');
+    const otherStaff = dashboardStaffList.filter(staff => staff.role !== 'mobile_banker');
+    
   // Sample data for mobile bankers
-  const mobileBankers = [
-    {
-      id: 1,
-      name: "Kwame Asante",
-      phone: "+233 24 123 4567",
-      email: "kwame.asante@microfinance.com",
-      location: "Accra Central",
-      totalCustomers: 45,
-      totalDeposits: 125000,
-      todayDeposits: 5500,
-      status: "active",
-      lastActivity: "2 hours ago",
-      performance: 92,
-      accounts: ["Savings", "Current", "Fixed Deposit"]
-    },
-    {
-      id: 2,
-      name: "Ama Osei",
-      phone: "+233 20 987 6543",
-      email: "ama.osei@microfinance.com",
-      location: "Kumasi",
-      totalCustomers: 38,
-      totalDeposits: 98000,
-      todayDeposits: 3200,
-      status: "active",
-      lastActivity: "1 hour ago",
-      performance: 88,
-      accounts: ["Savings", "Micro Loans"]
-    },
-    {
-      id: 3,
-      name: "Kofi Mensah",
-      phone: "+233 26 555 7890",
-      email: "kofi.mensah@microfinance.com",
-      location: "Tamale",
-      totalCustomers: 52,
-      totalDeposits: 142000,
-      todayDeposits: 0,
-      status: "inactive",
-      lastActivity: "5 hours ago",
-      performance: 76,
-      accounts: ["Savings", "Current"]
-    }
-  ];
-
-  // Sample data for other staff
-  const otherStaff = [
-    {
-      id: 4,
-      name: "Akosua Boateng",
-      role: "Branch Manager",
-      phone: "+233 24 111 2222",
-      email: "akosua.boateng@microfinance.com",
-      department: "Operations",
-      permissions: ["user_management", "financial_reports", "system_admin"],
-      status: "active",
-      joinDate: "2022-03-15"
-    },
-    {
-      id: 5,
-      name: "Yaw Opoku",
-      role: "Loan Officer",
-      phone: "+233 20 333 4444",
-      email: "yaw.opoku@microfinance.com",
-      department: "Credit",
-      permissions: ["loan_approval", "customer_management"],
-      status: "active",
-      joinDate: "2023-01-20"
-    }
-  ];
-
+  
   const MobileBankersTab = () => (
     <div className="space-y-6">
       {/* Header with actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Mobile Bankers</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Bankers</h2>
           <p className="text-gray-600">Manage your field collection staff</p>
         </div>
         <div className="flex gap-3">
@@ -116,7 +57,7 @@ const StaffManagement = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
             <UserPlus size={18} />
-            Add Mobile Banker
+            Add Banker
           </button>
         </div>
       </div>
@@ -148,7 +89,7 @@ const StaffManagement = () => {
 
       {/* Mobile bankers grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {mobileBankers.map((banker) => (
+        {mobileBankers?.map((banker) => (
           <div key={banker.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -288,6 +229,7 @@ const StaffManagement = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {otherStaff.map((staff) => (
+                
                 <tr key={staff.id} className="hover:bg-gray-50">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
@@ -308,15 +250,17 @@ const StaffManagement = () => {
                     <div className="text-sm text-gray-900">{staff.phone}</div>
                     <div className="text-sm text-gray-600">{staff.email}</div>
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="flex flex-wrap gap-1">
-                      {staff.permissions.map((permission, index) => (
-                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                          {permission.replace('_', ' ')}
+                 <td className="py-4 px-6">
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(staff.permissions)
+                      .filter(([_, value]) => value === true) // Only show granted permissions
+                      .map(([key], index) => (
+                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded uppercase">
+                          {key.replace(/_/g, ' ')}
                         </span>
                       ))}
-                    </div>
-                  </td>
+                  </div>
+                </td>
                   <td className="py-4 px-6">
                     <span className="px-2 py-1 bg-green-100 text-green-700 text-sm rounded-full">
                       {staff.status}
@@ -346,6 +290,14 @@ const StaffManagement = () => {
 
   const StaffDetailModal = () => {
     if (!selectedStaff) return null;
+
+    if (dashboardLoading) {
+  return <p>Loading staff data...</p>;
+    }
+
+    if (!dashboardStaffList || dashboardStaffList.length === 0) {
+      return <p>No staff found for this company.</p>;
+    }
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

@@ -31,7 +31,7 @@ const DashboardLayout: React.FC = () => {
     { name: 'Withdrawals', href: '/dashboard/withdrawals', icon: ArrowUpDown },
     { name: 'Finance', href: '/dashboard/expenses', icon: BarChart3 },
     ...(userPermissions?.VIEW_BRIEFING ? [{ name: 'Reports', href: '/dashboard/reports', icon: FileText }] : []),
-    // { name: 'Staffs', href: '/dashboard/staffs', icon: Users },
+    ...(userPermissions?.MANAGE_STAFF ? [{ name: 'Staffs', href: '/dashboard/staffs', icon: Users },] : []),
     ...(userPermissions?.LOAN_PRIVILEGES ? [{ name: 'Loans', href: '/dashboard/loans', icon: CreditCard }] : []),
     { name: 'Chat', href: '/dashboard/chat', icon: Chat },
    ...(userPermissions?.SETTINGS_ACCESS ? [{ name: 'Settings', href: '/dashboard/settings', icon: Settings }] : [])
