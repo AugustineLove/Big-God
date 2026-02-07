@@ -21,6 +21,7 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
+  MenuIcon,
 } from 'lucide-react';
 import { companyName, userPermissions, userRole } from '../constants/appConstants';
 
@@ -101,21 +102,14 @@ const DashboardLayout: React.FC = () => {
     } else {
       // On mobile, toggle full sidebar
       setIsSidebarOpen(!isSidebarOpen);
+      console.log(isSidebarOpen);
     }
   };
   const toggleMobileSidebar = () => {
-      if (window.innerWidth >= 1024) {
-      // On desktop, toggle collapsed state
-      setIsSidebarCollapsed(!isSidebarCollapsed);
-      if (isSidebarCollapsed) {
-        // When expanding, close mobile sidebar if it was open
-        setIsSidebarOpen(true);
-      }
-    } else {
-      // On mobile, toggle full sidebar
-      setIsSidebarOpen(!isSidebarOpen);
-    }
-  };
+  setIsSidebarCollapsed(false); 
+  setIsSidebarOpen(true);
+};
+
   
 
   // Close sidebar on mobile when clicking outside
@@ -397,16 +391,6 @@ const DashboardLayout: React.FC = () => {
                 </div>
               )}
             </div>
-
-            {!isSidebarCollapsed && (
-              <button
-                onClick={handleLogout}
-                className="flex items-center w-full px-3 py-2.5 mt-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </button>
-            )}
           </div>
         </div>
       </aside>
@@ -419,16 +403,19 @@ const DashboardLayout: React.FC = () => {
             {/* Left section */}
             <div className="flex items-center space-x-4 flex-1">
               {/* Desktop sidebar toggle button (hidden on mobile since we have mobile menu button) */}
+              <div className={`flex top-10 -right-3 z-10 ${isSidebarCollapsed ? '' : ''}`}>
               <button
-                  onClick={toggleMobileSidebar}
-                  className="flex lg:hidden items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
-                >
-                  {isSidebarCollapsed ? (
-                    <ChevronRightIcon className="h-5 w-5" />
-                  ) : (
-                    <ChevronLeft className="h-5 w-5" />
-                  )}
-                </button>
+                onClick={toggleSidebar}
+                aria-label="Toggle sidebar"
+                className="bg-white border border-gray-200 rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:shadow-lg transition-shadow"
+              >
+                {isSidebarCollapsed ? (
+                  <MenuIcon className="h-3 w-3 text-gray-600" />
+                ) : (
+                  <MenuIcon className="h-3 w-3 text-gray-600" />
+                )}
+              </button>
+            </div>
 
 
               <div className="flex-1">
