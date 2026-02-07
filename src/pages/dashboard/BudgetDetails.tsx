@@ -243,7 +243,7 @@ const BudgetDetails = () => {
                       {item.source_type}
                     </span>
                   </td>
-                  <td className="p-4 text-gray-500">{item.expense_description || "—"}</td>
+                  <td className="p-4 text-gray-500">{item.description || "—"}</td>
                   <td className="p-4">{item.customer_name || "—"}</td>
                   <td className="p-4">{item.transaction_status || "—"}</td>
                 </tr>
