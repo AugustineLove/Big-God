@@ -74,7 +74,7 @@ export const StaffProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!companyId) return;
 
       const res = await fetch(
-        `http://localhost:5000/api/staff/dashboard?company_id=${companyId}`
+        `https://susu-pro-backend.onrender.com/api/staff/dashboard?company_id=${companyId}`
       );
 
       if (res.ok) {
