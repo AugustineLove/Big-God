@@ -97,8 +97,7 @@ export const StaffProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           permissions: staff.permissions || [],
           accounts: staff.accounts || [],
         }));
-        console.log(`Mapped staff data: ${JSON.stringify(mappedDashboardStaff)}`);
-        setDashboardStaffList(mappedDashboardStaff);
+         setDashboardStaffList(mappedDashboardStaff);
       } else {
         const errorText = await res.text();
         console.error("Failed to fetch dashboard staff:", errorText);

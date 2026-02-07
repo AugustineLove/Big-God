@@ -21,9 +21,12 @@ import {
   Shield,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  XCircle
 } from 'lucide-react';
 import { useStaff } from '../../contexts/dashboard/Staff';
+import { useTransactions } from '../../contexts/dashboard/Transactions';
+import StaffDetailModal from './Components/staffDetailModal';
 
 const StaffManagement = () => {
   const [activeTab, setActiveTab] = useState('mobile-bankers');
@@ -31,6 +34,45 @@ const StaffManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showExcessLossModal, setShowExcessLossModal] = useState(false);
   const { dashboardStaffList, dashboardLoading, fetchDashboardStaff } = useStaff();
+  const { transactions } =  useTransactions();
+
+  const staffTransactions = transactions.filter(
+    (tx) => tx.recorded_staff_id === selectedStaff?.id
+  );
+
+  const recentActivity = staffTransactions
+  .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime()) // newest first
+  .slice(0, 5) // last 5 activities
+  .map((tx) => {
+    let title = '';
+    let subtitle = '';
+    let transaction_date = '';
+
+    switch (tx.type) {
+      case 'deposit':
+        title = `Deposit collected from ${tx.customer_name || 'Unknown'}`;
+        subtitle = `₵${tx.amount} • ${new Date(tx.transaction_date).toLocaleTimeString()}- ${tx.description}`;
+        transaction_date = `${tx.transaction_date}`;
+        break;
+      case 'withdrawal':
+        title = `Withdrawal by ${tx.customer_name || 'Unknown'}`;
+        subtitle = `₵${tx.amount} • ${new Date(tx.transaction_date).toLocaleTimeString()}- ${tx.description}`;
+        transaction_date = `${tx.transaction_date}`;
+        break;
+      case 'commission':
+        title = `New commission`;
+        subtitle = `${tx.customer_name} • ${new Date(tx.transaction_date).toLocaleTimeString()}- ${tx.description}`;
+        transaction_date = `${tx.transaction_date}`;
+        break;
+      default:
+        title = tx.type;
+        subtitle = new Date(tx.transaction_date).toLocaleTimeString();
+        transaction_date = `${tx.transaction_date}`;
+      }
+
+    return { id: tx.id, title, subtitle, type: tx.type, transaction_date };
+  });
+
 
    useEffect(() => {
     // Optionally refresh data on mount
@@ -68,7 +110,7 @@ const StaffManagement = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Search mobile bankers..."
+            placeholder="Search bankers..."
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -288,144 +330,6 @@ const StaffManagement = () => {
     </div>
   );
 
-  const StaffDetailModal = () => {
-    if (!selectedStaff) return null;
-
-    if (dashboardLoading) {
-  return <p>Loading staff data...</p>;
-    }
-
-    if (!dashboardStaffList || dashboardStaffList.length === 0) {
-      return <p>No staff found for this company.</p>;
-    }
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Users className="text-blue-600" size={32} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedStaff.name}</h2>
-                  <p className="text-gray-600">{selectedStaff.location}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedStaff(null)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Tabs for detailed view */}
-            <div className="border-b border-gray-200 mb-6">
-              <div className="flex gap-6">
-                <button className="pb-2 border-b-2 border-blue-600 text-blue-600 font-medium">
-                  Overview
-                </button>
-                <button className="pb-2 text-gray-600 hover:text-gray-900">
-                  Customers
-                </button>
-                <button className="pb-2 text-gray-600 hover:text-gray-900">
-                  Transactions
-                </button>
-                <button className="pb-2 text-gray-600 hover:text-gray-900">
-                  Reports
-                </button>
-              </div>
-            </div>
-
-            {/* Overview content */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Performance metrics */}
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-3xl font-bold">{selectedStaff.totalCustomers}</div>
-                    <div className="text-blue-100">Total Customers</div>
-                  </div>
-                  <Users size={24} />
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-3xl font-bold">₵{selectedStaff.totalDeposits.toLocaleString()}</div>
-                    <div className="text-green-100">Total Deposits</div>
-                  </div>
-                  <DollarSign size={24} />
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-3xl font-bold">{selectedStaff.performance}%</div>
-                    <div className="text-yellow-100">Performance Score</div>
-                  </div>
-                  <TrendingUp size={24} />
-                </div>
-              </div>
-
-              {/* Recent activity */}
-              <div className="md:col-span-2 lg:col-span-3 bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <CheckCircle className="text-green-500" size={20} />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">Deposit collected from Mary Aidoo</div>
-                      <div className="text-sm text-gray-600">₵350 • 2 hours ago</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <CheckCircle className="text-green-500" size={20} />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">New customer registration</div>
-                      <div className="text-sm text-gray-600">John Mensah • 4 hours ago</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <AlertCircle className="text-yellow-500" size={20} />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">Missed collection attempt</div>
-                      <div className="text-sm text-gray-600">Grace Osei • 6 hours ago</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-                <Edit size={18} />
-                Edit Details
-              </button>
-              <button 
-                onClick={() => setShowExcessLossModal(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <DollarSign size={18} />
-                Excess & Loss
-              </button>
-              <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-                <BarChart3 size={18} />
-                Generate Report
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const ExcessLossModal = () => {
     if (!showExcessLossModal) return null;
 
@@ -516,7 +420,7 @@ const StaffManagement = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Mobile Bankers
+              Bankers
             </button>
             <button
               onClick={() => setActiveTab('other-staff')}
@@ -536,7 +440,13 @@ const StaffManagement = () => {
       </div>
 
       {/* Modals */}
-      <StaffDetailModal />
+      <StaffDetailModal
+      selectedStaff = {selectedStaff}
+      setSelectedStaff = {setSelectedStaff}
+      setShowExcessLossModal = {setShowExcessLossModal}
+      dashboardLoading = {dashboardLoading}
+      dashboardStaffList = {dashboardStaffList}
+       />
       <ExcessLossModal />
     </div>
   );

@@ -42,7 +42,6 @@ export const CommissionStatsProvider: React.FC<Props> = ({
       if (!res.ok) throw new Error("Failed to fetch commission stats");
 
       const json = await res.json();
-      console.log(`Commission stats ${json.data}`)
       setStats(json.data.stats);
     } catch (err: any) {
       setError(err.message);
@@ -59,8 +58,7 @@ export const CommissionStatsProvider: React.FC<Props> = ({
       if (!res.ok) throw new Error("Failed to fetch commissions");
 
       const json = await res.json();
-      console.log(`Commissions: ${JSON.stringify(json.data)}`)
-      setCommissions(json.data.commissions);
+       setCommissions(json.data.commissions);
     } catch (err: any) {
       setError(err.message);
     } finally {

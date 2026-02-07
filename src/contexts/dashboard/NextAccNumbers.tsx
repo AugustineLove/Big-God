@@ -26,7 +26,6 @@ export const AccountNumberProviders: React.FC<{ children: React.ReactNode }> = (
           `https://susu-pro-backend.onrender.com/api/accounts/last-account-numbers`
         );
         const json = await res.json();
-        console.log(`Staff account numbers: ${JSON.stringify(json.data)}`);
         setData(json.data);
       } catch (error) {
         console.error('Failed to fetch account numbers', error);
@@ -42,7 +41,6 @@ export const AccountNumberProviders: React.FC<{ children: React.ReactNode }> = (
           `https://susu-pro-backend.onrender.com/api/accounts/last-account-numbers`
         );
         const json = await res.json();
-        console.log(`Staff account numbers: ${JSON.stringify(json.data)}`);
         setData(json.data);
       } catch (error) {
         console.error('Failed to fetch account numbers', error);
@@ -92,7 +90,6 @@ const getNextAccountNumber = (staffId: string) => {
     const next = Number(counter) + 1;
     const paddedNext = next.toString().padStart(counter.length, '0');
     
-    console.log(`Next account number for staff ${staffId} is ${base}${paddedNext}`);
     return `${base}${paddedNext}`;
   }
 };

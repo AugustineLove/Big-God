@@ -58,13 +58,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  console.log(`Finance data: ${JSON.stringify(data)}`)
-
+ 
   // Add Asset
   const addAsset = async (company_id: string, data: Omit<Asset, "id">) => {
     try {
-        console.log("Adding asset with data:", {company_id, ...data});
-      setLoading(true);
+        setLoading(true);
       const res = await fetch(`${API_BASE}/financials/entry`, { 
         method: "POST", 
         headers: { 'Content-Type': 'application/json' },
