@@ -35,7 +35,7 @@ import { AssetModal, BudgetModal, ExpenseModal, PaymentModal } from '../../compo
 import { useCustomers } from '../../contexts/dashboard/Customers';
 import { useAccounts } from '../../contexts/dashboard/Account';
 import { useTransactions } from '../../contexts/dashboard/Transactions';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
 import NewRevenueModal, { RevenueItem } from './Components/revenueModal';
 import { useBudget } from '../../contexts/dashboard/Budget';
@@ -99,6 +99,16 @@ interface ModalProps {
   loading: boolean;
 }
 
+const financeTabs = [
+  { id: 'overview', label: 'Overview', icon: BarChart3 },
+  { id: 'revenue', label: 'Revenue', icon: TrendingUp },
+  { id: 'commission', label: 'Commission', icon: TrendingUp },
+  { id: 'expenses', label: 'Expenses', icon: Banknote },
+  { id: 'assets', label: 'Assets', icon: Building2 },
+  { id: 'budget', label: 'Float', icon: PieChart },
+  { id: 'analytics', label: 'Analytics', icon: LineChart },
+]
+
 const RevenueModal: React.FC<ModalProps> = ({
   show,
   onClose,
@@ -114,8 +124,8 @@ const RevenueModal: React.FC<ModalProps> = ({
   const { deductCommission } = useTransactions();
   const { toggleBudgetStatus } = useBudget();
   const { customers } = useCustomers();
-  
 
+  
   const selectedCustomer = customers.find(
     (c) => c.id === formData.customer_id
   ) || null;
@@ -123,6 +133,7 @@ const RevenueModal: React.FC<ModalProps> = ({
 
   // Fetch accounts when customer + commissions
   useEffect(() => {
+    
     const fetchCustomerAccounts = async (customerId: string) => {
       try {
         setLoadingAccounts(true);
@@ -407,9 +418,13 @@ const FinancialDashboard: React.FC = () => {
   const { deductCommission } = useTransactions();
   const { commissionStats, commissions } = useCommissionStats();
   const [setRevenue ] = useState<RevenueItem>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') || 'overview';
+  
   useEffect(() => {
     fetchFinanceData();
-  }, [companyId]);
+    setActiveTab(tabFromUrl)
+  }, [companyId, tabFromUrl]);
 
   const expenses = data?.expenses || [];
   const assets = data?.assets || [];
@@ -480,6 +495,8 @@ const calculateOperationalMetrics = () => {
     const category = (e.category || "").toLowerCase();
     const status = (e.status || "").toLowerCase();
     const term = (searchTerm || "").toLowerCase();
+      
+
 
     const matchesSearch =
       description.includes(term) || category.includes(term) || status.includes(term);
@@ -1983,61 +2000,58 @@ const AssetsTab = () => {
    {/* Navigation Tabs */}
 <div className="bg-white border-b border-gray-200 px-6">
   <nav className="flex space-x-8">
-    {userPermissions?.ALTER_FINANCE
-      ? [
-          { id: 'overview', label: 'Overview', icon: BarChart3 },
-          { id: 'revenue', label: 'Revenue', icon: TrendingUp },
-          { id: 'commission', label: 'Commission', icon: TrendingUp },
-          { id: 'expenses', label: 'Expenses', icon: Banknote },
-          { id: 'assets', label: 'Assets', icon: Building2 },
-          { id: 'budget', label: 'Float', icon: PieChart },
-          { id: 'analytics', label: 'Analytics', icon: LineChart }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center space-x-2 py-4 border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            <span className="font-medium">{tab.label}</span>
-          </button>
-        ))
-      : [(
-        // Only Budget tab
+  {userPermissions?.ALTER_FINANCE
+    ? [
+        { id: 'overview', label: 'Overview', icon: BarChart3 },
+        { id: 'revenue', label: 'Revenue', icon: TrendingUp },
+        { id: 'commission', label: 'Commission', icon: TrendingUp },
+        { id: 'expenses', label: 'Expenses', icon: Banknote },
+        { id: 'assets', label: 'Assets', icon: Building2 },
+        { id: 'budget', label: 'Float', icon: PieChart },
+        { id: 'analytics', label: 'Analytics', icon: LineChart },
+      ].map((tab) => (
         <button
-          key="budget"
-          onClick={() => setActiveTab('budget')}
+          key={tab.id}
+          onClick={() => setSearchParams({ tab: tab.id })}
           className={`flex items-center space-x-2 py-4 border-b-2 transition-colors ${
-            activeTab === 'budget'
+            activeTab === tab.id
               ? 'border-blue-500 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <tab.icon className="w-4 h-4" />
+          <span className="font-medium">{tab.label}</span>
+        </button>
+      ))
+    : (
+      <>
+        <button
+          onClick={() => setSearchParams({ tab: 'budget' })}
+          className={`flex items-center space-x-2 py-4 border-b-2 ${
+            activeTab === 'budget'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500'
           }`}
         >
           <PieChart className="w-4 h-4" />
           <span className="font-medium">Float</span>
         </button>
-            ),
-            (
-        // Only Budget tab
+
         <button
-          key="expenses"
-          onClick={() => setActiveTab('expenses')}
-          className={`flex items-center space-x-2 py-4 border-b-2 transition-colors ${
+          onClick={() => setSearchParams({ tab: 'expenses' })}
+          className={`flex items-center space-x-2 py-4 border-b-2 ${
             activeTab === 'expenses'
               ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-gray-500'
           }`}
         >
           <Banknote className="w-4 h-4" />
           <span className="font-medium">Expense</span>
         </button>
-            ),
-            ]}
-        </nav>
+      </>
+    )}
+</nav>
+
       </div>
 
       {/* Content */}
