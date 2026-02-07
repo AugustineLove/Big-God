@@ -399,7 +399,7 @@ const DashboardLayout: React.FC = () => {
       <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-200 ease-in-out`}>
         {/* Top bar */}
         <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="flex items-center justify-between h-16 px-6">
+          <div className="flex lg:hidden items-center justify-between h-16 px-6">
             {/* Left section */}
             <div className="flex items-center space-x-4 flex-1">
               {/* Desktop sidebar toggle button (hidden on mobile since we have mobile menu button) */}
