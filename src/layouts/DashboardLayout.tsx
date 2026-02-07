@@ -26,7 +26,7 @@ import {
 import { companyName, userPermissions, userRole } from '../constants/appConstants';
 
 const DashboardLayout: React.FC = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [openFinance, setOpenFinance] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
