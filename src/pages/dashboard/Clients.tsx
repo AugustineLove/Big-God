@@ -569,87 +569,229 @@ const Clients: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredClients.map((customer) => (
-                  <tr key={customer.customer_id} 
-                  onClick={() => navigate(`customer-details/${customer.customer_id}`)}
-                  className="hover:bg-gray-50 transition-colors hover:shadow-md cursor-pointer">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <span className="text-indigo-600 font-medium text-sm">
-                            {customer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                          <div className="text-sm text-gray-500">{customer.account_number}</div>
-                          <div className='text-xs text-gray-400'>Staff: {customer.registered_by_name}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{customer.email}</div>
-                      <div className="text-sm text-gray-500">{customer.phone_number}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className='flex flex-col items-center justify-center'>
-                          <span className="text-green-600">
-                        ¢{parseFloat(customer.total_balance_across_all_accounts || '0').toFixed(2)}
-                      </span>
-                      <div className={customer.status === 'Active' ?  `bg-green-200 rounded-lg flex items-center justify-center px-2` : 'bg-red-300 rounded-lg flex items-center justify-center px-2'}>
-                          <span className={customer.status === 'Active' ? `text-green-600` : `text-red-600` }>
-                        {customer.status}
-                      </span>
-                      </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className='flex flex-col items-center justify-center'>
-                        <span className="inline-flex px-2 py-1 text-sm rounded-full bg-gray-100 text-gray-800">
-                        {customer.location || 'Unknown'}
-                      </span>
-                      <span className='text-sm'>
-                          {customer.gender}
-                      </span>
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(customer.date_of_registration).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-2 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
-                        ¢{parseFloat(customer.daily_rate || '0').toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                          <button
-                            onClick={(e) => {e.stopPropagation(); setEditingClient(customer)}}
-                            className="text-indigo-600 hover:text-indigo-900 transition-colors"
-                            title="Edit customer"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                        {userPermissions.DELETE_CUSTOMER && (
-                          <button
-                            onClick={(e) => {e.stopPropagation(); handleDeleteClick(customer)}}
-                            className="text-red-600 hover:text-red-900 transition-colors"
-                            title="Delete customer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                        <button
-                          className="text-gray-600 hover:text-gray-900 transition-colors"
-                          onClick={(e) => {e.stopPropagation(); navigate(`customer-details/${customer.customer_id}`)}}
-                          title="View details"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                // Enhanced Customer Table Row Component
+// Key improvements:
+// 1. Better visual hierarchy
+// 2. Improved status badges
+// 3. Hover effects and animations
+// 4. Quick actions menu
+// 5. Better data display
+// 6. Improved accessibility
+
+filteredClients.map((customer) => (
+  <tr 
+    key={customer.customer_id} 
+    onClick={() => navigate(`customer-details/${customer.customer_id}`)}
+    className="group hover:bg-blue-50/50 transition-all duration-200 cursor-pointer border-b border-gray-100 last:border-0"
+  >
+    {/* Customer Info with Avatar */}
+    <td className="px-6 py-4">
+      <div className="flex items-center">
+        {/* Enhanced Avatar with gradient */}
+        <div className="relative">
+          <div className="w-11 h-11 bg-gradient-to-br from-[#f4fff0] to-[#faffe7] rounded-full flex items-center justify-center shadow-md ring-2 ring-[#344a2e] group-hover:ring-indigo-100 transition-all">
+            <span className="text-[#344a2e] font-semibold text-sm">
+              {customer.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+            </span>
+          </div>
+          {/* Online status indicator - optional, you can add a status field */}
+          {/* <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div> */}
+        </div>
+        
+        <div className="ml-4">
+          <div className="flex items-center space-x-2">
+            <div className="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+              {customer.name}
+            </div>
+            {/* Premium badge example - you can add based on criteria */}
+            {parseFloat(customer.total_balance_across_all_accounts || '0') > 2000 && (
+              <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                VIP
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-gray-500 font-medium mt-0.5">
+            ID: {customer.account_number}
+          </div>
+          <div className="flex items-center text-xs text-gray-400 mt-1">
+            <span className="flex items-center">
+              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+              </svg>
+              {customer.registered_by_name}
+            </span>
+          </div>
+        </div>
+      </div>
+    </td>
+
+    {/* Contact Information */}
+    <td className="px-6 py-4">
+      <div className="space-y-1">
+        <div className="flex items-center text-sm text-gray-900">
+          <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <span className="truncate max-w-[180px]" title={customer.email}>
+            {customer.email}
+          </span>
+        </div>
+        <div className="flex items-center text-sm text-gray-600">
+          <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+          {customer.phone_number}
+        </div>
+      </div>
+    </td>
+
+    {/* Balance & Status */}
+    <td className="px-6 py-4">
+      <div className="flex flex-col items-start space-y-2">
+        {/* Balance with better formatting */}
+        <div className="flex items-baseline space-x-1">
+          <span className="text-xs text-gray-500 font-medium">Balance:</span>
+          <span className="text-base font-bold text-gray-900">
+            ¢{parseFloat(customer.total_balance_across_all_accounts || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </div>
+        
+        {/* Enhanced status badge */}
+        <span className={`
+          inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full
+          ${customer.status === 'Active' 
+            ? 'bg-green-100 text-green-700 ring-1 ring-green-600/20' 
+            : 'bg-red-100 text-red-700 ring-1 ring-red-600/20'
+          }
+        `}>
+          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+            customer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+          }`}></span>
+          {customer.status}
+        </span>
+      </div>
+    </td>
+
+    {/* Location & Demographics */}
+    <td className="px-6 py-4">
+      <div className="flex flex-col items-start space-y-2">
+        {/* Location */}
+        <div className="flex items-center space-x-1.5">
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="text-sm text-gray-700 font-medium">
+            {customer.location || 'Unknown'}
+          </span>
+        </div>
+        
+        {/* Gender */}
+        <div className="flex items-center space-x-1.5">
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <span className="text-sm text-gray-600">
+            {customer.gender}
+          </span>
+        </div>
+      </div>
+    </td>
+
+    {/* Registration Date */}
+    <td className="px-6 py-4">
+      <div className="flex flex-col items-start">
+        <div className="text-sm font-medium text-gray-900">
+          {new Date(customer.date_of_registration).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          })}
+        </div>
+        <div className="text-xs text-gray-500 mt-0.5">
+          {/* Days since registration */}
+          {Math.floor((new Date().getTime() - new Date(customer.date_of_registration).getTime()) / (1000 * 60 * 60 * 24))} days ago
+        </div>
+      </div>
+    </td>
+
+    {/* Daily Rate */}
+    <td className="px-6 py-4">
+      <div className="inline-flex items-center px-3 py-1.5 text-sm font-bold rounded-lg bg-gradient-to-r text-[#344a2e] shadow-md">
+        ¢{parseFloat(customer.daily_rate || '0').toFixed(2)}
+      </div>
+    </td>
+
+    {/* Actions */}
+    <td className="px-6 py-4">
+      <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Edit Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditingClient(customer);
+          }}
+          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-200"
+          title="Edit customer"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+
+        {/* Delete Button */}
+        {userPermissions.DELETE_CUSTOMER && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteClick(customer);
+            }}
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+            title="Delete customer"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+
+        {/* View Details Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`customer-details/${customer.customer_id}`);
+          }}
+          className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200"
+          title="View details"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Always visible on mobile */}
+      <div className="flex items-center justify-end space-x-1 md:hidden">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditingClient(customer);
+          }}
+          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+        {userPermissions.DELETE_CUSTOMER && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteClick(customer);
+            }}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    </td>
+  </tr>
+))
               )}
             </tbody>
           </table>
