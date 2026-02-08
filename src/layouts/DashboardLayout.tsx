@@ -225,7 +225,10 @@ const DashboardLayout: React.FC = () => {
                     return (
                       <div key={item.name} className="relative group mb-1">
                         <button
-                          onClick={() => setOpenFinance(!openFinance)}
+                          onClick={() => {
+                            setIsSidebarCollapsed(false);
+                            setOpenFinance(true);
+                          }}
                           className={`flex w-full items-center justify-center p-3 rounded-lg transition-all duration-200 group ${
                             location.pathname.startsWith('/dashboard/expenses')
                               ? 'bg-[#548048] text-white shadow-md'

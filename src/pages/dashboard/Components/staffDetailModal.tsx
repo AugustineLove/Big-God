@@ -432,7 +432,7 @@ const StaffDetailModal = ({
                     reportsMap[dateKey] = { totalDeposits: 0, totalWithdrawals: 0 };
                     }
 
-                    if (tx.type === 'deposit' && !tx.is_deleted && tx.status === 'approved' || tx.status === 'completed' && tx.mobile_banker_id === selectedStaff?.id) {
+                    if (tx.type === 'deposit' && !tx.is_deleted && tx.status === 'approved' || tx.status === 'completed' && tx.recorded_staff_id === selectedStaff?.id) {
                     reportsMap[dateKey].totalDeposits += Number(tx.amount);
                     } else if (tx.type === 'withdrawal' && !tx.is_deleted && tx.status === 'approved' && tx.recorded_staff_id === selectedStaff?.id) {
                     reportsMap[dateKey].totalWithdrawals += Number(tx.amount);

@@ -40,40 +40,7 @@ const StaffManagement = () => {
     (tx) => tx.recorded_staff_id === selectedStaff?.id
   );
 
-  const recentActivity = staffTransactions
-  .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime()) // newest first
-  .slice(0, 5) // last 5 activities
-  .map((tx) => {
-    let title = '';
-    let subtitle = '';
-    let transaction_date = '';
-
-    switch (tx.type) {
-      case 'deposit':
-        title = `Deposit collected from ${tx.customer_name || 'Unknown'}`;
-        subtitle = `₵${tx.amount} • ${new Date(tx.transaction_date).toLocaleTimeString()}- ${tx.description}`;
-        transaction_date = `${tx.transaction_date}`;
-        break;
-      case 'withdrawal':
-        title = `Withdrawal by ${tx.customer_name || 'Unknown'}`;
-        subtitle = `₵${tx.amount} • ${new Date(tx.transaction_date).toLocaleTimeString()}- ${tx.description}`;
-        transaction_date = `${tx.transaction_date}`;
-        break;
-      case 'commission':
-        title = `New commission`;
-        subtitle = `${tx.customer_name} • ${new Date(tx.transaction_date).toLocaleTimeString()}- ${tx.description}`;
-        transaction_date = `${tx.transaction_date}`;
-        break;
-      default:
-        title = tx.type;
-        subtitle = new Date(tx.transaction_date).toLocaleTimeString();
-        transaction_date = `${tx.transaction_date}`;
-      }
-
-    return { id: tx.id, title, subtitle, type: tx.type, transaction_date };
-  });
-
-
+ 
    useEffect(() => {
     // Optionally refresh data on mount
     fetchDashboardStaff();

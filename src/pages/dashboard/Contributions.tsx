@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { useCustomers } from '../../contexts/dashboard/Customers';
 import { userPermissions } from '../../constants/appConstants';
 import { handlePdfExport } from '../../utils/helper';
+import { useNavigate } from 'react-router-dom';
 
 const Contributions: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +32,7 @@ const Contributions: React.FC = () => {
   const { stats } = useStats();
   const { staffList } = useStaff();
   const { refreshCustomers } = useCustomers();
+  const navigate = useNavigate();
 
   const filteredContributions = useMemo(() => {
   return transactions.filter(contribution => {
@@ -371,7 +373,7 @@ const Contributions: React.FC = () => {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="all">All Staff</option>
-              {staffList.filter(staff => staff.role?.toLocaleLowerCase() === 'teller' || staff.role?.toLocaleLowerCase() === 'accountant').map(staff => (
+              {staffList.filter(staff => staff.role?.toLocaleLowerCase() === 'teller' || staff.role?.toLocaleLowerCase() === 'mobile_banker' || staff.role?.toLocaleLowerCase() === 'mobile banker').map(staff => (
                 <option key={staff.id} value={staff.id}>
                   {staff.full_name} {staff.staff_id ? `(${staff.staff_id})` : ''}
                 </option>
@@ -380,7 +382,7 @@ const Contributions: React.FC = () => {
           </div>
 
           {/* Mobile Banker Filter */}
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Bankers</label>
             <select
               value={staffFilter}
@@ -394,7 +396,7 @@ const Contributions: React.FC = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
 
           {/* Transaction Type Filter */}
           <div>
@@ -524,9 +526,10 @@ const Contributions: React.FC = () => {
               }`}
             >
               <span
-                className={`font-medium text-sm ${
+                className={`font-medium text-sm cursor-pointer ${
                   isDeleted ? "text-gray-400" : "text-indigo-600"
                 }`}
+                onClick={() => navigate(`/dashboard/clients/customer-details/${contribution.customer_id}`)}
               >
                 {contribution.customer_name
                   .split(" ")

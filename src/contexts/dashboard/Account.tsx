@@ -75,7 +75,6 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchAccounts = async (customerId: string) => {
     setLoading(true);
-    console.log(`Fetching accounts for customer ID: ${customerId}`);
     try {
         const res = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/customer/${customerId}`);
       if (!res.ok) {
@@ -83,7 +82,6 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
       const data = await res.json();
-      console.log(data);
         setAccounts(
       Array.isArray(data?.data)
         ? data.data
@@ -103,7 +101,6 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const addAccount = async(newAccount: Omit<Account, 'id' | 'created_at'>)=>{
       try {
-        console.log(`Adding account for customer ${JSON.stringify(newAccount)}`);
         const res = await fetch('https://susu-pro-backend.onrender.com/api/accounts/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json'},
@@ -111,7 +108,6 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         if (res.ok){
           const added = await res.json();
-          console.log('Added account', added);
           return true;
         }  
         return false;

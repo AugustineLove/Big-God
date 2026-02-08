@@ -236,8 +236,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         ]);
         const updatedAccounts = await refreshAccounts(customer.customer_id);
         const newAccountBalance = updatedAccounts.find(a => a.id === account.id)?.balance;
-        console.log(`New account balance: ${newAccountBalance}`)
-
+        
       
       const messageData = {
             messageTo: customer.phone_number,
@@ -271,7 +270,6 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [fetchTransactions, refreshCustomers, refreshStats]);
 
   const deductCommission = useCallback(async (newCommission: Commission, messageData: TransactionType): Promise<boolean> => {
-    console.log(`Withdrawal plus commission body ${JSON.stringify(messageData)}`)
     const accountId = newCommission.account_id;
     console.log(`Commission data: ${JSON.stringify(newCommission)}`)
     
