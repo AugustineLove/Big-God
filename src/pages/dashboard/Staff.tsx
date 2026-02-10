@@ -22,11 +22,13 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  XCircle
+  XCircle,
+  User
 } from 'lucide-react';
 import { useStaff } from '../../contexts/dashboard/Staff';
 import { useTransactions } from '../../contexts/dashboard/Transactions';
 import StaffDetailModal from './Components/staffDetailModal';
+import OtherStaffTab from './Components/otherStaffTab';
 
 const StaffManagement = () => {
   const [activeTab, setActiveTab] = useState('mobile-bankers');
@@ -47,7 +49,7 @@ const StaffManagement = () => {
   }, []);
 
   
-    const mobileBankers = dashboardStaffList.filter(staff => staff.role === 'mobile_banker' || staff.role === 'teller');
+    const mobileBankers = dashboardStaffList.filter(staff => staff.role === 'mobile_banker' || staff.role === 'teller' || staff.role === 'accountant');
     const otherStaff = dashboardStaffList.filter(staff => staff.role !== 'mobile_banker');
     
   // Sample data for mobile bankers
@@ -132,8 +134,8 @@ const StaffManagement = () => {
                 {banker.email}
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin size={14} />
-                {banker.location}
+                <User size={14} />
+                {banker.role}
               </div>
             </div>
 
@@ -195,107 +197,6 @@ const StaffManagement = () => {
     </div>
   );
 
-  const OtherStaffTab = () => (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Other Staff</h2>
-          <p className="text-gray-600">Manage office staff and permissions</p>
-        </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <UserPlus size={18} />
-          Add Staff Member
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-        <input
-          type="text"
-          placeholder="Search staff members..."
-          className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      {/* Staff table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Staff Member</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Role & Department</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Contact</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Permissions</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Status</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {otherStaff.map((staff) => (
-                
-                <tr key={staff.id} className="hover:bg-gray-50">
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                        <Users className="text-purple-600" size={20} />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{staff.name}</div>
-                        <div className="text-sm text-gray-600">Joined {staff.joinDate}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="font-medium text-gray-900">{staff.role}</div>
-                    <div className="text-sm text-gray-600">{staff.department}</div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="text-sm text-gray-900">{staff.phone}</div>
-                    <div className="text-sm text-gray-600">{staff.email}</div>
-                  </td>
-                 <td className="py-4 px-6">
-                  <div className="flex flex-wrap gap-1">
-                    {Object.entries(staff.permissions)
-                      .filter(([_, value]) => value === true) // Only show granted permissions
-                      .map(([key], index) => (
-                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded uppercase">
-                          {key.replace(/_/g, ' ')}
-                        </span>
-                      ))}
-                  </div>
-                </td>
-                  <td className="py-4 px-6">
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                      {staff.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-800 transition-colors">
-                        <Edit size={16} />
-                      </button>
-                      <button className="text-green-600 hover:text-green-800 transition-colors">
-                        <Shield size={16} />
-                      </button>
-                      <button className="text-red-600 hover:text-red-800 transition-colors">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
 
   const ExcessLossModal = () => {
     if (!showExcessLossModal) return null;
