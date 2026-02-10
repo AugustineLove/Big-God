@@ -24,12 +24,14 @@ export type FloatActivity = {
   withdrawal_staff_name?: string;
   recorded_staff_name?: string;
   mobile_banker_name?: string;
+  
 
   // Expense
   expense_id?: string;
   expense_description?: string;
   expense_amount?: number;
   expense_staff_name?: string;
+  description?: string;
 };
 
 type FloatActivityContextType = {
