@@ -53,12 +53,10 @@ export const AccountNumberProviders: React.FC<{ children: React.ReactNode }> = (
   }, []);
 
 const getNextAccountNumber = (staffId: string) => {
-  console.log(`staff id: ${staffId}`)
   const staff = data.find(s => s.staff_id === staffId);
   if (!staff) return null;
 
   const last = staff.last_account_number;
-  console.log(`Last ${last}`)
 
   // First account ever
   if (!last) {
