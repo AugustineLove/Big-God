@@ -194,6 +194,7 @@ const accountOptions = allAccounts.map(account => ({
   const getTransactionIcon = (type) => {
     switch (type) {
       case 'deposit': return <ArrowDownLeft className="w-4 h-4 text-green-600" />;
+      case 'transfer_in': return <ArrowDownLeft className="w-4 h-4 text-green-600" />;
       case 'withdrawal': return <ArrowUpRight className="w-4 h-4 text-red-600" />;
       case 'payment': return <ArrowUpRight className="w-4 h-4 text-blue-600" />;
       default: return <ArrowUpRight className="w-4 h-4 text-gray-600" />;
@@ -440,9 +441,9 @@ const accountOptions = allAccounts.map(account => ({
                       </div>
                       <div className="text-right">
                         <p className={`font-medium ${
-                          transaction.type === 'deposit' ? 'text-green-600' : 'text-red-600'
+                          transaction.type === 'deposit' || transaction.type === 'transfer_in' ? 'text-green-600' : 'text-red-600'
                         }`}>
-                          {transaction.type === 'deposit' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                          {transaction.type === 'deposit' || transaction.type === 'transfer_in' ? '+' : '-'}{formatCurrency(transaction.amount)}
                         </p>
                         <p className="text-sm text-gray-600 font-bold">{formatDate(transaction.transaction_date)}</p>
                         <p className='text-sm text-gray-600'>{transaction.status}</p>
@@ -989,12 +990,12 @@ const accountOptions = allAccounts.map(account => ({
                         className={`py-3 px-4 text-right font-medium ${
                           isReversed
                             ? 'text-gray-400'
-                            : transaction.type === 'deposit'
+                            : transaction.type === 'deposit' || transaction.type === 'transfer_in'
                               ? 'text-green-600'
                               : 'text-red-600'
                         }`}
                       >
-                        {transaction.type === 'deposit' ? '+' : '-'}
+                        {transaction.type === 'deposit'  || transaction.type === 'transfer_in' ? '+' : '-'}
                         {formatCurrency(transaction.amount)}
                       </td>
 
