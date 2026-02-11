@@ -104,7 +104,7 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const getAllCompanyAccounts = async () => {
     setLoading(true);
     try {
-        const res = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/company/${companyId}`);
+        const res = await fetch(`http://localhost:5000/api/accounts/company/${companyId}`);
       if (!res.ok) {
         const errorText = await res.text();
         console.log(errorText);

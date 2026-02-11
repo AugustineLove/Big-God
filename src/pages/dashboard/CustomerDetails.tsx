@@ -62,7 +62,7 @@ type CustomerDTO = {
 
 const CustomerDetailsPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  // const [selectedAccount, setSelectedAccount] = useState('all');
+  const [selectedAccount, setSelectedAccount] = useState('all');
   const [transactionFilter, setTransactionFilter] = useState('all');
    const [showAddModal, setShowAddModal] = useState(false); 
     const [editingClient, setEditingClient] = useState<Customer | null>(null);
@@ -111,14 +111,14 @@ const accountOptions = allAccounts.map(account => ({
 }));
 
   // Find selected account
-  const selectedAccount = allAccounts.find(
+  const newSelectedAccount = allAccounts.find(
     (account) => account.id === toAccountId
   );
 
   // Find the customer whose ID is the prefix of the account ID
   const selectedCustomer = customers.find(
     (customer) =>
-      selectedAccount?.account_number.startsWith(customer.account_number)
+      newSelectedAccount?.account_number.startsWith(customer.account_number)
   );
 
   // Mock customer data - replace with your actual data fetching
@@ -608,7 +608,7 @@ const accountOptions = allAccounts.map(account => ({
 
               {selectedCustomer && (
             <div className="mt-2 p-3 border rounded-lg bg-gray-50">
-              <p className="font-semibold">{selectedCustomer.name} - {selectedAccount.balance}</p>
+              <p className="font-semibold">{selectedCustomer.name} - {newSelectedAccount.balance}</p>
               <p className="text-sm text-gray-600">
                 {selectedCustomer.phone}
               </p>
