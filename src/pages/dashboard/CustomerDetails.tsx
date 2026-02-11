@@ -496,7 +496,7 @@ const accountOptions = allAccounts.map(account => ({
               </h3>
 
               <div className='flex space-x-3'>
-                  {userPermissions.ALTER_ACCOUNT && (
+                  {userPermissions.MANAGE_CASHACCOUNTS && (
                 <button
                   className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   onClick={() => setIsAddModalOpen(true)}
@@ -507,7 +507,7 @@ const accountOptions = allAccounts.map(account => ({
               )}
 
               {
-                userPermissions.ALTER_ACCOUNT && (
+                userPermissions.MANAGE_CASHACCOUNTS && (
                   <button
                   className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   onClick={() => setIsTransferModalOpen(true)}
