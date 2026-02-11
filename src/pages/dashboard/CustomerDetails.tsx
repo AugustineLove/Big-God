@@ -34,6 +34,7 @@ import { ClientModal } from './Components/clientModal';
 import { Account, Customer } from '../../data/mockData';
 import toast from 'react-hot-toast';
 import AddAccountModal, { AccountFormData } from '../../components/addAccountModal';
+import Select from 'react-select';
 
 type CustomerDTO = {
   id?: string;
@@ -61,12 +62,12 @@ type CustomerDTO = {
 
 const CustomerDetailsPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [selectedAccount, setSelectedAccount] = useState('all');
+  // const [selectedAccount, setSelectedAccount] = useState('all');
   const [transactionFilter, setTransactionFilter] = useState('all');
    const [showAddModal, setShowAddModal] = useState(false); 
     const [editingClient, setEditingClient] = useState<Customer | null>(null);
-    const { fetchCustomerById, editCustomer, addCustomer, refreshCustomers, deleteCustomer, customer, customerLoading } = useCustomers();
-  const { accounts, customerLoans, refreshAccounts, addAccount, toggleAccountStatus } = useAccounts();
+    const { fetchCustomerById, editCustomer, addCustomer, refreshCustomers, deleteCustomer, customer, customerLoading, customers } = useCustomers();
+  const { accounts, allAccounts, customerLoans, refreshAccounts, refreshAllCompanyAccounts, addAccount, toggleAccountStatus } = useAccounts();
   const { fetchCustomerTransactions, customerTransactions } = useTransactions();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,6 +80,8 @@ const [narration, setNarration] = useState("");
 const { transferBetweenAccounts } = useTransactions();
 
  const { id } = useParams();
+
+
  
  useEffect(() => {
   let mounted = false;
@@ -91,6 +94,7 @@ const { transferBetweenAccounts } = useTransactions();
 
     await fetchCustomerById(id || '');
     await refreshAccounts(id || '');
+    await refreshAllCompanyAccounts();
     await fetchCustomerTransactions(id || '');
 
     toast.success("Done", { id: toastId });
@@ -101,7 +105,22 @@ const { transferBetweenAccounts } = useTransactions();
   }
 }, [id]);
 
-  console.log(`Customer data: ${JSON.stringify(customer)}`);
+const accountOptions = allAccounts.map(account => ({
+  value: account.id,
+  label: `${account.account_type} - ${account.account_number}`,
+}));
+
+  // Find selected account
+  const selectedAccount = allAccounts.find(
+    (account) => account.id === toAccountId
+  );
+
+  // Find the customer whose ID is the prefix of the account ID
+  const selectedCustomer = customers.find(
+    (customer) =>
+      selectedAccount?.account_number.startsWith(customer.account_number)
+  );
+
   // Mock customer data - replace with your actual data fetching
   const now = new Date();
   const customerData = {
@@ -568,6 +587,36 @@ const { transferBetweenAccounts } = useTransactions();
                   ))}
               </select>
             </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Other Accounts
+                </label>
+
+                <Select
+                  options={accountOptions}
+                  value={
+                    accountOptions.find(option => option.value === toAccountId) || null
+                  }
+                  onChange={(selectedOption) => 
+                    setToAccountId(selectedOption?.value || "")
+                  }
+                  placeholder="Search account number..."
+                  isSearchable
+                />
+              </div>
+
+              {selectedCustomer && (
+            <div className="mt-2 p-3 border rounded-lg bg-gray-50">
+              <p className="font-semibold">{selectedCustomer.name} - {selectedAccount.balance}</p>
+              <p className="text-sm text-gray-600">
+                {selectedCustomer.phone}
+              </p>
+            </div>
+          )}
+
+
+
 
             {/* AMOUNT */}
             <div className="mb-4">

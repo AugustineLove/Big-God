@@ -65,7 +65,6 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (res.ok){
         const data = await res.json();
         setCustomer(data.data);
-        console.log(`Customer data: ${data.data}`)
         return data.data;
       }
     } catch(error){

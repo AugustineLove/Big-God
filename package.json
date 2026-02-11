@@ -18,6 +18,7 @@
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.7.1",
+    "react-select": "^5.10.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
