@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -25,23 +25,28 @@ import {
 } from 'lucide-react';
 import { companyName, userPermissions, userRole } from '../constants/appConstants';
 
+interface Tab {
+  id: string;
+  name: string;
+  path: string;
+  icon: any;
+}
+
 const DashboardLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [openFinance, setOpenFinance] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [tabs, setTabs] = useState<Tab[]>([
+    { id: 'dashboard', name: 'Overview', path: '/dashboard', icon: LayoutDashboard }
+  ]);
+  const [activeTabId, setActiveTabId] = useState('dashboard');
   const { company, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Auto-open finance when inside finance page
-  useEffect(() => {
-    if (location.pathname.startsWith('/dashboard/expenses')) {
-      setOpenFinance(true);
-    }
-  }, [location.pathname]);
-
-  const navigation = [
+  // Memoize navigation array to prevent recreation on every render
+  const navigation = useMemo(() => [
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Customers', href: '/dashboard/clients', icon: Users },
     { name: 'Deposits', href: '/dashboard/contributions', icon: PiggyBank },
@@ -67,14 +72,89 @@ const DashboardLayout: React.FC = () => {
     ...(userPermissions?.MANAGE_STAFF ? [{ name: 'Staffs', href: '/dashboard/staffs', icon: Users }] : []),
     ...(userPermissions?.LOAN_PRIVILEGES ? [{ name: 'Loans', href: '/dashboard/loans', icon: CreditCard }] : []),
     { name: 'Chat', href: '/dashboard/chat', icon: Chat },
-    // ...(userPermissions?.SETTINGS_ACCESS ? [{ name: 'Settings', href: '/dashboard/settings', icon: Settings }] : [])
-  ];
+  ], [userPermissions]);
 
-  const handleLogout = () => {
+  // Auto-open finance when inside finance page
+  useEffect(() => {
+    if (location.pathname.startsWith('/dashboard/expenses')) {
+      setOpenFinance(true);
+    }
+  }, [location.pathname]);
+
+  // Handle opening a new tab or switching to existing one - memoized
+  const handleOpenTab = useCallback((name: string, path: string, icon: any) => {
+    setTabs(prevTabs => {
+      // Check if tab already exists
+      const existingTab = prevTabs.find(tab => tab.path === path);
+      
+      if (existingTab) {
+        // Switch to existing tab without state update if already active
+        if (activeTabId !== existingTab.id) {
+          setActiveTabId(existingTab.id);
+        }
+        navigate(path);
+        return prevTabs; // No state change needed
+      } else {
+        // Create new tab
+        const newTab: Tab = {
+          id: `tab-${Date.now()}`,
+          name,
+          path,
+          icon
+        };
+        setActiveTabId(newTab.id);
+        navigate(path);
+        return [...prevTabs, newTab];
+      }
+    });
+    
+    // Close mobile sidebar
+    setIsSidebarOpen(false);
+  }, [navigate, activeTabId]);
+
+  // Handle closing a tab - memoized
+  const handleCloseTab = useCallback((tabId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    setTabs(prevTabs => {
+      const tabIndex = prevTabs.findIndex(tab => tab.id === tabId);
+      const newTabs = prevTabs.filter(tab => tab.id !== tabId);
+      
+      // If closing the active tab, switch to another tab
+      if (tabId === activeTabId && newTabs.length > 0) {
+        // Switch to the tab on the left if available, otherwise the right
+        const newActiveTab = newTabs[tabIndex > 0 ? tabIndex - 1 : 0];
+        setActiveTabId(newActiveTab.id);
+        navigate(newActiveTab.path);
+      }
+      
+      return newTabs;
+    });
+  }, [activeTabId, navigate]);
+
+  // Handle switching tabs - memoized
+  const handleSwitchTab = useCallback((tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab) {
+      setActiveTabId(tabId);
+      navigate(tab.path);
+    }
+  }, [tabs, navigate]);
+
+  // Sync active tab with current location
+  useEffect(() => {
+    const currentTab = tabs.find(tab => tab.path === location.pathname);
+    if (currentTab && currentTab.id !== activeTabId) {
+      setActiveTabId(currentTab.id);
+    }
+  }, [location.pathname, tabs, activeTabId]);
+
+  const handleLogout = useCallback(() => {
     logout();
-  };
+  }, [logout]);
 
-  const getCurrentPageName = () => {
+  // Memoize current page name calculation
+  const currentPageName = useMemo(() => {
     const currentRoute = navigation.find(item => item.href === location.pathname);
     if (currentRoute) return currentRoute.name;
     
@@ -88,29 +168,16 @@ const DashboardLayout: React.FC = () => {
     }
     
     return 'Dashboard';
-  };
+  }, [location.pathname, location.search, navigation]);
 
-  // Toggle sidebar collapsed state
-  const toggleSidebar = () => {
+  // Toggle sidebar collapsed state - memoized
+  const toggleSidebar = useCallback(() => {
     if (window.innerWidth >= 1024) {
-      // On desktop, toggle collapsed state
-      setIsSidebarCollapsed(!isSidebarCollapsed);
-      if (isSidebarCollapsed) {
-        // When expanding, close mobile sidebar if it was open
-        setIsSidebarOpen(true);
-      }
+      setIsSidebarCollapsed(prev => !prev);
     } else {
-      // On mobile, toggle full sidebar
-      setIsSidebarOpen(!isSidebarOpen);
-      console.log(isSidebarOpen);
+      setIsSidebarOpen(prev => !prev);
     }
-  };
-  const toggleMobileSidebar = () => {
-  setIsSidebarCollapsed(false); 
-  setIsSidebarOpen(true);
-};
-
-  
+  }, []);
 
   // Close sidebar on mobile when clicking outside
   useEffect(() => {
@@ -141,12 +208,22 @@ const DashboardLayout: React.FC = () => {
     };
   }, [isSidebarOpen]);
 
+  // Memoize current date string
+  const currentDate = useMemo(() => 
+    new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+  , []);
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Mobile sidebar backdrop */}
-      {isSidebarOpen && window.innerWidth < 1024 && (
+      {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 transition-opacity"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 transition-opacity lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -194,7 +271,7 @@ const DashboardLayout: React.FC = () => {
           </div>
 
           {/* Persistent Sidebar Toggle Button */}
-          <div className={`absolute top-20 -right-3 z-10 ${isSidebarCollapsed ? '' : ''}`}>
+          <div className="absolute top-20 -right-3 z-10">
             <button
               onClick={toggleSidebar}
               aria-label="Toggle sidebar"
@@ -221,7 +298,6 @@ const DashboardLayout: React.FC = () => {
 
                 if (item.children) {
                   if (isSidebarCollapsed) {
-                    // Collapsed view for finance
                     return (
                       <div key={item.name} className="relative group mb-1">
                         <button
@@ -243,8 +319,7 @@ const DashboardLayout: React.FC = () => {
                           }`} />
                         </button>
                         
-                        {/* Tooltip for collapsed state */}
-                        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 pointer-events-none">
                           {item.name}
                         </div>
                       </div>
@@ -253,7 +328,6 @@ const DashboardLayout: React.FC = () => {
 
                   return (
                     <div key={item.name} className="mb-1">
-                      {/* Finance main button */}
                       <button
                         onClick={() => setOpenFinance(!openFinance)}
                         className={`flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group ${
@@ -277,7 +351,6 @@ const DashboardLayout: React.FC = () => {
                         )}
                       </button>
 
-                      {/* Finance dropdown */}
                       <div
                         className={`overflow-hidden transition-all duration-300 ease-in-out ${
                           openFinance ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'
@@ -288,20 +361,20 @@ const DashboardLayout: React.FC = () => {
                             const params = new URLSearchParams(location.search);
                             const currentTab = params.get('tab');
                             const isChildActive = currentTab === child.tab;
+                            const childPath = `${item.href}?tab=${child.tab}`;
                             
                             return (
-                              <Link
+                              <button
                                 key={child.tab}
-                                to={`${item.href}?tab=${child.tab}`}
-                                onClick={() => setIsSidebarOpen(false)}
-                                className={`block py-2 px-3 text-sm rounded-md transition-all duration-200 ${
+                                onClick={() => handleOpenTab(`Finance - ${child.name}`, childPath, BarChart3)}
+                                className={`block w-full text-left py-2 px-3 text-sm rounded-md transition-all duration-200 ${
                                   isChildActive
                                     ? 'text-[#344a2e] bg-[#2c661c]/[0.2] font-medium'
                                     : 'text-gray-600 hover:text-[#344a2e] hover:bg-gray-50'
                                 }`}
                               >
                                 {child.name}
-                              </Link>
+                              </button>
                             );
                           })}
                         </div>
@@ -311,12 +384,10 @@ const DashboardLayout: React.FC = () => {
                 }
 
                 return isSidebarCollapsed ? (
-                  // Collapsed view for regular items
                   <div key={item.name} className="relative group mb-1">
-                    <Link
-                      to={item.href}
-                      onClick={() => setIsSidebarOpen(false)}
-                      className={`flex items-center justify-center p-3 rounded-lg transition-all duration-200 group ${
+                    <button
+                      onClick={() => handleOpenTab(item.name, item.href, Icon)}
+                      className={`flex w-full items-center justify-center p-3 rounded-lg transition-all duration-200 group ${
                         isActive
                           ? 'bg-[#344a2e] text-white shadow-md'
                           : 'text-gray-700 hover:bg-gray-50'
@@ -326,19 +397,17 @@ const DashboardLayout: React.FC = () => {
                       <Icon className={`h-5 w-5 transition-colors ${
                         isActive ? 'text-white' : 'text-gray-500 group-hover:text-[#344a2e]'
                       }`} />
-                    </Link>
+                    </button>
                     
-                    {/* Tooltip for collapsed state */}
-                    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 pointer-events-none">
                       {item.name}
                     </div>
                   </div>
                 ) : (
-                  <Link
+                  <button
                     key={item.name}
-                    to={item.href}
-                    onClick={() => setIsSidebarOpen(false)}
-                    className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                    onClick={() => handleOpenTab(item.name, item.href, Icon)}
+                    className={`flex w-full items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group ${
                       isActive
                         ? 'bg-[#344a2e] text-white shadow-md'
                         : 'text-gray-700 hover:bg-gray-50'
@@ -348,7 +417,7 @@ const DashboardLayout: React.FC = () => {
                       isActive ? 'text-white' : 'text-gray-500 group-hover:text-[#344a2e]'
                     }`} />
                     <span>{item.name}</span>
-                  </Link>
+                  </button>
                 );
               })}
             </div>
@@ -356,24 +425,20 @@ const DashboardLayout: React.FC = () => {
 
           {/* Sidebar Footer */}
           <div className={`p-4 border-t border-gray-100 bg-gray-50/50 ${isSidebarCollapsed ? 'px-2' : ''}`}>
-            {/* User Profile Card */}
             <div className={`bg-white rounded-lg shadow-sm border border-gray-100 ${isSidebarCollapsed ? 'p-2' : 'p-3'}`}>
               {isSidebarCollapsed ? (
-                // Collapsed user profile
                 <div className="relative group">
                   <div className="w-10 h-10 mx-auto bg-gradient-to-br from-[#344a2e] to-[#4a6b3e] rounded-full flex items-center justify-center shadow-md">
                     <span className="text-white text-sm font-semibold">
                       {company?.staffName?.charAt(0) || company?.companyName.charAt(0)}
                     </span>
                   </div>
-                  {/* Tooltip for user info */}
-                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs py-2 px-3 rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs py-2 px-3 rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 pointer-events-none">
                     <div className="font-semibold">{company?.staffName}</div>
                     <div className="text-gray-300 text-[10px]">{company?.companyName}</div>
                   </div>
                 </div>
               ) : (
-                // Expanded user profile
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-[#344a2e] to-[#4a6b3e] rounded-full flex items-center justify-center shadow-md">
                     <span className="text-white text-sm font-semibold">
@@ -399,58 +464,42 @@ const DashboardLayout: React.FC = () => {
       </aside>
 
       {/* Main content area */}
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-200 ease-in-out`}>
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-6">
             {/* Left section */}
             <div className="flex items-center space-x-4 flex-1">
-              {/* Desktop sidebar toggle button (hidden on mobile since we have mobile menu button) */}
-              <div className={`flex lg:hidden top-10 -right-3 z-10 ${isSidebarCollapsed ? '' : ''}`}>
-              <button
-                onClick={toggleSidebar}
-                aria-label="Toggle sidebar"
-                className="bg-white border border-gray-200 rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:shadow-lg transition-shadow"
-              >
-                {isSidebarCollapsed ? (
+              <div className="flex lg:hidden">
+                <button
+                  onClick={toggleSidebar}
+                  aria-label="Toggle sidebar"
+                  className="bg-white border border-gray-200 rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:shadow-lg transition-shadow"
+                >
                   <MenuIcon className="h-3 w-3 text-gray-600" />
-                ) : (
-                  <MenuIcon className="h-3 w-3 text-gray-600" />
-                )}
-              </button>
-            </div>
-
+                </button>
+              </div>
 
               <div className="flex-1">
                 <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-                  {getCurrentPageName()}
+                  {currentPageName}
                 </h1>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
+                  {currentDate}
                 </p>
               </div>
             </div>
 
             {/* Right section */}
             <div className="flex items-center space-x-3">
-              {/* Notifications */}
               <button
-                onClick={() => {
-                  navigate('/dashboard/chat');
-                  setIsSidebarOpen(false);
-                }}
+                onClick={() => handleOpenTab('Chat', '/dashboard/chat', Chat)}
                 className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full ring-2 ring-white"></span>
               </button>
 
-              {/* Profile dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -468,26 +517,25 @@ const DashboardLayout: React.FC = () => {
                   <ChevronDown className="hidden md:block h-4 w-4 text-gray-500" />
                 </button>
 
-                {/* Profile dropdown menu */}
                 {isProfileMenuOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-900">{companyName}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{userRole}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{company?.email || company?.parentCompanyEmail}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{company?.email || company?.parentCompanyEmail}</p>
                     </div>
-                   {
-                    userPermissions?.SETTINGS_ACCESS && (
-                       <Link
-                      to="/dashboard/settings"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                    >
-                      <Settings className="h-4 w-4 mr-3 text-gray-500" />
-                      Settings
-                    </Link>
-                    )
-                   }
+                    {userPermissions?.SETTINGS_ACCESS && (
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          handleOpenTab('Settings', '/dashboard/settings', Settings);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Settings className="h-4 w-4 mr-3 text-gray-500" />
+                        Settings
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setIsProfileMenuOpen(false);
@@ -502,6 +550,38 @@ const DashboardLayout: React.FC = () => {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Tab Bar */}
+          <div className="flex items-center bg-gray-50 border-t border-gray-200 px-4 overflow-x-auto scrollbar-hide">
+            {tabs.map((tab) => {
+              const TabIcon = tab.icon;
+              const isActive = tab.id === activeTabId;
+              
+              return (
+                <div
+                  key={tab.id}
+                  onClick={() => handleSwitchTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 cursor-pointer border-b-2 transition-colors duration-150 whitespace-nowrap group ${
+                    isActive
+                      ? 'border-[#344a2e] bg-white text-[#344a2e] font-medium'
+                      : 'border-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <TabIcon className={`h-4 w-4 ${isActive ? 'text-[#344a2e]' : 'text-gray-500'}`} />
+                  <span className="text-sm">{tab.name}</span>
+                  
+                  {tabs.length > 1 && (
+                    <button
+                      onClick={(e) => handleCloseTab(tab.id, e)}
+                      className="ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </header>
 
@@ -527,6 +607,13 @@ const DashboardLayout: React.FC = () => {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #94a3b8;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
     </div>
