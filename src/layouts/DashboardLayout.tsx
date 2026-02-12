@@ -22,8 +22,9 @@ import {
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
   MenuIcon,
+  User,
 } from 'lucide-react';
-import { companyName, userPermissions, userRole } from '../constants/appConstants';
+import { companyName, userPermissions, userRole, userStaffId } from '../constants/appConstants';
 
 interface Tab {
   id: string;
@@ -521,9 +522,15 @@ const DashboardLayout: React.FC = () => {
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-900">{companyName}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{userRole}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{userStaffId}</p>
+                      
                       <p className="text-xs text-gray-500 mt-0.5">{company?.email || company?.parentCompanyEmail}</p>
-                    </div>
+                    <div className = 'flex items-center space-x-[5px] bg-[#344a2e] w-[50%] mt-2 rounded-[50px] p-2 content-center'>
+                          <User className = "h-4 w-4 bg-white white rounded-full" />
+                          <p className="text-xs text-white mt-0.5">{userRole}</p>
+                      </div>
+                      {/* <p className="text-sm font-semibold text-gray-500">{userStaffId}</p> */}
+                      </div>
                     {userPermissions?.SETTINGS_ACCESS && (
                       <button
                         onClick={() => {

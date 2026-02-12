@@ -66,7 +66,7 @@ export const AccountNumberProvider = ({children}: {children: ReactNode}) => {
     setLoading(true);
     try {
       const res = await fetch(
-        `https://susu-pro-backend.onrender.com/api/accounts/last-account-number/${staffId}`
+        `http://localhost:5000/api/accounts/last-account-number/${staffId}`
       );
 
     //   const last = res.data?.lastAccountNumber ?? null;

@@ -4,7 +4,7 @@ import { Account, Customer } from "../../../data/mockData";
 import { useCustomers } from "../../../contexts/dashboard/Customers";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useStaff } from "../../../contexts/dashboard/Staff";
-import { getEffectiveCompanyId, makeSuSuProName, parentCompanyName } from "../../../constants/appConstants";
+import { getEffectiveCompanyId, makeSuSuProName, parentCompanyName, userPermissions } from "../../../constants/appConstants";
 import toast from "react-hot-toast";
 import { useAccountNumber } from "../../../contexts/dashboard/NextAccountNumber";
 import { useAccountNumbers } from "../../../contexts/dashboard/NextAccNumbers";
@@ -74,7 +74,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ account, client, onSav
   });
 
   // Filter staff to get only Mobile Bankers
-  const mobileBankers = staffList.filter(staff => staff.role === 'Mobile Banker' || staff.role === 'mobile banker' ||  staff.role === 'mobile_banker' || staff.role === 'teller');
+  const mobileBankers = !userPermissions.MANAGE_STAFF ? staffList.filter(staff => staff.role === 'Mobile Banker' || staff.role === 'mobile banker' ||  staff.role === 'mobile_banker' || staff.role === 'teller') : staffList;
   
   const [errors, setErrors] = useState<Record<string, string>>({});
 

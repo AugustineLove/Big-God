@@ -58,6 +58,11 @@ export const getUserUUID = () => {
   if (!user) return null;
   return user.id;
 }
+
+export const getStaffID = () => {
+  if (!user) return null;
+  return user.staffId;
+}
 export const getDisplayName = () => {
   if (!user) return null;
 
@@ -106,6 +111,7 @@ export const makeSuSuProName = (companyName: string) => {
 export const companyId = getEffectiveCompanyId();
 export const companyName = getDisplayName();
 export const userRole = getUserRole();
+export const userStaffId = getStaffID();
 export const userPermissions = getUserPermissions();
 export const userUUID = getUserUUID();
 export const parentCompanyName = getParentCompanyName();
