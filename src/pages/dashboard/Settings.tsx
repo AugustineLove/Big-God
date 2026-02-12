@@ -430,6 +430,8 @@ const verifyOtp = async () => {
                       <option value="financial_advisor">Financial Advisor</option>
                       <option value="teller">Teller</option>
                       <option value="loan_officer">Loan Officer</option>
+                      <option value="sales_manager">Sales Manager</option>
+                      <option value="hr">Human Resource</option>
                     </select>
                   </div>
 
@@ -576,17 +578,16 @@ const verifyOtp = async () => {
                       <div className="text-sm text-gray-600">Get notified when someone logs into your account</div>
                     </div>
                    <input
-  type="checkbox"
-  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-  checked={loginNotificationsEnabled}
-  onChange={async (e) => {
-    const enabled = e.target.checked;
-    setLoginNotificationsEnabled(enabled);
-    console.log(`Enabled: ${enabled}`);
-    handleSaveNotifications(enabled);
-  }}
-/>
-
+                      type="checkbox"
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      checked={loginNotificationsEnabled}
+                      onChange={async (e) => {
+                        const enabled = e.target.checked;
+                        setLoginNotificationsEnabled(enabled);
+                        console.log(`Enabled: ${enabled}`);
+                        handleSaveNotifications(enabled);
+                      }}
+                    />
                   </div>
                 </div>
               </div>

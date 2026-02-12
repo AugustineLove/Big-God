@@ -49,6 +49,8 @@ export const getUserRole = () => {
     mobilebanker: "Mobile Banker",
     cashier: "Cashier",
     accountant: "Accountant",
+    sales_manager: "Sales Manager",
+    hr: "Human Resource"
   };
 
   return roleMap[rawRole] || formatFallbackRole(rawRole);

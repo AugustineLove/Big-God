@@ -363,10 +363,14 @@ const Overview: React.FC = () => {
           </div>
           <div className="p-6">
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={()=> {setShowAddModal(true)}} className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-colors">
+             {
+               userPermissions.CUSTOMER_CREATE && (
+                <button onClick={()=> {setShowAddModal(true)}} className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-colors">
                 <Plus className="h-8 w-8 text-gray-400 mb-2" />
                 <span className="text-sm font-medium text-gray-700">Add Customer</span>
               </button>
+              )
+             }
               {
                 userPermissions.PROCESS_TRANSACTIONS && <button onClick={()=> {setShowTransactionModal(true)}} className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-teal-400 hover:bg-teal-50 transition-colors">
                 <ArrowUpDown className="h-8 w-8 text-gray-400 mb-2" />
