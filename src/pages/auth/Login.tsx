@@ -5,7 +5,7 @@ import { CreditCard, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Company } from '../../data/mockData';
 import { db } from '../../firebaseConfig';
-import { companyId, companyName } from '../../constants/appConstants';
+import { companyId, companyName, resetPassword } from '../../constants/appConstants';
 import { saveCompanyToken } from '../../constants/firebase';
 
 const Login: React.FC = () => {
@@ -42,9 +42,10 @@ const saveCompany = async (company: Company) => {
   
   const response = await login(formData.email, formData.password);
   console.log(`Response from login: ${JSON.stringify(response)}`);
-  const companyJSON = localStorage.getItem('susupro_company');
+  const companyJSON = await localStorage.getItem('susupro_company');
       const company = companyJSON ? JSON.parse(companyJSON) : null;
   if (response) {
+    console.log(`Reset password: ${resetPassword}`)
     if (response.requires2FA) {
       await saveCompany({
           id: company.id,
@@ -53,7 +54,16 @@ const saveCompany = async (company: Company) => {
         });
       await saveCompanyToken(company.id);
       navigate('/two-factor', { state: { companyId: response.companyId } });
-    } else {
+    } if (response.requireSignIn){
+      await saveCompany({
+          id: company.id,
+          name: company.companyName,
+          email: formData.email,
+        });
+      await saveCompanyToken(company.id);
+      navigate('/reset-password', {state: { currentPassword: formData.password, staff_id: company.id, companyId: company.companyId }});
+    }
+    else {
       await saveCompany({
           id: company.id,
           name: company.companyName,

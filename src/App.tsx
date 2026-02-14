@@ -46,10 +46,14 @@ import { AccountNumberProviders } from './contexts/dashboard/NextAccNumbers';
 import { CommissionDay } from './pages/dashboard/DailyCommissions';
 import { CommissionStatsProvider } from './contexts/dashboard/Commissions';
 import { BudgetProvider } from './contexts/dashboard/Budget';
+import SecurityTab from './pages/dashboard/Security';
+import { SettingsProvider } from './contexts/dashboard/Settings';
+import ForcePasswordChange from './pages/dashboard/forcePasswordChange';
 
 function App() {
   return (
     <AuthProvider>
+      <SettingsProvider>
        <Toaster position="top-right" />
       <Router>
         <Routes>
@@ -66,6 +70,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/two-factor" element={<TwoFactorPage />} />
+          <Route path="/reset-password" element={<ForcePasswordChange />} />
           {/* Payment */}
           <Route path="/subscribe" element={<SubscribeComponent />} />
 
@@ -73,7 +78,8 @@ function App() {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               
-                    <StaffProvider>
+                
+                        <StaffProvider>
                       
                       <AccountsProvider>
               <StatsProvider>
@@ -104,6 +110,7 @@ function App() {
               </StatsProvider>
                       </AccountsProvider>
               </StaffProvider>
+                
             </ProtectedRoute>
           }>
             <Route index element={<Overview />} />
@@ -120,9 +127,11 @@ function App() {
             <Route path="loans" element={<LoanManagement/>} />
             <Route path="clients/customer-details/:id" element={<CustomerDetailsPage />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="security" element={<SecurityTab />} />
           </Route>
         </Routes>
       </Router>
+      </SettingsProvider>
     </AuthProvider>
   );
 }

@@ -23,6 +23,7 @@ import {
   ChevronRight as ChevronRightIcon,
   MenuIcon,
   User,
+  Shield,
 } from 'lucide-react';
 import { companyName, userPermissions, userRole, userStaffId } from '../constants/appConstants';
 
@@ -72,7 +73,9 @@ const DashboardLayout: React.FC = () => {
     ...(userPermissions?.VIEW_BRIEFING ? [{ name: 'Reports', href: '/dashboard/reports', icon: FileText }] : []),
     ...(userPermissions?.MANAGE_STAFF ? [{ name: 'Staffs', href: '/dashboard/staffs', icon: Users }] : []),
     ...(userPermissions?.LOAN_PRIVILEGES ? [{ name: 'Loans', href: '/dashboard/loans', icon: CreditCard }] : []),
+    {name: 'Security', href: '/dashboard/security', icon: Shield},
     { name: 'Chat', href: '/dashboard/chat', icon: Chat },
+    
   ], [userPermissions]);
 
   // Auto-open finance when inside finance page

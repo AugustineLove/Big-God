@@ -1,6 +1,6 @@
 export const companyJSON = localStorage.getItem('susupro_company');
 const user = companyJSON ? JSON.parse(companyJSON) : null;
-
+console.log(user)
 export const getEffectiveCompanyId = () => {
   if (!user) return null;
 
@@ -14,6 +14,11 @@ export const getEffectiveCompanyId = () => {
 
   return null;
 };
+
+export const getChangePassword = () =>{
+  if (!user) return null;
+  return user.change_password_after_signin;
+}
 
 export const getUserPermissions = () =>{
   if (!user) return null;
@@ -115,5 +120,6 @@ export const companyName = getDisplayName();
 export const userRole = getUserRole();
 export const userStaffId = getStaffID();
 export const userPermissions = getUserPermissions();
+export const resetPassword = getChangePassword();
 export const userUUID = getUserUUID();
 export const parentCompanyName = getParentCompanyName();

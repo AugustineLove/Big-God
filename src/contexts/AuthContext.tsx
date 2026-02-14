@@ -12,6 +12,7 @@ interface LoginResponse {
   requires2FA?: boolean;
   companyId?: string;
   success: boolean;
+  requireSignIn?: boolean;
 }
 
 interface SignUpResponse {
@@ -93,6 +94,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           companyId: companyData.id,
           success: true,
         };
+      }
+
+      if(companyData.change_password_after_signin){
+        return {
+          requireSignIn: true,
+          companyId: companyData.id,
+          success:true,
+        }
       }
 
       return { success: true };

@@ -18,7 +18,7 @@ const TwoFactorPage: React.FC = () => {
     setError("");
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/companies/verify-2fa", {
+      const res = await fetch("https://susu-pro-backend.onrender.com/api/companies/verify-2fa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ companyId, token }),

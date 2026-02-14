@@ -138,7 +138,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       const recorded_by = userUUID;
-      const res = await fetch(`${API_BASE}/financials/budget`, { 
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/financials/budget`, { 
         method: "POST", 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
