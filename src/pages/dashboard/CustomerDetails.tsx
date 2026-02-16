@@ -23,7 +23,8 @@ import {
   AlertCircle,
   User2,
   Code,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Settings
 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useCustomers } from '../../contexts/dashboard/Customers';
@@ -35,6 +36,7 @@ import { Account, Customer } from '../../data/mockData';
 import toast from 'react-hot-toast';
 import AddAccountModal, { AccountFormData } from '../../components/addAccountModal';
 import Select from 'react-select';
+import AccountSettingsModal from './Components/accountSettingsModal';
 
 type CustomerDTO = {
   id?: string;
@@ -76,6 +78,8 @@ const CustomerDetailsPage = () => {
 const [toAccountId, setToAccountId] = useState("");
 const [amount, setAmount] = useState<number>(0);
 const [narration, setNarration] = useState("");
+const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [newSettingsSelectedAccount, setNewSettingsSelectedAccount] = useState();
 
 const { transferBetweenAccounts } = useTransactions();
 
@@ -226,6 +230,24 @@ const accountOptions = allAccounts.map(account => ({
     day: "numeric"
   });
 };
+
+   const handleOpenSettings = (account) => {
+    setNewSettingsSelectedAccount(account);
+    setShowSettingsModal(true);
+  };
+
+  // Function to handle settings save
+  const handleSettingsSave = async (updatedAccount) => {
+    // Update the account in your local state
+    // setAccounts(prevAccounts => 
+    //   prevAccounts.map(acc => 
+    //     acc.id === updatedAccount.id ? updatedAccount : acc
+    //   )
+    // );
+    
+    // Or refresh from API
+    // await fetchAccounts();
+  };
 
 
   const filteredTransactions = customerTransactions.filter(txn => {
@@ -671,7 +693,7 @@ const accountOptions = allAccounts.map(account => ({
                 </div>
               </div>
             )}
-
+            
             {/* ---- top icon + status ---- */}
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -751,9 +773,12 @@ const accountOptions = allAccounts.map(account => ({
             {/* ---- actions ---- */}
             <div className="mt-4 pt-4 border-t border-gray-200 flex space-x-2">
 
-              <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                <Eye className="w-4 h-4" />
-                <span>Activities</span>
+               <button
+                onClick={() => handleOpenSettings(account)}
+                className="flex items-center justify-center space-x-1 px-3 py-2 text-sm bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Settings</span>
               </button>
 
               <button
@@ -765,6 +790,16 @@ const accountOptions = allAccounts.map(account => ({
               </button>
 
             </div>
+
+             <AccountSettingsModal
+            account={newSettingsSelectedAccount}
+            isOpen={showSettingsModal}
+            onClose={() => {
+              setShowSettingsModal(false);
+              setNewSettingsSelectedAccount(null);
+            }}
+            onSave={handleSettingsSave}
+           />
           </div>
 
         ))}

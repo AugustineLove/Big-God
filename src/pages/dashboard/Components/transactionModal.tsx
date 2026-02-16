@@ -239,7 +239,6 @@ const filteredCustomers = customers.filter(customer =>
   const handleSubmit = async () => {
     const toastId= toast.loading('Adding transaction...');
     if (!validateForm()){
-       toast.error('Please complete the form.', {id: toastId});
        return
     };
     const status = formData.transaction_type === 'withdrawal' ? 'pending' : 'completed';
@@ -257,10 +256,10 @@ const filteredCustomers = customers.filter(customer =>
     console.log('Submitting transaction:', transactionData);
     const addBool = await addTransaction(transactionData, selectedAccount, selectedCustomer, formData.amount);
     if (addBool === true) {
-      toast.success('Transaction successfully created', {id: toastId});
       onClose();
       refreshTransactions();
       refreshCustomers();
+    } else if (addBool === false){
     };
     if (transaction) {
       onSave({ ...transaction, ...transactionData });
