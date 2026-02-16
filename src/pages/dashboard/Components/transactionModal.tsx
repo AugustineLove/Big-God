@@ -237,8 +237,9 @@ const filteredCustomers = customers.filter(customer =>
   };
 
   const handleSubmit = async () => {
-    const toastId= toast.loading('Adding transaction...');
-    if (!validateForm()){
+     const toastId= toast.loading('Adding transaction...');
+      if (!validateForm()){
+       toast.error('Please fix all errors before submitting', {id: toastId});
        return
     };
     const status = formData.transaction_type === 'withdrawal' ? 'pending' : 'completed';
@@ -250,17 +251,15 @@ const filteredCustomers = customers.filter(customer =>
       unique_code: '',
       status: status,
     };
-    console.log(`Selected customer data: ${JSON.stringify(selectedCustomer)}`)
-    
-    
-    console.log('Submitting transaction:', transactionData);
     const addBool = await addTransaction(transactionData, selectedAccount, selectedCustomer, formData.amount);
     if (addBool === true) {
       onClose();
       refreshTransactions();
       refreshCustomers();
-    } else if (addBool === false){
-    };
+      toast.success('Transaction successfully created', {id: toastId});
+     } else {
+      toast.error('Failed\nTransaction amount greater than account balance or minimum balance', {id: toastId});
+    }
     if (transaction) {
       onSave({ ...transaction, ...transactionData });
     } else {

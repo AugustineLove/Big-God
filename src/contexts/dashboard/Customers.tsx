@@ -98,7 +98,7 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 ) => {
   setCustomerloading(true);
   try {
-    const toastId = 'Editing customer...'
+    const toastId = toast.loading('Editing customer...')
     const res = await fetch(`https://susu-pro-backend.onrender.com/api/customers/customer`, {
       method: 'PUT',
       headers: {

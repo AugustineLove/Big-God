@@ -211,12 +211,10 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   const addTransaction = useCallback(async (newTransaction: Omit<Transaction, 'id' | 'created_at'>, account: Account, customer: Customer, amount: string): Promise<boolean> => {
-    const toastId= toast.loading('Adding transaction...');
     try {
       setLoading(true);
       setError(null);
-      
-      const res = await fetch(`http://localhost:5000/api/transactions/stake`, {
+     const res = await fetch(`http://localhost:5000/api/transactions/stake`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -237,8 +235,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
           refreshCustomers(),
           refreshStats(),
         ]);
-        toast.success('Transaction successfully created', {id: toastId});
-     
+        
         const updatedAccounts = await refreshAccounts(customer.customer_id);
         const newAccountBalance = updatedAccounts.find(a => a.id === account.id)?.balance;
         
@@ -259,19 +256,14 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         return true;
       } else if (json.status === 'insufficient_balance') {
         // setError('Insufficient balance for this transaction');
-        toast.error('Insufficient balance for this transaction', {id: toastId});
         return false;
       } else if (json.status === 'minimum_balance') {
-        toast.error('Can not withdraw more than the minimum balance', {id: toastId});
         return false;
       } 
        else {
-        toast.error('Failed to add transaction', {id: toastId});
-        
         throw new Error(json.message || 'Failed to add transaction');
       }
     } catch (err) {
-      toast.error('Failed to add transaction', {id: toastId});
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('Error adding transaction:', errorMessage);
       setError(errorMessage);
