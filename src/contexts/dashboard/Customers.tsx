@@ -3,15 +3,27 @@ import { Account, Customer } from '../../data/mockData';
 import { companyId, getEffectiveCompanyId, userPermissions } from '../../constants/appConstants';
 import toast from 'react-hot-toast';
 import { useAccountNumbers } from './NextAccNumbers';
+import { TransactionType } from './Transactions';
 
 
 interface CustomersContextType {
+  accounts: Account[];
+  transactions: TransactionType[];
+  loading: boolean;
   customers: Customer[];
   customer?: Customer;
   customerLoading: boolean;
+  contextPaginationMeta: any;
+  login: (accountNumber: string, withdrawalCode: string) => Promise<any>;
   editCustomer: (updatedCustomer: Omit<Customer, 'id' | 'created_at'>) => Promise<void>;
   fetchCustomerById: (customerId: string) => Promise<Customer>;
-  refreshCustomers: () => Promise<void>;
+  refreshCustomers: (page: string, limit?: number, filters?: {
+  search?: string;
+  location?: string;
+  status?: string;
+  staff?: string;
+  dateRange?: string;
+}) => Promise<void>;
   setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
    addCustomer: (newCustomer: Omit<Customer, 'id' | 'created_at'>, account: string, account_number: string) => Promise<void>;
    deleteCustomer: (customer_id: string) => Promise<void>;
@@ -31,32 +43,57 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerLoading, setCustomerloading] = useState(true);
   const [customer, setCustomer] = useState<Customer>();
-  const fetchCustomers = async () => {
-    setCustomerloading(true);
-    console.log(`User permissions: ${JSON.stringify(userPermissions)}`)
-    console.log(userPermissions.MANAGE_STAFF);
-    try {
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [contextPaginationMeta, setPaginationMeta] = useState({
+  total: 0, totalPages: 1, currentPage: 1, isSearching: false
+});
+const fetchCustomers = async (page: string, limit = 20, filters?: {
+  search?: string;
+  location?: string;
+  status?: string;
+  staff?: string;
+  dateRange?: string;
+}) => {
+  setCustomerloading(true);
+  try {
+    if (!companyId) return;
 
-      if (!companyId) {
-        console.warn('Company ID not found in localStorage');
-        return;
+    // Build query string
+    const params = new URLSearchParams({ page, limit: String(limit) });
+    if (filters?.search)   params.append('search', filters.search);
+    if (filters?.location) params.append('location', filters.location);
+    if (filters?.status)   params.append('status', filters.status);
+    if (filters?.staff)    params.append('staff', filters.staff);
+    if (filters?.dateRange) params.append('dateRange', filters.dateRange);
+
+    const res = await fetch(
+      `https://susu-pro-backend.onrender.com/api/customers/company/${companyId}?${params.toString()}`
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      setCustomers(data.data);
+      setPaginationMeta({            
+        total: data.total,
+        totalPages: data.totalPages,
+        currentPage: data.page,
+        isSearching: data.isSearching,
+      });
+      return {
+        total: data.total,
+        totalPages: data.totalPages,
+        currentPage: data.page,
+        isSearching: data.isSearching
       }
-
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/customers/company/${companyId}`);
-
-      if (res.ok) {
-        const data = await res.json();
-        setCustomers(data.data); 
-      } else {
-        const errText = await res.text();
-        console.error('Failed to fetch customers:', errText);
-      }
-    } catch (err) {
-      console.error('Error fetching customers:', err);
-    } finally {
-      setCustomerloading(false);
     }
-  };
+  } catch (err) {
+    console.error('Error fetching customers:', err);
+  } finally {
+    setCustomerloading(false);
+  }
+};
 
   const fetchCustomerById = async (customerId?: string) => {
     setCustomerloading(true);
@@ -159,6 +196,47 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const login = async (
+  accountNumber: string,
+  withdrawalCode: string
+) => {
+  try {
+    setLoading(true);
+
+    const res = await fetch(
+      "https://susu-pro-backend.onrender.com/api/customers/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          account_number: accountNumber.trim(),
+          withdrawal_code: withdrawalCode.trim(),
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Login failed");
+    }
+
+    // ✅ Store in state
+    setCustomer(data.customer);
+    setAccounts(data.accounts);
+    setTransactions(data.transactions);
+
+    return data;
+
+  } catch (error: any) {
+    throw new Error(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
   const deleteCustomer = async (customerId: string) => {
     try {
       console.log('Deleting customer: ', customerId);
@@ -173,7 +251,7 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if(res.ok){
         const deleted = await res.json();
         console.log(deleted);
-        await fetchCustomers();
+        await fetchCustomers("1", 20);
       } else{
         const errorText = await res.text();
         console.error('Failed to delete customer: ', errorText);
@@ -184,11 +262,11 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }
 
   useEffect(() => {
-    fetchCustomers();
+    fetchCustomers("1", 20);
   }, []);
 
   return (
-    <CustomersContext.Provider value={{ customers, customer, customerLoading, refreshCustomers: fetchCustomers, editCustomer, fetchCustomerById, setCustomers, addCustomer, deleteCustomer  }}>
+    <CustomersContext.Provider value={{ customers, customer, accounts, transactions, loading, customerLoading, contextPaginationMeta, refreshCustomers: fetchCustomers, editCustomer, fetchCustomerById, setCustomers, addCustomer, deleteCustomer, login  }}>
       {children}
     </CustomersContext.Provider>
   );

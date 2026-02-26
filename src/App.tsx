@@ -12,6 +12,7 @@ import Features from './pages/public/Features';
 import Pricing from './pages/public/Pricing';
 import Contact from './pages/public/Contact';
 import Login from './pages/auth/Login';
+import CustomerPortal from './pages/public/CustomerPortal'
 
 // Dashboard Pages
 import Overview from './pages/dashboard/Overview';
@@ -49,11 +50,14 @@ import { BudgetProvider } from './contexts/dashboard/Budget';
 import SecurityTab from './pages/dashboard/Security';
 import { SettingsProvider } from './contexts/dashboard/Settings';
 import ForcePasswordChange from './pages/dashboard/forcePasswordChange';
+import SusuQRTransfer from './pages/dashboard/SusuQrTransfer';
 
 function App() {
   return (
     <AuthProvider>
       <SettingsProvider>
+        <AccountsProvider>
+          <CustomersProvider>
        <Toaster position="top-right" />
       <Router>
         <Routes>
@@ -69,11 +73,12 @@ function App() {
           {/* Auth Route */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
-          <Route path="/two-factor" element={<TwoFactorPage />} />
+          <Route path="customer/pay/:account_number" element = {<SusuQRTransfer />} />
+          <Route path="customer/portal" element = {<CustomerPortal />} />
+            <Route path="/two-factor" element={<TwoFactorPage />} />
           <Route path="/reset-password" element={<ForcePasswordChange />} />
           {/* Payment */}
           <Route path="/subscribe" element={<SubscribeComponent />} />
-
           {/* Protected Dashboard Routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
@@ -131,6 +136,8 @@ function App() {
           </Route>
         </Routes>
       </Router>
+      </CustomersProvider>
+      </AccountsProvider>
       </SettingsProvider>
     </AuthProvider>
   );

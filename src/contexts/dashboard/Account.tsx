@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Account } from '../../data/mockData';
+import { Account, Customer } from '../../data/mockData';
 import { companyId, userUUID } from '../../constants/appConstants';
 import toast from 'react-hot-toast';
 
 interface AccountsContextType {
+  selectedAgent: Customer;
   accounts: Account[];
   allAccounts: Account[];
   customerLoans: Account[];
@@ -15,6 +16,7 @@ interface AccountsContextType {
   refreshAllCompanyAccounts: () => any;
   fetchLoanAccounts: (companyId: string) => void;
   toggleAccountStatus: (accountId: string) => void;
+  fetchCustomerByAccountNumber: (accountNumber: string) => Promise<any>;
   setAccounts: React.Dispatch<React.SetStateAction<Account[]>>;
 }
 
@@ -35,6 +37,7 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [loading, setLoading] = useState(false);
   const [companyLoans, setCompanyLoans] = useState<Account[]>([]);
   const [loadingLoans, setLoadingLoans] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<Customer | null>(null);
 
 
   const fetchAllCompanyLoans = async (companyId: string) => {
@@ -101,6 +104,29 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLoading(false);
     }
   };
+
+  const fetchCustomerByAccountNumber = async (accountNumber: string) => {
+  try {
+    const res = await fetch(
+      `https://susu-pro-backend.onrender.com/api/customers/account/${accountNumber}`
+    );
+
+    if (!res.ok) {
+      console.error("Customer not found");
+      return null;
+    }
+
+    const data = await res.json();
+    console.log(data);
+    setSelectedAgent(data.data);
+    return data.data;
+
+  } catch (error) {
+    console.error("Error fetching customer:", error);
+    return null;
+  }
+};
+
   const getAllCompanyAccounts = async () => {
     setLoading(true);
     try {
@@ -192,7 +218,7 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, []);
 
   return (
-    <AccountsContext.Provider value={{ accounts, customerLoans, companyLoans, loading, loadingLoans, refreshAccounts: fetchAccounts, refreshAllCompanyAccounts: getAllCompanyAccounts, addAccount, setAccounts, fetchLoanAccounts: fetchAllCompanyLoans, toggleAccountStatus, allAccounts }}>
+    <AccountsContext.Provider value={{ accounts, selectedAgent, customerLoans, companyLoans, loading, loadingLoans, refreshAccounts: fetchAccounts, refreshAllCompanyAccounts: getAllCompanyAccounts, addAccount, setAccounts, fetchLoanAccounts: fetchAllCompanyLoans, toggleAccountStatus, allAccounts, fetchCustomerByAccountNumber }}>
       {children}
     </AccountsContext.Provider>
   );

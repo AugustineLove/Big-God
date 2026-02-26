@@ -1,285 +1,306 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Plus, Edit, Trash2, Eye, Filter, MoreVertical, Users, TrendingUp, Calendar, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { mockClients, Client, Customer, Account } from '../../data/mockData';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import {
+  Search, Plus, Edit, Trash2, Filter, Users, TrendingUp,
+  Calendar, Download, ArrowUpDown, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight, Loader2
+} from 'lucide-react';
+import { Customer, Account } from '../../data/mockData';
 import { useStats } from '../../contexts/dashboard/DashboardStat';
 import { useCustomers } from '../../contexts/dashboard/Customers';
 import { ClientModal } from './Components/clientModal';
 import { useNavigate } from 'react-router-dom';
 import DeleteCustomerModal from '../../components/deleteComfirmationModal';
 import { userPermissions } from '../../constants/appConstants';
-import EnhancedClientTable from './Components/enhancedCustomersTable';
 
-const Clients: React.FC = () => {
-  const [clients, setClients] = useState<Customer[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [staffFilter, setStaffFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateRangeFilter, setDateRangeFilter] = useState('all');
-  const [showAddModal, setShowAddModal] = useState(false); 
-  const [editingClient, setEditingClient] = useState<Customer | null>(null);
-  const { stats } = useStats();
-  const { customers, customerLoading, addCustomer, editCustomer, refreshCustomers, deleteCustomer } = useCustomers();
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  
-  const navigate = useNavigate();
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-  // Modal states
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+interface PaginationMeta {
+  total: number;
+  totalPages: number;
+  currentPage: number;
+  isSearching: boolean;
+}
 
-  // Get unique values for filters
-  const uniqueLocations = useMemo(() => 
-    Array.from(new Set(customers.map(c => c.location).filter(Boolean))), 
-    [customers]
-  );
-  
-  const uniqueStaff = useMemo(() => 
-    Array.from(new Set(customers.map(c => c.registered_by_name).filter(Boolean))), 
-    [customers]
-  );
+// ─── Pagination Component ─────────────────────────────────────────────────────
 
-  const statuses = ['Active', 'Inactive'];
+interface PaginationProps {
+  meta: PaginationMeta;
+  currentPage: number;
+  loading: boolean;
+  onPageChange: (page: number) => void;
+}
 
-  // Enhanced filtering logic
-  const filteredClients = useMemo(() => {
-    let filtered = customers.filter(customer => {
-      const name = customer.name?.toLowerCase() || '';
-      const email = customer.email?.toLowerCase() || '';
-      const phone = customer.phone_number || '';
-      const account = customer.account_number || '';
+const Pagination: React.FC<PaginationProps> = ({ meta, currentPage, loading, onPageChange }) => {
+  if (meta.isSearching || meta.totalPages <= 1) return null;
 
-      // Search filter
-      const matchesSearch = searchTerm === '' || 
-        name.includes(searchTerm.toLowerCase()) ||
-        email.includes(searchTerm.toLowerCase()) || 
-        account.includes(searchTerm) ||
-        phone.includes(searchTerm);
+  const getPageNumbers = () => {
+    const total = meta.totalPages;
+    const current = currentPage;
+    const delta = 2;
+    const pages: (number | 'ellipsis')[] = [];
 
-      // Location filter
-      const matchesLocation = locationFilter === 'all' || customer.location === locationFilter;
+    const rangeStart = Math.max(2, current - delta);
+    const rangeEnd = Math.min(total - 1, current + delta);
 
-      // Staff filter
-      const matchesStaff = staffFilter === 'all' || customer.registered_by_name === staffFilter;
+    pages.push(1);
+    if (rangeStart > 2) pages.push('ellipsis');
+    for (let i = rangeStart; i <= rangeEnd; i++) pages.push(i);
+    if (rangeEnd < total - 1) pages.push('ellipsis');
+    if (total > 1) pages.push(total);
 
-      // Active and Inactive
-      const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
-
-      // Date range filter
-      let matchesDateRange = true;
-      if (dateRangeFilter !== 'all') {
-        const customerDate = new Date(customer.date_of_registration);
-        const now = new Date();
-        
-        switch (dateRangeFilter) {
-          case 'last_week':
-            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            matchesDateRange = customerDate >= lastWeek;
-            break;
-          case 'last_month':
-            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-            matchesDateRange = customerDate >= lastMonth;
-            break;
-          case 'last_3_months':
-            const last3Months = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-            matchesDateRange = customerDate >= last3Months;
-            break;
-          case 'this_year':
-            matchesDateRange = customerDate.getFullYear() === now.getFullYear();
-            break;
-        }
-      }
-
-      return matchesSearch && matchesLocation && matchesStaff && matchesStatus && matchesDateRange;
-    });
-
-    if (sortConfig.key) {
-      filtered.sort((a, b) => {
-        let aValue, bValue;
-        
-       switch (sortConfig.key) {
-        case 'name':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-
-        case 'balance':
-          aValue = parseFloat(a.total_balance_across_all_accounts || 0);
-          bValue = parseFloat(b.total_balance_across_all_accounts || 0);
-          break;
-
-        case 'daily_rate':
-          aValue = parseFloat(a.daily_rate || 0);
-          bValue = parseFloat(b.daily_rate || 0);
-          break;
-
-        case 'date_joined':
-          aValue = new Date(a.date_joined).getTime();
-          bValue = new Date(b.date_joined).getTime();
-          break;
-
-        default:
-          return 0;
-      }
-
-        
-        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    
-    return filtered;
-
-  }, [customers, searchTerm, locationFilter, staffFilter, statusFilter, dateRangeFilter, sortConfig]);
-  
-  // Enhanced statistics calculations
-  const filteredStats = useMemo(() => {
-    const totalCustomers = customers.length;
-    const maleCount = filteredClients.filter(c => c.gender?.toLowerCase() === 'male').length;
-    const femaleCount = filteredClients.filter(c => c.gender?.toLowerCase() === 'female').length;
-    
-    const totalBalance = filteredClients.reduce((sum, customer) => 
-      sum + (parseFloat(customer.total_balance_across_all_accounts) || 0), 0
-    );
-    
-    const avgDailyRate = totalCustomers > 0 ? 
-      filteredClients.reduce((sum, customer) => 
-        sum + (parseFloat(customer.daily_rate) || 0), 0
-      ) / totalCustomers : 0;
-
-    const activeCustomersCount = filteredClients.filter(customer =>
-    customer?.status === 'active' || customer?.status === 'Active'
-    ).length;
-
-    const inactiveCustomerCount = filteredClients.filter(customer => 
-      customer?.status === 'inactive' || customer?.status === 'Inactive'
-    ).length;
-
-    return {
-      totalCustomers,
-      maleCount,
-      femaleCount,
-      totalBalance,
-      avgDailyRate,
-      activeCustomersCount,
-      inactiveCustomerCount
-    };
-  }, [filteredClients]);
-
-  // Clear all filters
-  const clearFilters = () => {
-    setSearchTerm('');
-    setLocationFilter('all');
-    setStaffFilter('all');
-    setDateRangeFilter('all');
-    setStatusFilter('all');
-  };
-
-  // Export filtered data
-  const exportData = () => {
-    const csvContent = [
-      ['Name', 'Email', 'Phone', 'Account Number', 'Balance', 'Location', 'Registered By', 'Join Date', 'Daily Rate'].join(','),
-      ...filteredClients.map(customer => [
-        customer.name,
-        customer.email,
-        customer.phone_number,
-        customer.account_number,
-        customer.total_balance_across_all_accounts,
-        customer.location,
-        customer.registered_by_name,
-        new Date(customer.date_of_registration).toLocaleDateString(),
-        customer.daily_rate
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `clients_export_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  const handleDeleteClick = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleDeleteCancel = () => {
-    setIsDeleteModalOpen(false);
-    setSelectedCustomer(null);
-  };
-
-  const handleDeleteConfirm = async (customerId: string) => {
-    setIsDeleting(true);
-    
-    try {
-      console.log(`Deleting customer id: ${selectedCustomer?.customer_id}`);
-      deleteCustomer(selectedCustomer?.customer_id);
-      setIsDeleteModalOpen(false);
-      setSelectedCustomer(null);
-      console.log('Customer deleted successfully');
-    } catch (error) {
-      console.error('Error deleting customer:', error);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleAddClient = (newClient: Omit<Customer, 'id'>) => {
-    const companyJSON = localStorage.getItem('susupro_company');
-    const company = companyJSON ? JSON.parse(companyJSON) : null;
-    const companyId = company?.id;
-
-    const client: Customer = {
-      ...newClient,
-      company_id: companyId,
-    };
-    console.log('Adding new client:', client);
-    addCustomer(client, '');
-    refreshCustomers();
-    setShowAddModal(false);
-  };
-
-  const handleEditClient = (updatedClient: Customer) => {
-    editCustomer(updatedClient);
-    refreshCustomers();
-    !customerLoading ? setEditingClient(null) : null;
-  };
-
-  const getStatusColor = (status: string) => {
-    return status === 'active' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-red-100 text-red-800';
-  };
-
-  // Check if any filters are active
-  const hasActiveFilters = searchTerm !== '' || locationFilter !== 'all' || staffFilter !== 'all' || statusFilter !== 'all' || dateRangeFilter !== 'all';
-
-   const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-  
-  // Get sort icon
-  const getSortIcon = (key) => {
-    if (sortConfig.key !== key) {
-      return <ArrowUpDown className="h-4 w-4 text-gray-400" />;
-    }
-    return sortConfig.direction === 'asc' 
-      ? <ArrowUp className="h-4 w-4 text-indigo-600" />
-      : <ArrowDown className="h-4 w-4 text-indigo-600" />;
+    return pages;
   };
 
   return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+      {/* Info */}
+      <p className="text-sm text-gray-600 whitespace-nowrap">
+        Page <span className="font-semibold text-gray-900">{currentPage}</span> of{' '}
+        <span className="font-semibold text-gray-900">{meta.totalPages}</span>
+        <span className="text-gray-400 mx-1">·</span>
+        <span className="font-semibold text-gray-900">{meta.total}</span> total clients
+      </p>
+
+      {/* Controls */}
+      <div className="flex items-center gap-1">
+        {/* Prev */}
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage <= 1 || loading}
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg
+                     hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Prev
+        </button>
+
+        {/* Page numbers */}
+        <div className="flex items-center gap-1">
+          {getPageNumbers().map((page, i) =>
+            page === 'ellipsis' ? (
+              <span key={`ellipsis-${i}`} className="w-9 text-center text-gray-400 text-sm">…</span>
+            ) : (
+              <button
+                key={page}
+                onClick={() => onPageChange(page as number)}
+                disabled={loading}
+                className={`w-9 h-9 text-sm font-medium rounded-lg border transition-colors
+                  ${page === currentPage
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  } disabled:cursor-not-allowed`}
+              >
+                {page}
+              </button>
+            )
+          )}
+        </div>
+
+        {/* Next */}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage >= meta.totalPages || loading}
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg
+                     hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const Clients: React.FC = () => {
+  // ── Filter State ──────────────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm]       = useState('');
+  const [locationFilter, setLocationFilter] = useState('all');
+  const [staffFilter, setStaffFilter]     = useState('all');
+  const [statusFilter, setStatusFilter]   = useState('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState('all');
+  const [sortConfig, setSortConfig]       = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
+
+  // ── Pagination State ──────────────────────────────────────────────────────
+  const [currentPage, setCurrentPage]     = useState(1);
+  const [paginationMeta, setPaginationMeta] = useState<PaginationMeta>({
+    total: 0, totalPages: 1, currentPage: 1, isSearching: false,
+  });
+
+  // ── Modal State ───────────────────────────────────────────────────────────
+  const [showAddModal, setShowAddModal]         = useState(false);
+  const [editingClient, setEditingClient]       = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting]             = useState(false);
+
+  // ── Context / Router ──────────────────────────────────────────────────────
+  const { customers, contextPaginationMeta, customerLoading, addCustomer, editCustomer, refreshCustomers, deleteCustomer } = useCustomers();
+  const { stats } = useStats();
+  const navigate  = useNavigate();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // ── Filter options (derived from currently loaded page — good enough for dropdowns) ──
+  const uniqueLocations = useMemo(() =>
+    Array.from(new Set(customers.map(c => c.location).filter(Boolean))), [customers]);
+
+  const uniqueStaff = useMemo(() =>
+    Array.from(new Set(customers.map(c => c.registered_by_name).filter(Boolean))), [customers]);
+
+  // ── Active filter check ───────────────────────────────────────────────────
+  const hasActiveFilters = searchTerm !== '' || locationFilter !== 'all' ||
+    staffFilter !== 'all' || statusFilter !== 'all' || dateRangeFilter !== 'all';
+
+  // ── Fetch helper — sends all active filters to backend ───────────────────
+  const doFetch = useCallback(async (page: number) => {
+    const filters = {
+      search:    searchTerm    || undefined,
+      location:  locationFilter !== 'all' ? locationFilter : undefined,
+      status:    statusFilter   !== 'all' ? statusFilter   : undefined,
+      staff:     staffFilter    !== 'all' ? staffFilter    : undefined,
+      dateRange: dateRangeFilter !== 'all' ? dateRangeFilter : undefined,
+    };
+
+    const meta = await refreshCustomers(String(page), 20, filters);
+    console.log(`Meta: ${JSON.stringify(meta)}`)
+    if (meta) {
+      setPaginationMeta({
+        total:       meta.total,
+        totalPages:  meta.totalPages,
+        currentPage: meta.page,
+        isSearching: meta.isSearching ?? false,
+      });
+    }
+  }, [searchTerm, locationFilter, statusFilter, staffFilter, dateRangeFilter, refreshCustomers]);
+
+  // ── Debounce filter changes, reset to page 1 ─────────────────────────────
+  useEffect(() => {
+    setPaginationMeta(contextPaginationMeta)
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      doFetch(1);
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchTerm, locationFilter, statusFilter, staffFilter, dateRangeFilter]);
+
+  // ── Page change (no debounce needed) ─────────────────────────────────────
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    doFetch(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // ── Sort (client-side on current page only) ───────────────────────────────
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key) return <ArrowUpDown className="h-4 w-4 text-gray-400" />;
+    return sortConfig.direction === 'asc'
+      ? <ArrowUp   className="h-4 w-4 text-indigo-600" />
+      : <ArrowDown className="h-4 w-4 text-indigo-600" />;
+  };
+
+  const sortedCustomers = useMemo(() => {
+    if (!sortConfig.key) return customers;
+    return [...customers].sort((a, b) => {
+      let av: any, bv: any;
+      switch (sortConfig.key) {
+        case 'name':
+          av = a.name?.toLowerCase(); bv = b.name?.toLowerCase(); break;
+        case 'balance':
+          av = parseFloat(a.total_balance_across_all_accounts || '0');
+          bv = parseFloat(b.total_balance_across_all_accounts || '0'); break;
+        case 'daily_rate':
+          av = parseFloat(a.daily_rate || '0');
+          bv = parseFloat(b.daily_rate || '0'); break;
+        case 'date_joined':
+          av = new Date(a.date_of_registration).getTime();
+          bv = new Date(b.date_of_registration).getTime(); break;
+        default: return 0;
+      }
+      if (av < bv) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (av > bv) return sortConfig.direction === 'asc' ?  1 : -1;
+      return 0;
+    });
+  }, [customers, sortConfig]);
+
+  // ── Stats (from current visible page) ─────────────────────────────────────
+  const pageStats = useMemo(() => {
+    const maleCount   = customers.filter(c => c.gender?.toLowerCase() === 'male').length;
+    const femaleCount = customers.filter(c => c.gender?.toLowerCase() === 'female').length;
+    const totalBalance = customers.reduce((s, c) =>
+      s + (parseFloat(c.total_balance_across_all_accounts) || 0), 0);
+    const avgDailyRate = customers.length > 0
+      ? customers.reduce((s, c) => s + (parseFloat(c.daily_rate) || 0), 0) / customers.length
+      : 0;
+    const activeCount   = customers.filter(c => c.status?.toLowerCase() === 'active').length;
+    const inactiveCount = customers.filter(c => c.status?.toLowerCase() === 'inactive').length;
+    return { maleCount, femaleCount, totalBalance, avgDailyRate, activeCount, inactiveCount };
+  }, [customers]);
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  const clearFilters = () => {
+    setSearchTerm(''); setLocationFilter('all'); setStaffFilter('all');
+    setStatusFilter('all'); setDateRangeFilter('all');
+  };
+
+  const exportData = () => {
+    const rows = [
+      ['Name','Email','Phone','Account Number','Balance','Location','Registered By','Join Date','Daily Rate'],
+      ...customers.map(c => [
+        c.name, c.email, c.phone_number, c.account_number,
+        c.total_balance_across_all_accounts, c.location,
+        c.registered_by_name,
+        new Date(c.date_of_registration).toLocaleDateString(),
+        c.daily_rate,
+      ]),
+    ];
+    const csv  = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `clients_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteClick   = (c: Customer) => { setSelectedCustomer(c); setIsDeleteModalOpen(true); };
+  const handleDeleteCancel  = () => { setIsDeleteModalOpen(false); setSelectedCustomer(null); };
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteCustomer(selectedCustomer?.customer_id);
+      setIsDeleteModalOpen(false); setSelectedCustomer(null);
+      doFetch(currentPage);
+    } catch (e) { console.error(e); }
+    finally { setIsDeleting(false); }
+  };
+
+  const handleAddClient = (newClient: Omit<Customer, 'id'>) => {
+    const company   = JSON.parse(localStorage.getItem('susupro_company') || '{}');
+    const client    = { ...newClient, company_id: company?.id };
+    addCustomer(client, '');
+    setShowAddModal(false);
+    doFetch(1);
+  };
+
+  const handleEditClient = (updated: Customer) => {
+    editCustomer(updated);
+    if (!customerLoading) setEditingClient(null);
+    doFetch(currentPage);
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  return (
     <div className="space-y-6">
-      {/* Header */}
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Client Management</h1>
@@ -287,201 +308,131 @@ const Clients: React.FC = () => {
             Manage your susu clients and their information
             {hasActiveFilters && (
               <span className="ml-2 text-sm text-indigo-600">
-                ({filteredStats.totalCustomers} of {customers.length} clients shown)
+                ({paginationMeta.total} results)
               </span>
             )}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={exportData}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
+          <button onClick={exportData}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm">
+            <Download className="h-4 w-4 mr-2" /> Export
           </button>
           {userPermissions.CUSTOMER_CREATE && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Add Customer
+            <button onClick={() => setShowAddModal(true)}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center">
+              <Plus className="h-5 w-5 mr-2" /> Add Customer
             </button>
           )}
         </div>
       </div>
 
-      { userPermissions.VIEW_BRIEFING && (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Clients</p>
-              <p className="text-2xl font-bold text-gray-900">{filteredStats.totalCustomers}</p>
-              <div className='flex'>
-                   <p className="text-xs text-gray-500 mt-1 mr-3">
-                    Active: {filteredStats.activeCustomersCount}
-                  </p>
-                  <p className='text-xs text-gray-500 mt-1'>
-                    Inactive: {filteredStats.inactiveCustomerCount}
-                  </p>
-              </div>
-            </div>
-            <div className="bg-indigo-100 p-3 rounded-lg">
-              <Users className="h-6 w-6 text-indigo-600" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className='flex gap-4'>
-                <div>
-                  <p className="text-xs text-gray-600">Males</p>
-                  <p className="text-xl font-bold text-blue-600">{filteredStats.maleCount}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600">Females</p>
-                  <p className="text-xl font-bold text-pink-600">{filteredStats.femaleCount}</p>
+      {/* ── Stats Cards ────────────────────────────────────────────────────── */}
+      {userPermissions.VIEW_BRIEFING && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Clients</p>
+                <p className="text-2xl font-bold text-gray-900">{paginationMeta.total}</p>
+                <div className="flex gap-3 mt-1">
+                  <p className="text-xs text-gray-500">Active: {pageStats.activeCount}</p>
+                  <p className="text-xs text-gray-500">Inactive: {pageStats.inactiveCount}</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Gender Distribution
-              </p>
+              <div className="bg-indigo-100 p-3 rounded-lg">
+                <Users className="h-6 w-6 text-indigo-600" />
+              </div>
             </div>
-            <div className="bg-green-100 p-3 rounded-lg">
-              <Users className="h-6 w-6 text-green-600" />
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex gap-4">
+                  <div><p className="text-xs text-gray-600">Males</p>   <p className="text-xl font-bold text-blue-600">{pageStats.maleCount}</p></div>
+                  <div><p className="text-xs text-gray-600">Females</p> <p className="text-xl font-bold text-pink-600">{pageStats.femaleCount}</p></div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Gender Distribution</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-lg"><Users className="h-6 w-6 text-green-600" /></div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Balance</p>
+                <p className="text-2xl font-bold text-blue-600">¢{pageStats.totalBalance.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">Across all accounts</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-lg"><TrendingUp className="h-6 w-6 text-blue-600" /></div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Avg. Daily Rate</p>
+                <p className="text-2xl font-bold text-teal-600">¢{pageStats.avgDailyRate.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">Per customer (this page)</p>
+              </div>
+              <div className="bg-teal-100 p-3 rounded-lg"><Calendar className="h-6 w-6 text-teal-600" /></div>
             </div>
           </div>
         </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Balance</p>
-              <p className="text-2xl font-bold text-blue-600">
-                ¢{filteredStats.totalBalance.toFixed(2)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Across all accounts
-              </p>
-            </div>
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Avg. Daily Rate</p>
-              <p className="text-2xl font-bold text-teal-600">
-                ¢{filteredStats.avgDailyRate.toFixed(2)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Per customer
-              </p>
-            </div>
-            <div className="bg-teal-100 p-3 rounded-lg">
-              <Calendar className="h-6 w-6 text-teal-600" />
-            </div>
-          </div>
-        </div>
-      </div>
       )}
 
-      {/* {
-        <EnhancedClientTable/>
-      } */}
-
-      {/* Enhanced Filters */}
+      {/* ── Filters ────────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="text"
-                placeholder="Search clients by name, email, phone, or account number..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Search by name, email, phone, or account number…"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            {customerLoading && searchTerm && (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-400 animate-spin" />
+            )}
           </div>
 
-          {/* Filter Controls */}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center space-x-2">
+          {/* Filter Row */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
               <Filter className="h-5 w-5 text-gray-400" />
               <span className="text-sm font-medium text-gray-700">Filters:</span>
             </div>
-            
-            {/* Location Filter */}
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="all">All Locations</option>
-              {uniqueLocations.map((location, index) => (
-                <option key={index} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
 
-            {/* Staff Filter */}
-            <select
-              value={staffFilter}
-              onChange={(e) => setStaffFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="all">All Staff</option>
-              {uniqueStaff.map((staff, index) => (
-                <option key={index} value={staff}>
-                  {staff}
-                </option>
-              ))}
-            </select>
-
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="all">Status</option>
-              {statuses.map((status, index) => (
-                <option key={index} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-
-            {/* Date Range Filter */}
-            <select
-              value={dateRangeFilter}
-              onChange={(e) => setDateRangeFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="all">All Time</option>
-              <option value="last_week">Last Week</option>
-              <option value="last_month">Last Month</option>
-              <option value="last_3_months">Last 3 Months</option>
-              <option value="this_year">This Year</option>
-            </select>
-
-            {/* Clear Filters */}
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-sm text-indigo-600 hover:text-indigo-800 px-3 py-2 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
+            {[
+              { value: locationFilter,  setter: setLocationFilter,  label: 'All Locations', options: uniqueLocations.map(l => ({ v: l!, label: l! })) },
+              { value: staffFilter,     setter: setStaffFilter,     label: 'All Staff',     options: uniqueStaff.map(s    => ({ v: s!, label: s! })) },
+              { value: statusFilter,    setter: setStatusFilter,    label: 'All Statuses',  options: [{ v: 'Active', label: 'Active' }, { v: 'Inactive', label: 'Inactive' }] },
+              { value: dateRangeFilter, setter: setDateRangeFilter, label: 'All Time',      options: [
+                { v: 'last_week', label: 'Last Week' },
+                { v: 'last_month', label: 'Last Month' },
+                { v: 'last_3_months', label: 'Last 3 Months' },
+                { v: 'this_year', label: 'This Year' },
+              ]},
+            ].map(({ value, setter, label, options }) => (
+              <select
+                key={label}
+                value={value}
+                onChange={e => setter(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
+                <option value="all">{label}</option>
+                {options.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+              </select>
+            ))}
+
+            {hasActiveFilters && (
+              <button onClick={clearFilters}
+                className="text-sm text-indigo-600 hover:text-indigo-800 px-3 py-2 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors">
                 Clear Filters
               </button>
             )}
@@ -489,11 +440,19 @@ const Clients: React.FC = () => {
         </div>
       </div>
 
-       {/* Results Count */}
+      {/* ── Results Meta ───────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-1">
         <p className="text-sm text-gray-600">
-          Showing <span className="font-semibold text-gray-900">{filteredClients.length}</span> of{' '}
-          <span className="font-semibold text-gray-900">{customers.length}</span> clients
+          {paginationMeta.isSearching ? (
+            <>Showing all <span className="font-semibold text-gray-900">{customers.length}</span> matching results</>
+          ) : (
+            <>
+              Showing <span className="font-semibold text-gray-900">{customers.length}</span> of{' '}
+              <span className="font-semibold text-gray-900">{paginationMeta.total}</span> clients
+              <span className="text-gray-400 mx-1">·</span>
+              Page {currentPage} of {paginationMeta.totalPages}
+            </>
+          )}
         </p>
         {sortConfig.key && (
           <p className="text-xs text-gray-500">
@@ -502,316 +461,265 @@ const Clients: React.FC = () => {
         )}
       </div>
 
-      {/* Clients Table */}
+      {/* ── Table ──────────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
               <tr>
-                <th 
-                  onClick={() => handleSort('name')}
-                  className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors group"
-                >
-                  <div className="flex items-center space-x-2">
-                    <span>Client</span>
-                    {getSortIcon('name')}
-                  </div>
+                {/* Client */}
+                <th onClick={() => handleSort('name')}
+                  className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors">
+                  <div className="flex items-center gap-2"><span>Client</span>{getSortIcon('name')}</div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Contact
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Contact</th>
+                {/* Balance */}
+                <th onClick={() => handleSort('balance')}
+                  className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors">
+                  <div className="flex items-center gap-2"><span>Balance</span>{getSortIcon('balance')}</div>
                 </th>
-                <th 
-                  onClick={() => handleSort('balance')}
-                  className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors group"
-                >
-                  <div className="flex items-center space-x-2">
-                    <span>Balance</span>
-                    {getSortIcon('balance')}
-                  </div>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Location</th>
+                {/* Join Date */}
+                <th onClick={() => handleSort('date_joined')}
+                  className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors">
+                  <div className="flex items-center gap-2"><span>Join Date</span>{getSortIcon('date_joined')}</div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Location
+                {/* Daily Rate */}
+                <th onClick={() => handleSort('daily_rate')}
+                  className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors">
+                  <div className="flex items-center gap-2"><span>Daily Rate</span>{getSortIcon('daily_rate')}</div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors group"
-                onClick={() => handleSort('date_joined')}
-                >
-                  <span>Join Date</span>
-                  {/* {getSortIcon('date_joined')} */}
-                </th>
-                <th 
-                  onClick={() => handleSort('daily_rate')}
-                  className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors group"
-                >
-                  <div className="flex items-center space-x-2">
-                    <span>Daily Rate</span>
-                    {getSortIcon('daily_rate')}
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredClients.length === 0 ? (
+
+            <tbody className="divide-y divide-gray-100">
+              {/* Loading skeleton */}
+              {customerLoading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    {Array.from({ length: 7 }).map((_, j) => (
+                      <td key={j} className="px-6 py-4">
+                        <div className="h-4 bg-gray-200 rounded w-3/4" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : sortedCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="text-gray-500">
-                      <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p className="text-lg font-medium mb-2">No clients found</p>
-                      <p className="text-sm">
-                        {hasActiveFilters 
-                          ? "Try adjusting your filters or search terms" 
-                          : "Get started by adding your first client"
-                        }
-                      </p>
-                    </div>
+                  <td colSpan={7} className="px-6 py-16 text-center">
+                    <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium text-gray-500 mb-1">No clients found</p>
+                    <p className="text-sm text-gray-400">
+                      {hasActiveFilters ? 'Try adjusting your filters or search terms' : 'Get started by adding your first client'}
+                    </p>
+                    {hasActiveFilters && (
+                      <button onClick={clearFilters}
+                        className="mt-4 text-sm text-indigo-600 hover:text-indigo-800 underline">
+                        Clear all filters
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
-                // Enhanced Customer Table Row Component
-// Key improvements:
-// 1. Better visual hierarchy
-// 2. Improved status badges
-// 3. Hover effects and animations
-// 4. Quick actions menu
-// 5. Better data display
-// 6. Improved accessibility
+                sortedCustomers.map((customer) => (
+                  <tr
+                    key={customer.customer_id}
+                    onClick={() => navigate(`customer-details/${customer.customer_id}`)}
+                    className="group hover:bg-blue-50/50 transition-all duration-200 cursor-pointer border-b border-gray-100 last:border-0"
+                  >
+                    {/* ── Client Info ───────────────────────────────────── */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="relative flex-shrink-0">
+                          <div className="w-11 h-11 bg-gradient-to-br from-[#f4fff0] to-[#faffe7] rounded-full flex items-center justify-center shadow-md ring-2 ring-[#344a2e] group-hover:ring-indigo-300 transition-all">
+                            <span className="text-[#344a2e] font-semibold text-sm">
+                              {customer.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-4 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
+                              {customer.name}
+                            </span>
+                            {parseFloat(customer.total_balance_across_all_accounts || '0') > 2000 && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full flex-shrink-0">
+                                VIP
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 font-medium mt-0.5">
+                            ID: {customer.account_number}
+                          </p>
+                          <p className="flex items-center text-xs text-gray-400 mt-0.5">
+                            <svg className="w-3 h-3 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                            </svg>
+                            <span className="truncate">{customer.registered_by_name}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </td>
 
-filteredClients.map((customer) => (
-  <tr 
-    key={customer.customer_id} 
-    onClick={() => navigate(`customer-details/${customer.customer_id}`)}
-    className="group hover:bg-blue-50/50 transition-all duration-200 cursor-pointer border-b border-gray-100 last:border-0"
-  >
-    {/* Customer Info with Avatar */}
-    <td className="px-6 py-4">
-      <div className="flex items-center">
-        {/* Enhanced Avatar with gradient */}
-        <div className="relative">
-          <div className="w-11 h-11 bg-gradient-to-br from-[#f4fff0] to-[#faffe7] rounded-full flex items-center justify-center shadow-md ring-2 ring-[#344a2e] group-hover:ring-indigo-100 transition-all">
-            <span className="text-[#344a2e] font-semibold text-sm">
-              {customer.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-            </span>
-          </div>
-          {/* Online status indicator - optional, you can add a status field */}
-          {/* <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div> */}
-        </div>
-        
-        <div className="ml-4">
-          <div className="flex items-center space-x-2">
-            <div className="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-              {customer.name}
-            </div>
-            {/* Premium badge example - you can add based on criteria */}
-            {parseFloat(customer.total_balance_across_all_accounts || '0') > 2000 && (
-              <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
-                VIP
-              </span>
-            )}
-          </div>
-          <div className="text-xs text-gray-500 font-medium mt-0.5">
-            ID: {customer.account_number}
-          </div>
-          <div className="flex items-center text-xs text-gray-400 mt-1">
-            <span className="flex items-center">
-              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-              </svg>
-              {customer.registered_by_name}
-            </span>
-          </div>
-        </div>
-      </div>
-    </td>
+                    {/* ── Contact ───────────────────────────────────────── */}
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <svg className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          <span className="truncate max-w-[160px]" title={customer.email}>{customer.email}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <svg className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          {customer.phone_number}
+                        </div>
+                      </div>
+                    </td>
 
-    {/* Contact Information */}
-    <td className="px-6 py-4">
-      <div className="space-y-1">
-        <div className="flex items-center text-sm text-gray-900">
-          <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-          <span className="truncate max-w-[180px]" title={customer.email}>
-            {customer.email}
-          </span>
-        </div>
-        <div className="flex items-center text-sm text-gray-600">
-          <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-          </svg>
-          {customer.phone_number}
-        </div>
-      </div>
-    </td>
+                    {/* ── Balance & Status ──────────────────────────────── */}
+                    <td className="px-6 py-4">
+                      <div className="space-y-2">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xs text-gray-500 font-medium">Balance:</span>
+                          <span className="text-base font-bold text-gray-900">
+                            ¢{parseFloat(customer.total_balance_across_all_accounts || '0')
+                                .toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full
+                          ${customer.status === 'Active'
+                            ? 'bg-green-100 text-green-700 ring-1 ring-green-600/20'
+                            : 'bg-red-100 text-red-700 ring-1 ring-red-600/20'
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${customer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`} />
+                          {customer.status}
+                        </span>
+                      </div>
+                    </td>
 
-    {/* Balance & Status */}
-    <td className="px-6 py-4">
-      <div className="flex flex-col items-start space-y-2">
-        {/* Balance with better formatting */}
-        <div className="flex items-baseline space-x-1">
-          <span className="text-xs text-gray-500 font-medium">Balance:</span>
-          <span className="text-base font-bold text-gray-900">
-            ¢{parseFloat(customer.total_balance_across_all_accounts || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
-        </div>
-        
-        {/* Enhanced status badge */}
-        <span className={`
-          inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full
-          ${customer.status === 'Active' 
-            ? 'bg-green-100 text-green-700 ring-1 ring-green-600/20' 
-            : 'bg-red-100 text-red-700 ring-1 ring-red-600/20'
-          }
-        `}>
-          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-            customer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
-          }`}></span>
-          {customer.status}
-        </span>
-      </div>
-    </td>
+                    {/* ── Location ──────────────────────────────────────── */}
+                    <td className="px-6 py-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="text-sm text-gray-700 font-medium">{customer.location || 'Unknown'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <span className="text-sm text-gray-600">{customer.gender}</span>
+                        </div>
+                      </div>
+                    </td>
 
-    {/* Location & Demographics */}
-    <td className="px-6 py-4">
-      <div className="flex flex-col items-start space-y-2">
-        {/* Location */}
-        <div className="flex items-center space-x-1.5">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span className="text-sm text-gray-700 font-medium">
-            {customer.location || 'Unknown'}
-          </span>
-        </div>
-        
-        {/* Gender */}
-        <div className="flex items-center space-x-1.5">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          <span className="text-sm text-gray-600">
-            {customer.gender}
-          </span>
-        </div>
-      </div>
-    </td>
+                    {/* ── Join Date ─────────────────────────────────────── */}
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium text-gray-900">
+                        {new Date(customer.date_of_registration).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                        })}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {Math.floor(
+                          (Date.now() - new Date(customer.date_of_registration).getTime()) / 86_400_000
+                        )} days ago
+                      </p>
+                    </td>
 
-    {/* Registration Date */}
-    <td className="px-6 py-4">
-      <div className="flex flex-col items-start">
-        <div className="text-sm font-medium text-gray-900">
-          {new Date(customer.date_of_registration).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
-          })}
-        </div>
-        <div className="text-xs text-gray-500 mt-0.5">
-          {/* Days since registration */}
-          {Math.floor((new Date().getTime() - new Date(customer.date_of_registration).getTime()) / (1000 * 60 * 60 * 24))} days ago
-        </div>
-      </div>
-    </td>
+                    {/* ── Daily Rate ────────────────────────────────────── */}
+                    <td className="px-6 py-4">
+                      <div className="inline-flex items-center px-3 py-1.5 text-sm font-bold rounded-lg bg-gradient-to-r from-[#f4fff0] to-[#faffe7] text-[#344a2e] shadow-sm border border-[#344a2e]/20">
+                        ¢{parseFloat(customer.daily_rate || '0').toFixed(2)}
+                      </div>
+                    </td>
 
-    {/* Daily Rate */}
-    <td className="px-6 py-4">
-      <div className="inline-flex items-center px-3 py-1.5 text-sm font-bold rounded-lg bg-gradient-to-r text-[#344a2e] shadow-md">
-        ¢{parseFloat(customer.daily_rate || '0').toFixed(2)}
-      </div>
-    </td>
+                    {/* ── Actions ───────────────────────────────────────── */}
+                    <td className="px-6 py-4">
+                      {/* Desktop: reveal on hover */}
+                      <div className="hidden md:flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button
+                          onClick={e => { e.stopPropagation(); setEditingClient(customer); }}
+                          title="Edit"
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-200"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        {userPermissions.DELETE_CUSTOMER && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDeleteClick(customer); }}
+                            title="Delete"
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={e => { e.stopPropagation(); navigate(`customer-details/${customer.customer_id}`); }}
+                          title="View details"
+                          className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
 
-    {/* Actions */}
-    <td className="px-6 py-4">
-      <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        {/* Edit Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditingClient(customer);
-          }}
-          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-200"
-          title="Edit customer"
-        >
-          <Edit className="h-4 w-4" />
-        </button>
-
-        {/* Delete Button */}
-        {userPermissions.DELETE_CUSTOMER && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteClick(customer);
-            }}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-            title="Delete customer"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
-
-        {/* View Details Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`customer-details/${customer.customer_id}`);
-          }}
-          className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200"
-          title="View details"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Always visible on mobile */}
-      <div className="flex items-center justify-end space-x-1 md:hidden">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditingClient(customer);
-          }}
-          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-        >
-          <Edit className="h-4 w-4" />
-        </button>
-        {userPermissions.DELETE_CUSTOMER && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteClick(customer);
-            }}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-    </td>
-  </tr>
-))
+                      {/* Mobile: always visible */}
+                      <div className="flex md:hidden items-center justify-end gap-1">
+                        <button
+                          onClick={e => { e.stopPropagation(); setEditingClient(customer); }}
+                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        {userPermissions.DELETE_CUSTOMER && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDeleteClick(customer); }}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Add/Edit Client Modal */}
+      {/* ── Pagination ─────────────────────────────────────────────────────── */}
+      {paginationMeta.isSearching ? (
+        <p className="text-sm text-center text-indigo-600 py-1">
+          Showing all <span className="font-semibold">{customers.length}</span> matching results —{' '}
+          <button onClick={clearFilters} className="underline hover:text-indigo-800">clear filters</button> to restore pagination
+        </p>
+      ) : (
+        <Pagination
+          meta={paginationMeta}
+          currentPage={currentPage}
+          loading={customerLoading}
+          onPageChange={handlePageChange}
+        />
+      )}
+
+      {/* ── Modals ─────────────────────────────────────────────────────────── */}
       {(showAddModal || editingClient) && (
         <ClientModal
           account={{} as Account}
           client={editingClient}
           onSave={editingClient ? handleEditClient : handleAddClient}
-          onClose={() => {
-            setShowAddModal(false);
-            setEditingClient(null);
-          }}
+          onClose={() => { setShowAddModal(false); setEditingClient(null); }}
         />
       )}
-
-      {/* Delete Modal */}
       {selectedCustomer && (
         <DeleteCustomerModal
           customer={selectedCustomer}

@@ -29,7 +29,7 @@ const Reports = () => {
   const activeClients = customers.filter(c => c.status === 'Active').length;
   const contributions = transactions.filter(t => t.type === 'deposit');
   const withdrawals = transactions.filter(t => t.type === 'withdrawal' && (t.status === 'completed' || t.status === 'approved'));
-  const totalContributions = contributions.reduce((sum, t) => Number(sum) + Number(t.amount), 0);
+  const totalContributions = contributions.filter(c => c.type !== 'commission').reduce((sum, t) => Number(sum) + Number(t.amount), 0);
   const totalWithdrawals = withdrawals.reduce((sum, t) => Number(sum) + Number(t.amount), 0);
   const totalCommissions = commissionStats?.total_amount;
   const totalBalance = stats?.totalBalance || totalContributions - totalWithdrawals;
