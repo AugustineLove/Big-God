@@ -83,7 +83,7 @@ const Overview: React.FC = () => {
     },
     {
       title: 'Pending Withdrawals',
-      value: stats?.totalCommissions,
+      value: stats?.totalPendingWithdrawals,
       subtitle: 'Awaiting approval',
       icon: ArrowUpDown,
       color: 'orange',
