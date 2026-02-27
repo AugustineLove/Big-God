@@ -141,7 +141,7 @@ useEffect(() => {
     try {
       setILoading(true);
       const res = await fetch(
-        `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${customerSearch}`
+        `http://localhost:5000/api/customers/${companyId}/search?query=${customerSearch}`
       );
       const data = await res.json();
       setResults(data.data);
@@ -281,7 +281,7 @@ useEffect(() => {
     const addBool = await addTransaction(transactionData, selectedAccount, selectedCustomer, formData.amount);
     if (addBool === true) {
       onClose();
-      refreshTransactions();
+      refreshTransactions("1", 20);
       const filters = {
       search:    searchTerm    || undefined,
       location:   'all',

@@ -50,7 +50,7 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
     console.log(`Settings ${JSON.stringify(updateBody)}`)
 
     try {
-      const response = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/${account.id}/settings`, {
+      const response = await fetch(`http://localhost:5000/api/accounts/${account.id}/settings`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

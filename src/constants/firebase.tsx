@@ -22,7 +22,7 @@ export const saveCompanyToken = async (companyId: string) => {
 
 export const sendMessageToStaff = async (companyId: string, staffId: string, title: string, body: string, data: any) => {
    try {
-        await fetch("https://susu-pro-backend.onrender.com/api/messages/send-staff-notification", {
+        await fetch("http://localhost:5000/api/messages/send-staff-notification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

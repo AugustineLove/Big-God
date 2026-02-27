@@ -55,7 +55,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     const toastId = toast.loading('Changing password...');
     try {
       const res = await fetch(
-        "https://susu-pro-backend.onrender.com/api/staff/change-password",
+        "http://localhost:5000/api/staff/change-password",
         {
           method: "PUT",
           headers: {
@@ -95,7 +95,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     try {
       const res = await fetch(
-        `https://susu-pro-backend.onrender.com/api/staff/${staffId}?company_id=${companyId}`,
+        `http://localhost:5000/api/staff/${staffId}?company_id=${companyId}`,
         {
           method: "PUT",
           headers: {
@@ -129,7 +129,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   try {
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/staff/${staff_id}/reset-password`,
+      `http://localhost:5000/api/staff/${staff_id}/reset-password`,
       {
         method: "PUT",
         headers: {
@@ -168,7 +168,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   try {
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/staff/${staff_id}/force-reset-password`,
+      `http://localhost:5000/api/staff/${staff_id}/force-reset-password`,
       {
         method: "PUT",
         headers: {
