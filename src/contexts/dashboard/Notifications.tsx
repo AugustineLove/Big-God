@@ -36,7 +36,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     try {
         console.log('Fetching Notifications for customer ID:', customerId);
-      const res = await fetch(`http://localhost:5000/api/Notifications/customer/${customerId}`);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/Notifications/customer/${customerId}`);
       if (!res.ok) {
         const errorText = await res.text();
         console.error('Failed to fetch Notifications:', errorText);

@@ -41,12 +41,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [isSendingEntry, setIsSendingEntry] = useState(false);
 
-  const API_BASE = "http://localhost:5000/api"; // adjust to your backend
-  // const API_BASE = "http://localhost:5000/api";
+  const API_BASE = "https://susu-pro-backend.onrender.com/api"; // adjust to your backend
+  // const API_BASE = "https://susu-pro-backend.onrender.com/api";
   // Fetch both assets + expenses
   const fetchFinanceData = async () => {
         try {
-      const res = await fetch(`http://localhost:5000/api/financials/get-financials/${companyId}`);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/financials/get-financials/${companyId}`);
       const json = await res.json();
       if (json.status === "success") {
         setData(json.data);
@@ -90,7 +90,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       const recorded_by = (userRole === "company") ? '' : userUUID;
-      const res = await fetch(`http://localhost:5000/api/financials/entry`, { 
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/financials/entry`, { 
         method: "POST", 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,7 +114,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const addPayment = async ( company_id: string, data: Omit<Payment, "id">) => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5000/api/financials/entry`, { 
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/financials/entry`, { 
         method: "POST", 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -138,7 +138,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       const recorded_by = userUUID;
-      const res = await fetch(`http://localhost:5000/api/financials/budget`, { 
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/financials/budget`, { 
         method: "POST", 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -158,7 +158,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       const recorded_by = userUUID;
       console.log(`Reducing data ${JSON.stringify(data)}`)
-      const res = await fetch(`http://localhost:5000/api/budgets/sell-cash`, { 
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/budgets/sell-cash`, { 
         method: "POST", 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

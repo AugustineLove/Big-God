@@ -78,7 +78,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     if (filters?.dateRange) params.append('dateRange', filters.dateRange);
 
     const res = await fetch(
-      `http://localhost:5000/api/customers/company/${companyId}?${params.toString()}`
+      `https://susu-pro-backend.onrender.com/api/customers/company/${companyId}?${params.toString()}`
     );
 
     if (res.ok) {
@@ -107,7 +107,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
   const fetchCustomerById = async (customerId?: string) => {
     setCustomerloading(true);
     try{
-      const res = await fetch(`http://localhost:5000/api/customers/${customerId}`);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/customers/${customerId}`);
       if (res.ok){
         const data = await res.json();
         setCustomer(data.data);
@@ -124,7 +124,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
   const addAccount = async(newAccount: Omit<Account, 'id' | 'created_at'>)=>{
     try {
       console.log('Adding account for customer');
-      const res = await fetch('http://localhost:5000/api/accounts/create', {
+      const res = await fetch('https://susu-pro-backend.onrender.com/api/accounts/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
         body: JSON.stringify(newAccount),
@@ -145,7 +145,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
   setCustomerloading(true);
   try {
     const toastId = toast.loading('Editing customer...')
-    const res = await fetch(`http://localhost:5000/api/customers/customer`, {
+    const res = await fetch(`https://susu-pro-backend.onrender.com/api/customers/customer`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -172,7 +172,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     const token = localStorage.getItem('susupro_token');
     console.log('Company ID in addCustomer: ', companyId);
     try {
-      const res = await fetch(`http://localhost:5000/api/customers/create`, {
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/customers/create`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',  
@@ -213,7 +213,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     setLoading(true);
 
     const res = await fetch(
-      "http://localhost:5000/api/customers/login",
+      "https://susu-pro-backend.onrender.com/api/customers/login",
       {
         method: "POST",
         headers: {
@@ -249,7 +249,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
   const deleteCustomer = async (customerId: string) => {
     try {
       console.log('Deleting customer: ', customerId);
-      const res = await fetch('http://localhost:5000/api/customers/delete', {
+      const res = await fetch('https://susu-pro-backend.onrender.com/api/customers/delete', {
         method: 'DELETE',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
