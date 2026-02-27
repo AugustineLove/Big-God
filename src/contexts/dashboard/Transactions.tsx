@@ -49,14 +49,33 @@ export type TransactionTotals = {
 
 type TransactionContextType = {
   transactions: TransactionType[];
+  withdrawals: TransactionType[];
   customerTransactions: TransactionType[];
   loading: boolean;
   error: string | null;
   totals: TransactionTotals;
+  contextPaginationMeta: any;
   deductCommission: (newCommission: Commission, messageData: TransactionType) => Promise<boolean>;
   deleteTransaction: (transactionId: string) => Promise<boolean>;
   fetchCustomerTransactions: (customerId: string) => Promise<void>;
-  refreshTransactions: () => Promise<void>;
+  fetchWithdrawals: (page: string, limit?: number, filters?: {
+  search?: string;
+  location?: string;
+  status?: string;
+  staff?: string;
+  dateRange?: string;
+  startDate?: string;
+  endDate?: string;
+}) => Promise<any>;
+  refreshTransactions: (page: string, limit?: number, filters?: {
+  search?: string;
+  location?: string;
+  status?: string;
+  staff?: string;
+  dateRange?: string;
+  startDate?: string;
+  endDate?: string;
+}) => Promise<any>;
   addTransaction: (newTransaction: Omit<Transaction, 'id' | 'created_at'>, account: Account, customer: Customer, amount: string) => Promise<boolean>;
   approveTransaction: (transactionId: string, messageData: Record<string, any>, customerId: string, accountId: string, customerPhone: string, amount: string, accountType: string, accountNumber: string) => Promise<boolean>;
   rejectTransaction: (transactionId: string) => Promise<boolean>;
@@ -142,40 +161,163 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [totals, setTotals] = useState<TransactionTotals>(calculateTotals([]));
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [totalPages, setTotalPages] = useState(1);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+
 
   const { customers, refreshCustomers } = useCustomers();
   const { accounts, refreshAccounts } = useAccounts();
   const { refreshStats } = useStats();
+  const [contextPaginationMeta, setPaginationMeta] = useState({
+    total: 0, totalPages: 1, currentPage: 1, isSearching: false
+  });
+ const filters = {
+      search:  '',
+      location:  'all',
+      status:    'all',
+      staff:     'all',
+      dateRange: 'all',
+    };
 
-  const fetchTransactions = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/transactions/all/${companyId}`);
-      
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      
-      const json = await res.json();
+ const fetchTransactions = useCallback(async (page: string, limit?: number, filters?: {
+  search?: string;
+  location?: string;
+  status?: string;
+  staff?: string;
+  dateRange?: string;
+  startDate?: string;
+  endDate?: string;
+}) => {
+  try {
+    setLoading(true);
+    setError(null);
 
-      if (json.status === 'success' && Array.isArray(json.data)) {
-        setTransactions(json.data);
-        setTotals(calculateTotals(json.data));
-      } else {
-        throw new Error(json.message || 'Failed to fetch transactions');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('Error fetching transactions:', errorMessage);
-      setError(errorMessage);
-      setTransactions([]);
-      setTotals(calculateTotals([]));
-    } finally {
-      setLoading(false);
+     const params = new URLSearchParams({ page, limit: String(limit) });
+    if (filters?.search)   params.append('search', filters.search);
+    if (filters?.location) params.append('location', filters.location);
+    if (filters?.status)   params.append('status', filters.status);
+    if (filters?.staff)    params.append('staff', filters.staff);
+    if (filters?.dateRange) params.append('dateRange', filters.dateRange);
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+
+    const res = await fetch(
+      `https://susu-pro-backend.onrender.com/api/transactions/all/${companyId}?${params.toString()}`
+    );
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
-  }, [companyId]);
+
+    const json = await res.json();
+
+    if (json.status === "success" && Array.isArray(json.data)) {
+      setTransactions(json.data);
+
+      // ⚠️ Important: totals now represent only current page
+      setTotals(calculateTotals(json.data));
+
+      setTotalPages(json.totalPages);
+      setPaginationMeta({
+        total: json.total,
+        totalPages: json.totalPages,
+        currentPage: json.page,
+        isSearching: false
+      });
+      return{
+        total: json.total,
+        totalPages: json.totalPages,
+        currentPage: json.page,
+        isSearching: false
+      }
+    } else {
+      throw new Error(json.message || "Failed to fetch transactions");
+    }
+
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : "Unknown error occurred";
+
+    console.error("Error fetching transactions:", errorMessage);
+    setError(errorMessage);
+    setTransactions([]);
+    setTotals(calculateTotals([]));
+  } finally {
+    setLoading(false);
+  }
+}, [companyId, page, limit]);
+
+
+const fetchWithdrawals = useCallback(async (
+  page: string,
+  limit?: number,
+  filters?: {
+    search?: string;
+    status?: string;
+    staff?: string;
+    startDate?: string;
+    endDate?: string;
+  }
+) => {
+  try {
+    setLoading(true);
+    setError(null);
+
+    const params = new URLSearchParams({
+      page,
+      limit: String(limit || 20),
+    });
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.staff) params.append("staff", filters.staff);
+    if (filters?.startDate) params.append("startDate", filters.startDate);
+    if (filters?.endDate) params.append("endDate", filters.endDate);
+
+    const res = await fetch(
+      `https://susu-pro-backend.onrender.com/api/transactions/all/withdrawals/${companyId}?${params.toString()}`
+    );
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const json = await res.json();
+
+    if (json.status === "success" && Array.isArray(json.data)) {
+      setWithdrawals(json.data);
+
+      setTotalPages(json.totalPages);
+      setPaginationMeta({
+        total: json.total,
+        totalPages: json.totalPages,
+        currentPage: json.page,
+        isSearching: json.isSearching
+      });
+
+      return {
+        total: json.total,
+        totalPages: json.totalPages,
+        currentPage: json.page,
+        isSearching: json.isSearching
+      };
+    } else {
+      throw new Error(json.message || "Failed to fetch withdrawals");
+    }
+
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : "Unknown error occurred";
+
+    console.error("Error fetching withdrawals:", errorMessage);
+    setError(errorMessage);
+    setWithdrawals([]);
+  } finally {
+    setLoading(false);
+  }
+}, [companyId]);
 
   const fetchCustomerTransactions = useCallback(async (customerId: string) => {
     if (!customerId) {
@@ -231,8 +373,8 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       if (json.status === 'success') {
         await Promise.all([
-          fetchTransactions(),
-          refreshCustomers(),
+          fetchTransactions("1", 20),
+          refreshCustomers("1", 20),
           refreshStats(),
         ]);
         
@@ -303,8 +445,8 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       if (json.status === 'success') {
         await Promise.all([
-          fetchTransactions(),
-          refreshCustomers(),
+          fetchTransactions("1", 20),
+          refreshCustomers("1", 20),
           refreshStats(),
         ]);
 
@@ -363,7 +505,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
 
       const json = await res.json();
-      await fetchTransactions();
+      await fetchTransactions("1", 20);
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -443,8 +585,8 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       if (json.status === 'success') {
         await Promise.all([
-          fetchTransactions(),
-          refreshCustomers(),
+          fetchTransactions("1", 20),
+          refreshCustomers("1", 20),
           refreshStats(),
         ]);
 
@@ -546,8 +688,8 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     toast.success("Transaction reversed successfully", { id: toastId });
     // ✅ Refresh transactions / balances
-    await fetchTransactions?.();
-    await refreshCustomers();
+    await fetchTransactions("1", 20);
+    await refreshCustomers("1", 20);
 
     return data;
   } catch (error: any) {
@@ -592,7 +734,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     /* 🔁 Option 1: Refetch transactions */
-    await fetchTransactions();
+    await fetchTransactions("1", 20);
 
     /* 🔁 Option 2 (optional): Optimistic update
        If backend returns both transactions
@@ -626,17 +768,21 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
 
   useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+    fetchTransactions("1", 20);
+    fetchWithdrawals("1", 20);
+  }, [fetchTransactions, fetchWithdrawals]);
 
   const value: TransactionContextType = {
     transactions,
     customerTransactions,
     loading,
     error,
+    withdrawals,
     totals,
+    contextPaginationMeta,
     deductCommission,
     deleteTransaction,
+    fetchWithdrawals,
     fetchCustomerTransactions,
     refreshTransactions: fetchTransactions,
     addTransaction,

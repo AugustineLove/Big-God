@@ -49,6 +49,15 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [contextPaginationMeta, setPaginationMeta] = useState({
   total: 0, totalPages: 1, currentPage: 1, isSearching: false
 });
+
+ const filters = {
+      search:  '',
+      location:  'all',
+      status:    'all',
+      staff:     'all',
+      dateRange: 'all',
+    };
+
 const fetchCustomers = async (page: string, limit = 20, filters?: {
   search?: string;
   location?: string;
@@ -185,7 +194,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
           'balance': 0,
           'account_number': account_number,
         })
-        await fetchCustomers();
+        await fetchCustomers(String(1), 20, filters);
         return added;
       } else {
         const errorText = await res.text();

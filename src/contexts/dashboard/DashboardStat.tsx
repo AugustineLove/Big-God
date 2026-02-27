@@ -6,6 +6,12 @@ interface Stats {
   totalTransactions: number;
   totalBalance: number;
   totalCommissions: number;
+  totalDeposits: number;
+  totalApprovedDeposits: number;
+  totalPendingDeposits: number;
+  totalWithdrawals: number;
+  totalApprovedWithdrawals: number;
+  totalPendingWithdrawals: number;
 }
 
 interface StatsContextType {

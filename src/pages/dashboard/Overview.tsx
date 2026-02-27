@@ -51,7 +51,7 @@ const Overview: React.FC = () => {
     },
     {
       title: 'Total Deposits',
-      value: `¢${Math.round(totals?.totalDeposits)}` || 0,
+      value: `¢${stats?.totalDeposits}` || 0,
       subtitle: 'All total customer deposits',
       icon: PiggyBank,
       color: 'green',
@@ -59,7 +59,7 @@ const Overview: React.FC = () => {
     },
     {
       title: 'Total Withdrawals',
-      value: `¢${totals?.totalApprovedWithdrawals.toLocaleString()}` || 0,
+      value: `¢${stats?.totalApprovedWithdrawals}` || 0,
       subtitle: 'All total customer withdrawals',
       icon: PiggyBank,
       color: 'green',
@@ -67,7 +67,7 @@ const Overview: React.FC = () => {
     },
     {
       title: 'Total Commission',
-      value: `¢${commissionStats?.total_amount}` || 0,
+      value: `¢${stats?.totalCommissions}` || 0,
       subtitle: 'All total customer commissions',
       icon: TrendingUp,
       color: 'green',
@@ -83,7 +83,7 @@ const Overview: React.FC = () => {
     },
     {
       title: 'Pending Withdrawals',
-      value: pendingWithdrawals.toString(),
+      value: stats?.totalCommissions,
       subtitle: 'Awaiting approval',
       icon: ArrowUpDown,
       color: 'orange',

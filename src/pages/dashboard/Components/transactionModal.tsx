@@ -95,6 +95,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
     withdrawal_type: ''
   });
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [results, setResults] = useState([]);
+  const [iLoading, setILoading] = useState(false);
  
   const [customerSearch,  setCustomerSearch] = useState('');
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -128,13 +131,37 @@ useEffect(() => {
   // Get Mobile Bankers
   const mobileBankers = staffList.filter(staff => staff.role === 'Mobile Banker' || staff.role === 'mobile banker' || staff.role === 'mobile_banker' || staff.role === 'teller');
 
-  // Filter customers based on search
-const filteredCustomers = customers.filter(customer =>
-  (customer.name || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
-  (customer.phone_number || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
-  (customer.email || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
-  (customer.account_number || "").toLowerCase().includes(customerSearch.toLowerCase())
-);
+  useEffect(() => {
+  if (!customerSearch.trim()) {
+    setResults([]);
+    return;
+  }
+
+  const timeout = setTimeout(async () => {
+    try {
+      setILoading(true);
+      const res = await fetch(
+        `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${customerSearch}`
+      );
+      const data = await res.json();
+      setResults(data.data);
+    } catch (err) {
+      console.error("Search failed");
+    } finally {
+      setILoading(false);
+    }
+  }, 400); // debounce
+
+  return () => clearTimeout(timeout);
+}, [customerSearch]);
+
+//   // Filter customers based on search
+// const results = customers.filter(customer =>
+//   (customer.name || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
+//   (customer.phone_number || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
+//   (customer.email || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
+//   (customer.account_number || "").toLowerCase().includes(customerSearch.toLowerCase())
+// );
 
   // Set initial customer and account if editing
   useEffect(() => {
@@ -255,7 +282,14 @@ const filteredCustomers = customers.filter(customer =>
     if (addBool === true) {
       onClose();
       refreshTransactions();
-      refreshCustomers();
+      const filters = {
+      search:    searchTerm    || undefined,
+      location:   'all',
+      status:     'all',
+      staff:      'all',
+      dateRange:  'all',
+    };
+      refreshCustomers(String(1), 20, filters);
       toast.success('Transaction successfully created', {id: toastId});
      } else {
       toast.error('Failed\nTransaction amount greater than account balance or minimum balance', {id: toastId});
@@ -350,8 +384,8 @@ const filteredCustomers = customers.filter(customer =>
                   >
                     {customersLoading ? (
                       <div className="p-4 text-center text-gray-500">Loading customers...</div>
-                    ) : filteredCustomers.length > 0 ? (
-                      filteredCustomers.map((customer) => (
+                    ) : results.length > 0 ? (
+                      results.map((customer) => (
                         <div
                           key={customer.id}
                           onClick={() => selectCustomer(customer)}
