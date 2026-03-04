@@ -567,7 +567,7 @@ const Withdrawals: React.FC = () => {
 
                       {withdrawal.status === 'approved' && (
                         <div className="flex items-center gap-2">
-                          {userPermissions.PROCESS_TRANSACTIONS && (
+                          {userPermissions.MANAGE_CASHACCOUNTS && (
                             <button
                               onClick={() => handleReverse(withdrawal.transaction_id)}
                               className="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors flex items-center gap-1"

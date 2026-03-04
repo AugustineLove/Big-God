@@ -119,6 +119,7 @@ const accountOptions = allAccounts.map(account => ({
     (account) => account.id === toAccountId
   );
 
+  console.log(`New selected account: ${JSON.stringify(newSelectedAccount)}`)
   // Find the customer whose ID is the prefix of the account ID
   const selectedCustomer = customers.find(
     (customer) =>
