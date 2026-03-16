@@ -34,6 +34,50 @@ export type TransactionType = {
   withdrawal_type?: string;
 };
 
+export interface BulkTransactionPayload {
+  account_id: string;
+  amount: number;
+  transaction_type: "deposit" | "withdrawal";
+  staked_by: string;
+  company_id: string;
+  staff_id: string;
+  description?: string;
+  unique_code?: string;
+  transaction_date?: string;
+  withdrawal_type?: string;
+}
+
+export interface BulkTransactionResult {
+  index: number;
+  status: "success" | "failed";
+  message?: string;
+  transaction?: {
+    id: string;
+    account_id: string;
+    amount: number;
+    type: string;
+    status: string;
+    transaction_date: string;
+  };
+  updatedAccount?: {
+    id: string;
+    account_type: string;
+    balance: number;
+  };
+  error?: string;
+}
+
+export interface BulkTransactionResponse {
+  status: "success" | "partial" | "fail";
+  summary: {
+    total: number;
+    succeeded: number;
+    failed: number;
+  };
+  results: BulkTransactionResult[];
+}
+
+
 export type TransactionTotals = {
   totalDeposits: number;
   totalWithdrawals: number;
@@ -77,6 +121,13 @@ type TransactionContextType = {
   endDate?: string;
 }) => Promise<any>;
   addTransaction: (newTransaction: Omit<Transaction, 'id' | 'created_at'>, account: Account, customer: Customer, amount: string) => Promise<boolean>;
+  addBulkTransactions: (
+  rows: Array<{
+    payload: BulkTransactionPayload;
+    account: Account;
+    customer: Customer;
+  }>
+) => Promise<BulkTransactionResponse>;
   approveTransaction: (transactionId: string, messageData: Record<string, any>, customerId: string, accountId: string, customerPhone: string, amount: string, accountType: string, accountNumber: string) => Promise<boolean>;
   rejectTransaction: (transactionId: string) => Promise<boolean>;
   reverseTransaction: (staffId: string,transactionId: string, reason: string) => Promise<any>;
@@ -204,7 +255,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (filters?.endDate) params.append('endDate', filters.endDate);
 
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/transactions/all/${companyId}?${params.toString()}`
+      `http://localhost:5000/api/transactions/all/${companyId}?${params.toString()}`
     );
 
     if (!res.ok) {
@@ -277,7 +328,7 @@ const fetchWithdrawals = useCallback(async (
     if (filters?.endDate) params.append("endDate", filters.endDate);
 
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/transactions/all/withdrawals/${companyId}?${params.toString()}`
+      `http://localhost:5000/api/transactions/all/withdrawals/${companyId}?${params.toString()}`
     );
 
     if (!res.ok) {
@@ -329,7 +380,7 @@ const fetchWithdrawals = useCallback(async (
       setLoading(true);
       setError(null);
       
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/transactions/customer/${customerId}`);
+      const res = await fetch(`http://localhost:5000/api/transactions/customer/${customerId}`);
       
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
@@ -356,7 +407,7 @@ const fetchWithdrawals = useCallback(async (
     try {
       setLoading(true);
       setError(null);
-     const res = await fetch(`https://susu-pro-backend.onrender.com/api/transactions/stake`, {
+     const res = await fetch(`http://localhost:5000/api/transactions/stake`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -415,6 +466,98 @@ const fetchWithdrawals = useCallback(async (
     }
   }, [fetchTransactions, refreshCustomers, refreshStats]);
 
+  const addBulkTransactions = useCallback(
+  async (
+    rows: Array<{
+      payload: BulkTransactionPayload;
+      account: Account;
+      customer: Customer;
+    }>
+  ): Promise<BulkTransactionResponse> => {
+    setLoading(true);
+    setError(null);
+
+    // Shape the array the backend expects
+    const transactions: BulkTransactionPayload[] = rows.map((r) => r.payload);
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/transactions/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactions }),
+      });
+
+      const json: BulkTransactionResponse = await res.json();
+
+      // ── Refresh global state ──────────────────────────────────────────────
+      if (json.summary.succeeded > 0) {
+        await Promise.all([
+          fetchTransactions("1", 20),
+          refreshCustomers("1", 20),
+          refreshStats(),
+        ]);
+      }
+
+      // ── Post-success side-effects per row ─────────────────────────────────
+      for (const result of json.results) {
+        if (result.status !== "success") continue;
+
+        const row = rows[result.index];
+        if (!row) continue;
+
+        const { account, customer, payload } = row;
+
+        // Refresh that customer's accounts to get the latest balance
+        const updatedAccounts = await refreshAccounts(customer.customer_id);
+        const newBalance =
+          updatedAccounts?.find((a: Account) => a.id === account.id)?.balance ??
+          result.updatedAccount?.balance;
+
+        // Send SMS only for deposits
+        if (
+          payload.transaction_type === "deposit" ||
+          payload.transaction_type === ("Deposit" as any)
+        ) {
+          const messageData = {
+            messageTo: customer.phone_number,
+            message: `You have successfully credited your ${account.account_type} account with GHS${payload.amount}.00. Your new balance is GHS${newBalance}`,
+            messageFrom: makeSuSuProName(parentCompanyName),
+          };
+
+          sendMessage(messageData).catch((err) =>
+            console.warn(
+              `[bulkTransaction] SMS failed for row ${result.index} but transaction succeeded:`,
+              err
+            )
+          );
+        }
+      }
+
+      return json;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown error occurred";
+      console.error("[addBulkTransactions] Error:", errorMessage);
+      setError(errorMessage);
+
+      // Return a shaped failure so callers don't need to null-check
+      return {
+        status: "fail",
+        summary: { total: rows.length, succeeded: 0, failed: rows.length },
+        results: rows.map((_, i) => ({
+          index: i,
+          status: "failed",
+          message: errorMessage,
+        })),
+      };
+    } finally {
+      setLoading(false);
+    }
+  },
+  [fetchTransactions, refreshCustomers, refreshStats, refreshAccounts]
+);
+
+
   const deductCommission = useCallback(async (newCommission: Commission, messageData: TransactionType): Promise<boolean> => {
     const accountId = newCommission.account_id;
     console.log(`Commission data: ${JSON.stringify(newCommission)}`)
@@ -429,7 +572,7 @@ const fetchWithdrawals = useCallback(async (
       setLoading(true);
       setError(null);
       
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/transactions/commission/${accountId}`, {
+      const res = await fetch(`http://localhost:5000/api/transactions/commission/${accountId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -493,7 +636,7 @@ const fetchWithdrawals = useCallback(async (
       setLoading(true);
       setError(null);
       
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/transactions/${transactionId}`, {
+      const res = await fetch(`http://localhost:5000/api/transactions/${transactionId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ company_id: companyId }),
@@ -519,7 +662,7 @@ const fetchWithdrawals = useCallback(async (
 
   const sendMessage = useCallback(async (messageData: Record<string, any>): Promise<boolean> => {
     try {
-      const res = await fetch('https://susu-pro-backend.onrender.com/api/messages/send-customer', {
+      const res = await fetch('http://localhost:5000/api/messages/send-customer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -565,7 +708,7 @@ const fetchWithdrawals = useCallback(async (
       setError(null);
       
       const res = await fetch(
-        `https://susu-pro-backend.onrender.com/api/transactions/${transactionId}/approve`,
+        `http://localhost:5000/api/transactions/${transactionId}/approve`,
         {
           method: 'POST',
           headers: {
@@ -618,7 +761,7 @@ const fetchWithdrawals = useCallback(async (
       setError(null);
       
       const res = await fetch(
-        `https://susu-pro-backend.onrender.com/api/transactions/${transactionId}/reject`,
+        `http://localhost:5000/api/transactions/${transactionId}/reject`,
         {
           method: 'POST',
           headers: {
@@ -667,7 +810,7 @@ const fetchWithdrawals = useCallback(async (
     try {
     setLoading(true);
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/transactions/${transactionId}/reverse`,
+      `http://localhost:5000/api/transactions/${transactionId}/reverse`,
       {
         method: "POST",
         headers: {
@@ -716,7 +859,7 @@ const fetchWithdrawals = useCallback(async (
     const toastId = toast.loading(`Transferring ${payload.amount} cedis...`);
 
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/transactions/transfer-money`,
+      `http://localhost:5000/api/transactions/transfer-money`,
       {
         method: "POST",
         headers: {
@@ -786,6 +929,7 @@ const fetchWithdrawals = useCallback(async (
     fetchCustomerTransactions,
     refreshTransactions: fetchTransactions,
     addTransaction,
+    addBulkTransactions,
     approveTransaction,
     rejectTransaction,
     reverseTransaction,

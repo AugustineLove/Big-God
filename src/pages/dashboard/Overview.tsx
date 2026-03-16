@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, PiggyBank, ArrowUpDown, TrendingUp, Plus, Eye, Download } from 'lucide-react';
+import { Users, PiggyBank, ArrowUpDown, TrendingUp, Plus, Eye, Download, Layers } from 'lucide-react';
 import { Customer, mockClients, mockContributions, mockWithdrawals, Transaction } from '../../data/mockData';
 import { useStats } from '../../contexts/dashboard/DashboardStat';
 import { useTransactions } from '../../contexts/dashboard/Transactions';
@@ -7,9 +7,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ClientModal } from './Components/clientModal';
 import { useCustomers } from '../../contexts/dashboard/Customers';
 import {TransactionModal} from './Components/transactionModal';
-import { userPermissions } from '../../constants/appConstants';
+import { companyId, userPermissions, userRole, userUUID } from '../../constants/appConstants';
 import { useFinance } from '../../contexts/dashboard/Finance';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
+import BulkTransactionModal from './Components/buildTransactionModal';
 
 const Overview: React.FC = () => {
  
@@ -17,6 +18,7 @@ const Overview: React.FC = () => {
   const { transactions, totals, approveTransaction, refreshTransactions, rejectTransaction } = useTransactions();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showBulkTransactionModal, setShowBulkTransactionModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Customer | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const { customers, setCustomers, addCustomer, refreshCustomers  } = useCustomers();
@@ -377,11 +379,13 @@ const Overview: React.FC = () => {
                 <span className="text-sm font-medium text-gray-700">Transaction</span>
               </button>
               }
-              {/* <button className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors">
-                <Download className="h-8 w-8 text-gray-400 mb-2" />
-                <span className="text-sm font-medium text-gray-700">Generate Report</span>
+              {
+                userPermissions.PROCESS_TRANSACTIONS && <button onClick = {() => {setShowBulkTransactionModal(true)}} className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors">
+                <Layers className="h-8 w-8 text-gray-400 mb-2" />
+                <span className="text-sm font-medium text-gray-700">Bulk Transaction</span>
               </button>
-              <button className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors">
+              }
+              {/* <button className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors">
                 <ArrowUpDown className="h-8 w-8 text-gray-400 mb-2" />
                 <span className="text-sm font-medium text-gray-700">Process Withdrawal</span>
               </button> */}
@@ -460,6 +464,18 @@ const Overview: React.FC = () => {
                   }}
                 />
               )}
+
+            {
+              showBulkTransactionModal && (
+                <BulkTransactionModal
+                companyId={companyId}
+                userUUID={userUUID}
+                userRole={userRole}
+                onClose={() => setShowBulkTransactionModal(false)}
+                onComplete={(results) => console.log(results)} // summary callback
+              />
+              )
+            }
 
               
     </div>

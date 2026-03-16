@@ -73,7 +73,7 @@ export const LoansProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const res = await fetch(
-        `https://susu-pro-backend.onrender.com/api/loans/company/${companyId}`
+        `http://localhost:5000/api/loans/company/${companyId}`
       );
 
       if (!res.ok) {
@@ -112,7 +112,7 @@ export const LoansProvider = ({ children }: { children: ReactNode }) => {
         };
 
         const res = await fetch(
-          "https://susu-pro-backend.onrender.com/api/loans/approve",
+          "http://localhost:5000/api/loans/approve",
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -153,7 +153,7 @@ export const LoansProvider = ({ children }: { children: ReactNode }) => {
   const repayLoan = async (loanId: string, amount: number) => {
     if (!userUUID) throw new Error("Staff not logged in");
 
-    await fetch("https://susu-pro-backend.onrender.com/api/loans/repay", {
+    await fetch("http://localhost:5000/api/loans/repay", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -170,7 +170,7 @@ export const LoansProvider = ({ children }: { children: ReactNode }) => {
   const reverseLoan = async (loanId: string) => {
     if (!userUUID) throw new Error("Staff not logged in");
 
-    await fetch("https://susu-pro-backend.onrender.com/api/loans/reverse", {
+    await fetch("http://localhost:5000/api/loans/reverse", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

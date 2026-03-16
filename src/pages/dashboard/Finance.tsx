@@ -138,7 +138,7 @@ const RevenueModal: React.FC<ModalProps> = ({
       try {
         setLoadingAccounts(true);
         const res = await fetch(
-          `https://susu-pro-backend.onrender.com/api/accounts/customer/${customerId}`
+          `http://localhost:5000/api/accounts/customer/${customerId}`
         );
         const data = await res.json();
         if (data.status === "success") {

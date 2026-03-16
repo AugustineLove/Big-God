@@ -64,7 +64,7 @@ const { accounts, fetchCustomerByAccountNumber, selectedAgent, allAccounts, cust
     const getCustomerByAccountNumber = async (accountNumber: string) => {
   try {
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/customers/account/${accountNumber}`
+      `http://localhost:5000/api/customers/account/${accountNumber}`
     );
 
     if (!res.ok) return null;
