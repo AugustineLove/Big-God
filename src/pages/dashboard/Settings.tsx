@@ -63,7 +63,7 @@ const Settings: React.FC = () => {
   });
 
   const start2FASetup = async () => {
-  const res = await fetch("http://localhost:5000/api/companies/toggle-2fa", {
+  const res = await fetch("https://susu-pro-backend.onrender.com/api/companies/toggle-2fa", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ companyId: companyId }),
@@ -99,7 +99,7 @@ const Settings: React.FC = () => {
 
       console.log(data);
   try {
-    const res = await fetch('http://localhost:5000/api/companies/change-password', {
+    const res = await fetch('https://susu-pro-backend.onrender.com/api/companies/change-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -119,7 +119,7 @@ const Settings: React.FC = () => {
 };
 
 const verifyOtp = async () => {
-  const res = await fetch("http://localhost:5000/api/companies/verify-2fa", {
+  const res = await fetch("https://susu-pro-backend.onrender.com/api/companies/verify-2fa", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ companyId: companyId, token: otp }),
@@ -142,7 +142,7 @@ const verifyOtp = async () => {
     console.log(`Adding staff ${companyId}`);
     try {
       const toastId= toast.loading('Adding staff...');
-      const res = await fetch('http://localhost:5000/api/staff/create-agent', {
+      const res = await fetch('https://susu-pro-backend.onrender.com/api/staff/create-agent', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
@@ -187,7 +187,7 @@ const verifyOtp = async () => {
     website: profileData.website || '',
   };
   try {
-    const res = await fetch('http://localhost:5000/api/companies/update-profile', {
+    const res = await fetch('https://susu-pro-backend.onrender.com/api/companies/update-profile', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -210,7 +210,7 @@ const verifyOtp = async () => {
 
   const handleSaveNotifications = async (logNotStat: boolean) => {
     try{
-      const res = await fetch('http://localhost:5000/api/companies/login-notifications', {
+      const res = await fetch('https://susu-pro-backend.onrender.com/api/companies/login-notifications', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({companyId: companyId, logNotStat: logNotStat})
@@ -226,7 +226,7 @@ const verifyOtp = async () => {
 
   const handleSmsOrEmailNotifications = async (smsEnabled: boolean, emailEnabled: boolean, showWithdrawalAlerts: boolean, systemUpdates: boolean) => {
     try {
-      const res = await fetch('http://localhost:5000/api/companies/sms-email-notifications', {
+      const res = await fetch('https://susu-pro-backend.onrender.com/api/companies/sms-email-notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyId: companyId, smsEnabled: smsEnabled, emailEnabled: emailEnabled, showWithdrawalAlerts: showWithdrawalAlerts, systemUpdates: systemUpdates })

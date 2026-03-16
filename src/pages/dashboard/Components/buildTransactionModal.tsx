@@ -110,7 +110,7 @@ const makeEmptyRow = (): BulkRow => ({
 
 // ─── API helpers (swap BASE_URL / endpoints to match your backend) ─────────────
 
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "https://susu-pro-backend.onrender.com/api";
 
 async function searchCustomers(companyId: string, query: string): Promise<Customer[]> {
   const res = await fetch(`${BASE_URL}/customers/${companyId}/search?query=${encodeURIComponent(query)}`);

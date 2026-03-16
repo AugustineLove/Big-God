@@ -141,7 +141,7 @@ useEffect(() => {
     try {
       setILoading(true);
       const res = await fetch(
-        `http://localhost:5000/api/customers/${companyId}/search?query=${customerSearch}`
+        `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${customerSearch}`
       );
       const data = await res.json();
       setResults(data.data);
