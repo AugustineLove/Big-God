@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Save, Shield, AlertTriangle, Edit, Trash2, Users, UserPlus, Search } from 'lucide-react';
 import { useStaff } from '../../../contexts/dashboard/Staff';
 
@@ -10,8 +10,14 @@ const OtherStaffTab = () => {
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
    const { dashboardStaffList, dashboardLoading, fetchDashboardStaff } = useStaff();
-    const otherStaff = dashboardStaffList.filter(staff => staff.role !== 'mobile_banker');
-    
+    const [otherStaff, setOtherStaff] = useState([]);
+
+    useEffect(() => {
+  const filtered = dashboardStaffList.filter(
+    staff => staff.role !== 'mobile_banker'
+  );
+  setOtherStaff(filtered);
+}, [dashboardStaffList]);
 
   // Edit Modal Form State
   const [editForm, setEditForm] = useState({
@@ -141,7 +147,7 @@ const OtherStaffTab = () => {
 
     try {
       // API call to delete staff
-      const response = await fetch(`/api/staff/${selectedStaff.id}`, {
+      const response = await fetch(`https://susu-pro-backend.onrender.com/api/staff/${selectedStaff.id}`, {
         method: 'DELETE',
       });
 
@@ -465,6 +471,7 @@ const OtherStaffTab = () => {
                   { key: 'ALTER_ACCOUNT', label: 'Alter Account', description: 'Can view and edit account details' },
                   { key: 'PROCESS_TRANSACTIONS', label: 'Process Transactions', description: 'Can create deposit and withdrawal transactions' },
                   { key: 'VIEW_REPORTS', label: 'View Reports', description: 'Can access system reports and analytics' },
+                  { key: 'MANAGE_CASHACCOUNTS', label: 'Manage Cash Accounts', description: 'Can transfer money between accounts, and can reverse a transaction'},
                   { key: 'CUSTOMER_EDIT', label: 'Manage Customer', description: 'Can view and edit customer details' },
                   { key: 'MANAGE_STAFF', label: 'Manage Staff', description: 'Can add, edit, and remove staff members' },
                   { key: 'LOAN_PRIVILIGES', label: 'Loan Priviliges', description: 'Can view and edit loan requests' },
