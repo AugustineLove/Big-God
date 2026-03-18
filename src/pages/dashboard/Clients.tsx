@@ -120,6 +120,8 @@ const Clients: React.FC = () => {
   const [staffFilter, setStaffFilter]     = useState('all');
   const [statusFilter, setStatusFilter]   = useState('all');
   const [dateRangeFilter, setDateRangeFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
   const [sortConfig, setSortConfig]       = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
   // ── Pagination State ──────────────────────────────────────────────────────
@@ -160,8 +162,9 @@ const Clients: React.FC = () => {
       status:    statusFilter   !== 'all' ? statusFilter   : undefined,
       staff:     staffFilter    !== 'all' ? staffFilter    : undefined,
       dateRange: dateRangeFilter !== 'all' ? dateRangeFilter : undefined,
+      startDate: dateRangeFilter === 'custom' && startDate ? startDate : undefined,
+      endDate:   dateRangeFilter === 'custom' && endDate   ? endDate   : undefined,
     };
-
     const meta = await refreshCustomers(String(page), 20, filters);
     console.log(`Meta: ${JSON.stringify(meta)}`)
     if (meta) {
@@ -172,7 +175,7 @@ const Clients: React.FC = () => {
         isSearching: meta.isSearching ?? false,
       });
     }
-  }, [searchTerm, locationFilter, statusFilter, staffFilter, dateRangeFilter, refreshCustomers]);
+  }, [searchTerm, locationFilter, statusFilter, staffFilter, startDate, endDate, dateRangeFilter, refreshCustomers]);
 
   // ── Debounce filter changes, reset to page 1 ─────────────────────────────
   useEffect(() => {
@@ -183,7 +186,7 @@ const Clients: React.FC = () => {
       doFetch(1);
     }, 400);
     return () => clearTimeout(debounceRef.current);
-  }, [searchTerm, locationFilter, statusFilter, staffFilter, dateRangeFilter]);
+  }, [searchTerm, locationFilter, statusFilter, staffFilter, dateRangeFilter, startDate, endDate]);
 
   // ── Page change (no debounce needed) ─────────────────────────────────────
   const handlePageChange = (newPage: number) => {
@@ -417,6 +420,7 @@ const Clients: React.FC = () => {
                 { v: 'last_month', label: 'Last Month' },
                 { v: 'last_3_months', label: 'Last 3 Months' },
                 { v: 'this_year', label: 'This Year' },
+                {v: 'custom', label: 'Custom Range'}
               ]},
             ].map(({ value, setter, label, options }) => (
               <select
@@ -429,6 +433,30 @@ const Clients: React.FC = () => {
                 {options.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
               </select>
             ))}
+
+            {/* Custom Date Range */}
+        {dateRangeFilter === 'custom' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </div>
+        )}
 
             {hasActiveFilters && (
               <button onClick={clearFilters}

@@ -133,13 +133,31 @@ type TransactionContextType = {
   reverseTransaction: (staffId: string,transactionId: string, reason: string) => Promise<any>;
   transferBetweenAccounts:(payload: {
   from_account_id: string;
-  to_account_id: string;
-  amount: number;
-  narration?: string;
-  company_id: string;
-  created_by: string;
+  to_account_id:   string;
+  amount:          number;
+  company_id:      string;
+  created_by:      string;
   created_by_type: string;
-  description?:string;
+  description?:    string;
+  narration?:      string;
+  reason?:         string;
+
+  schedule_type?:        "now" | "later" | "recurring";
+  scheduled_at?:         string | null;
+  recurring_frequency?:  "weekly" | "biweekly" | "monthly" | null;
+  sms_receiver_name?: string;
+  sms_receiver_id?: string;
+  sms_receiver_phone?: string;
+  sms_receiver_account_number?: string;
+  to_acc_type?: string;
+  to_acc?: string;
+  sms_receiver?:          boolean;         
+  sms_receiver_template?: string | null;  
+  sms_sender?:            boolean;         
+  sms_sender_template?:   string | null;
+  email_receipt?:         boolean;
+  requires_approval?:     boolean;
+  reference?:             string;
 }) => Promise<any>;
   sendMessage: (messageData: Record<string, any>) => Promise<boolean>;  
 };
@@ -428,6 +446,7 @@ const fetchWithdrawals = useCallback(async (
           refreshCustomers("1", 20),
           refreshStats(),
         ]);
+
         
         const updatedAccounts = await refreshAccounts(customer.customer_id);
         const newAccountBalance = updatedAccounts.find(a => a.id === account.id)?.balance;
@@ -843,63 +862,161 @@ const fetchWithdrawals = useCallback(async (
     }
   };
 
-  const transferBetweenAccounts = async (payload: {
-  from_account_id: string;
-  to_account_id: string;
-  amount: number;
-  narration?: string;
-  company_id: string;
-  created_by: string;
-  created_by_type: string;
-  description?:string;
-}) => {
+  // ─── Updated transferBetweenAccounts ─────────────────────────────────────────
+// Drop-in replacement for the function inside your Transactions context.
+// Accepts the full transfer payload (including SMS/notification flags) and
+// fires SMS messages to receiver and/or sender after a successful transfer.
 
+const transferBetweenAccounts = async (payload: {
+  from_account_id: string;
+  to_account_id:   string;
+  amount:          number;
+  company_id:      string;
+  created_by:      string;
+  created_by_type: string;
+  description?:    string;
+  narration?:      string;
+  reason?:         string;
+
+  schedule_type?:        "now" | "later" | "recurring";
+  scheduled_at?:         string | null;
+  recurring_frequency?:  "weekly" | "biweekly" | "monthly" | null;
+  sms_receiver_name?: string;
+  sms_receiver_id?: string;
+  sms_receiver_phone?: string;
+  sms_receiver_account_number?: string;
+  to_acc_type?: string;
+  to_acc?: string;
+  sms_receiver?:          boolean;         
+  sms_receiver_template?: string | null;  
+  sms_sender?:            boolean;         
+  sms_sender_template?:   string | null;
+  email_receipt?:         boolean;
+  requires_approval?:     boolean;
+  reference?:             string;
+}) => {
   try {
     setLoading(true);
-    const toastId = toast.loading(`Transferring ${payload.amount} cedis...`);
+    const toastId = toast.loading(`Transferring GHS ${payload.amount.toLocaleString()}...`);
 
     const res = await fetch(
       `https://susu-pro-backend.onrender.com/api/transactions/transfer-money`,
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload),
       }
     );
+    console.log(JSON.stringify(payload))
 
     const data = await res.json();
-    console.log(`is transferring?: ${loading}`);
+
     if (!res.ok) {
-      toast.error(data.message, {id: toastId})
-      throw new Error(data.message || "Transfer failed");
+      toast.error(data.message ?? "Transfer failed", { id: toastId });
+      throw new Error(data.message ?? "Transfer failed");
     }
 
-    /* 🔁 Option 1: Refetch transactions */
-    await fetchTransactions("1", 20);
+    // ── 2. Refetch transactions to keep the list fresh ────────────────────────
+    await Promise.all([
+          fetchTransactions("1", 20),
+          refreshCustomers("1", 20),
+          refreshStats(),
+        ]);
+    const updatedAccounts = await refreshAccounts(payload.sms_receiver_id);
+        const newAccountBalance = updatedAccounts.find(a => a.id === data?.data?.to_account_id)?.balance;
+        
 
-    /* 🔁 Option 2 (optional): Optimistic update
-       If backend returns both transactions
-    */
-    /*
-    setTransactions((prev) => [
-      data.data.transferOut,
-      data.data.transferIn,
-      ...prev,
-    ]);
-    */
+    toast.success("Transfer successful", { id: toastId });
 
-    toast.success('Success', {id: toastId})
+    const fromAccount = data?.data?.from_account_id;
+    const toAccount   = data?.data?.to_account_id;
+    const reference   = payload.reference ?? data?.data?.reference ?? "";
+    const date        = new Date().toLocaleDateString("en-GH", {
+      year: "numeric", month: "short", day: "numeric",
+    });
+
+    // ── Helper: resolve a template's {vars} ──────────────────────────────────
+    const resolveTemplate = (
+      template: string,
+      vars: Record<string, string>
+    ): string =>
+      Object.entries(vars).reduce(
+      (tpl, [key, val]) =>
+        tpl.replace(new RegExp(`{${key}}`, 'g'), val),
+      template
+    );
+
+    // ── 4. SMS to RECEIVER (credited account) — priority ─────────────────────
+    if (payload.sms_receiver) {
+      const template =
+        `${payload.sms_receiver_template}\nNew Balance: GHS${newAccountBalance}` ??
+        `Dear {receiver_name}, GHS {amount} has been credited to your {to_acc_type} account {to_acc} on {date}. Ref: {ref}\nNew Balance: GHS${newAccountBalance}`;
+
+      const message = resolveTemplate(template, {
+        receiver_name: payload.sms_receiver_name           ?? "",
+        amount:        payload.amount.toLocaleString("en-GH", { minimumFractionDigits: 2 }),
+        to_acc:        payload.to_acc            ?? "",
+        to_acc_type:   payload.to_acc_type              ?? "",
+        from_acc:      fromAccount?.account_number         ?? "",
+        from_acc_type: fromAccount?.account_type           ?? "",
+        date,
+        ref:   payload.description ?        reference : "",
+      });
+
+      const receiverMessageData = {
+        messageTo:   payload.sms_receiver_phone,
+        message,
+        messageFrom: makeSuSuProName(parentCompanyName),
+      };
+      console.log(receiverMessageData)
+      sendMessage(receiverMessageData).catch((err) =>
+        console.warn(
+          `[transferBetweenAccounts] SMS to receiver failed but transfer succeeded:`,
+          err
+        )
+      );
+    }
+
+    // ── 5. SMS to SENDER (debited account) ───────────────────────────────────
+    if (payload.sms_sender && fromAccount?.customer?.phone_number) {
+      const template =
+        payload.sms_sender_template ??
+        `Dear {sender_name}, GHS {amount} has been debited from your {from_acc_type} account {from_acc} on {date}. Ref: {ref}`;
+
+      const message = resolveTemplate(template, {
+        sender_name:   fromAccount.customer?.name          ?? "",
+        amount:        payload.amount.toLocaleString("en-GH", { minimumFractionDigits: 2 }),
+        from_acc:      fromAccount.account_number          ?? "",
+        from_acc_type: fromAccount.account_type            ?? "",
+        to_acc:        toAccount?.account_number           ?? "",
+        to_acc_type:   toAccount?.account_type             ?? "",
+        date,
+        ref:           reference,
+      });
+
+      const senderMessageData = {
+        messageTo:   fromAccount.customer.phone_number,
+        message,
+        messageFrom: makeSuSuProName(parentCompanyName),
+      };
+
+      sendMessage(senderMessageData).catch((err) =>
+        console.warn(
+          `[transferBetweenAccounts] SMS to sender failed but transfer succeeded:`,
+          err
+        )
+      );
+    }
+
+    // ── 6. Return ─────────────────────────────────────────────────────────────
     return {
       success: true,
       message: data.message,
-      data: data.data,
+      data:    data.data,
     };
 
   } catch (err: any) {
-    setError(err.message || "Unable to transfer funds");
-
+    setError(err.message ?? "Unable to transfer funds");
     return {
       success: false,
       message: err.message,

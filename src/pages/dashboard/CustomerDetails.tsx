@@ -37,6 +37,7 @@ import toast from 'react-hot-toast';
 import AddAccountModal, { AccountFormData } from '../../components/addAccountModal';
 import Select from 'react-select';
 import AccountSettingsModal from './Components/accountSettingsModal';
+import TransferModal from './Components/TransferModal';
 
 type CustomerDTO = {
   id?: string;
@@ -567,133 +568,7 @@ const accountOptions = allAccounts.map(account => ({
             className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow group"
           >
 
-            {isTransferModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
-              
-              <h3 className="text-lg font-semibold mb-4">
-                Transfer Between Accounts
-            </h3>
-
-            {/* FROM ACCOUNT */}
-            <div className="mb-4">
-              <label className="text-sm text-gray-600">From Account</label>
-              <select
-                className="w-full mt-1 border rounded-lg px-3 py-2"
-                value={fromAccountId}
-                onChange={(e) => setFromAccountId(e.target.value)}
-              >
-                <option value="">Select account</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.account_type} — {acc.account_number} (
-                    {formatCurrency(acc.balance)})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* TO ACCOUNT */}
-            <div className="mb-4">
-              <label className="text-sm text-gray-600">To Account</label>
-              <select
-                className="w-full mt-1 border rounded-lg px-3 py-2"
-                value={toAccountId}
-                onChange={(e) => setToAccountId(e.target.value)}
-              >
-                <option value="">Select account</option>
-                {accounts
-                  .filter(acc => acc.id !== fromAccountId)
-                  .map(acc => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.account_type} — {acc.account_number}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Other Accounts
-                </label>
-
-                <Select
-                  options={accountOptions}
-                  value={
-                    accountOptions.find(option => option.value === toAccountId) || null
-                  }
-                  onChange={(selectedOption) => 
-                    setToAccountId(selectedOption?.value || "")
-                  }
-                  placeholder="Search account number..."
-                  isSearchable
-                />
-              </div>
-
-              {selectedCustomer && (
-            <div className="mt-2 p-3 border rounded-lg bg-gray-50">
-              <p className="font-semibold">{selectedCustomer.name} - {newSelectedAccount.balance}</p>
-              <p className="text-sm text-gray-600">
-                {selectedCustomer.phone}
-              </p>
-            </div>
-          )}
-
-
-
-
-            {/* AMOUNT */}
-            <div className="mb-4">
-              <label className="text-sm text-gray-600">Amount</label>
-              <input
-                type="text"
-                className="w-full mt-1 border rounded-lg px-3 py-2"
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-              />
-            </div>
-
-            {/* NARRATION */}
-            <div className="mb-6">
-              <label className="text-sm text-gray-600">Narration</label>
-              <input
-                type="text"
-                className="w-full mt-1 border rounded-lg px-3 py-2"
-                value={narration}
-                onChange={(e) => setNarration(e.target.value)}
-              />
-            </div>
-
-            {/* ACTIONS */}
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setIsTransferModalOpen(false)}
-                className="px-4 py-2 border rounded-lg"
-              >
-                Cancel
-              </button>
-
-              <button
-          onClick={handleTransfer}
-          disabled= {isLoading}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-        >
-          {
-                    isLoading ? (
-                      <div>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Transferring...
-                </div>
-                    ) : (
-                      'Transfer'
-                    )
-                    }
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-            )}
+            {isTransferModalOpen && (<TransferModal isOpen={open} onClose={() => setIsTransferModalOpen(false)} />)}
             
             {/* ---- top icon + status ---- */}
             <div className="flex items-center justify-between mb-4">

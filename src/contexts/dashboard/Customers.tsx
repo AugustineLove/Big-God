@@ -23,6 +23,8 @@ interface CustomersContextType {
   status?: string;
   staff?: string;
   dateRange?: string;
+  startDate?: string;
+  endDate?: string;
 }) => Promise<void>;
   setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
    addCustomer: (newCustomer: Omit<Customer, 'id' | 'created_at'>, account: string, account_number: string) => Promise<void>;
@@ -64,10 +66,13 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
   status?: string;
   staff?: string;
   dateRange?: string;
+  startDate?: string;
+  endDate?: string;
 }) => {
   setCustomerloading(true);
   try {
     if (!companyId) return;
+    console.log(filters?.startDate, filters?.endDate)
 
     // Build query string
     const params = new URLSearchParams({ page, limit: String(limit) });
@@ -76,7 +81,10 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     if (filters?.status)   params.append('status', filters.status);
     if (filters?.staff)    params.append('staff', filters.staff);
     if (filters?.dateRange) params.append('dateRange', filters.dateRange);
-
+    if (filters?.dateRange === 'custom') {
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate)   params.append('endDate', filters.endDate);
+    }
     const res = await fetch(
       `https://susu-pro-backend.onrender.com/api/customers/company/${companyId}?${params.toString()}`
     );
