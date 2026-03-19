@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Download, Calendar, TrendingUp, Users, PiggyBank, FileText, BarChart3, Filter, Loader2, CheckCircle, XCircle, Eye, TrendingUpIcon, PlusCircle } from 'lucide-react';
 import { useStats } from '../../contexts/dashboard/DashboardStat';
 import { useTransactions } from '../../contexts/dashboard/Transactions';
@@ -21,16 +21,33 @@ const Reports = () => {
   });
 
   const { stats } = useStats();
-  const { transactions } = useTransactions();
   const { customers } = useCustomers();
+  const [reportData, setReportData] = useState(null);
+  const { transactions } = useTransactions();
 
+  useEffect(() => {
+    const fetchReport = async () => {
+      const res = await fetch(`http://localhost:5000/api/reports/dashboard/${companyId}`);
+      const data = await res.json();
+      setReportData(data.data);
+    };
+
+    fetchReport();
+  }, []);
+
+  console.log(reportData)
   // Calculate metrics from real data
-  const totalClients = customers.length;
-  const activeClients = customers.filter(c => c.status === 'Active').length;
+  const totalClients = reportData?.summary.totalClients;
+  const totalTransactions = reportData?.status.reduce(
+    (sum, item) => sum + Number(item.count),
+    0
+  );
+  console.log(totalTransactions);
+  const activeClients = reportData?.summary.activeClients;
   const contributions = transactions.filter(t => t.type === 'deposit');
   const withdrawals = transactions.filter(t => t.type === 'withdrawal' && (t.status === 'completed' || t.status === 'approved'));
-  const totalContributions = contributions.filter(c => c.type !== 'commission').reduce((sum, t) => Number(sum) + Number(t.amount), 0);
-  const totalWithdrawals = withdrawals.reduce((sum, t) => Number(sum) + Number(t.amount), 0);
+  const totalContributions = reportData?.summary.totalContributions;
+  const totalWithdrawals = reportData?.summary.totalWithdrawals;
   const totalCommissions = commissionStats?.total_amount;
   const totalBalance = stats?.totalBalance || totalContributions - totalWithdrawals;
 
@@ -52,14 +69,16 @@ const Reports = () => {
     return Object.entries(months).map(([month, amount]) => ({ month, amount })).slice(-6);
   };
 
-  const monthlyData = getMonthlyData();
-  const maxAmount = Math.max(...monthlyData.map(d => d.amount), 1);
+  const monthlyData = reportData?.monthly;
+  const maxAmount = 200000;
 
   type StatusColor = 'green' | 'yellow' | 'red';
   const colorClassMap = {
-    green: 'bg-green-500',
-    yellow: 'bg-yellow-500',
-    red: 'bg-red-500',
+    approved: 'bg-green-500',
+    pending: 'bg-yellow-500',
+    rejected: 'bg-red-500',
+    reversed: 'bg-red-500',
+    completed: 'bg-green-500'
   };
 
   const statusItems = [
@@ -575,11 +594,11 @@ const Reports = () => {
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { label: 'Total Clients', value: totalClients, detail: `${activeClients} active`, icon: Users, bg: 'bg-indigo-100', textColor: 'text-indigo-600' },
-              { label: 'Overall Contributions', value: `${totalContributions.toLocaleString()}`, detail: '↑ Growth', icon: PiggyBank, bg: 'bg-green-100', textColor: 'text-green-600' },
-              { label: 'Current Balance Due', value: `${totalBalance.toLocaleString()}`, detail: 'Available', icon: TrendingUp, bg: 'bg-blue-100', textColor: 'text-blue-600' },
-              { label: 'Total Commissions', value: `${totalCommissions?.toLocaleString()}`, detail: 'Paid', icon: PlusCircle, bg: 'bg-green-100', textColor: 'text-green-600' },
-              { label: 'Total Withdrawals', value: `${totalWithdrawals.toLocaleString()}`, detail: 'Completed', icon: Download, bg: 'bg-orange-100', textColor: 'text-orange-600' }
+              { label: 'Total Clients', value: totalClients, detail: `${activeClients || 0} active`, icon: Users, bg: 'bg-indigo-100', textColor: 'text-indigo-600' },
+              { label: 'Overall Contributions', value: `${(totalContributions || 0).toLocaleString()}`, detail: '↑ Growth', icon: PiggyBank, bg: 'bg-green-100', textColor: 'text-green-600' },
+              { label: 'Current Balance Due', value: `${(totalBalance || 0).toLocaleString()}`, detail: 'Available', icon: TrendingUp, bg: 'bg-blue-100', textColor: 'text-blue-600' },
+              { label: 'Total Commissions', value: `${(totalCommissions || 0)?.toLocaleString()}`, detail: 'Paid', icon: PlusCircle, bg: 'bg-green-100', textColor: 'text-green-600' },
+              { label: 'Total Withdrawals', value: `${(totalWithdrawals || 0).toLocaleString()}`, detail: 'Completed', icon: Download, bg: 'bg-orange-100', textColor: 'text-orange-600' }
             ].map((metric, idx) => (
               <div key={idx} className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
@@ -606,8 +625,8 @@ const Reports = () => {
               </div>
             </div>
             <div className="space-y-4">
-              {monthlyData.length > 0 ? (
-                monthlyData.map((data, idx) => (
+              {reportData?.monthly.length > 0 ? (
+                reportData?.monthly.map((data, idx) => (
                   <div key={idx} className="flex items-center space-x-4">
                     <div className="w-24 text-sm font-medium text-gray-600">{data.month}</div>
                     <div className="flex-1 bg-gray-200 rounded-full h-6 overflow-hidden">
@@ -616,11 +635,11 @@ const Reports = () => {
                         style={{ width: `${Math.max((data.amount / maxAmount) * 100, 5)}%` }}
                       >
                         {(data.amount / maxAmount) * 100 > 20 && (
-                          <span className="text-white text-xs font-medium">¢{data.amount.toLocaleString()}</span>
+                          <span className="text-white text-xs font-medium">¢{(data.amount  || 0).toLocaleString()}</span>
                         )}
                       </div>
                     </div>
-                    <div className="w-28 text-sm font-medium text-gray-900 text-right">¢{data.amount.toLocaleString()}</div>
+                    <div className="w-28 text-sm font-medium text-gray-900 text-right">¢{(data.amount  || 0).toLocaleString()}</div>
                   </div>
                 ))
               ) : (
@@ -637,7 +656,7 @@ const Reports = () => {
                 Top Contributing Clients
               </h3>
               <div className="space-y-4">
-                {customers
+                {reportData?.topCustomers
                   .sort((a, b) => (b.total_balance_across_all_accounts || 0) - (a.total_balance_across_all_accounts || 0))
                   .slice(0, 5)
                   .map((client, idx) => (
@@ -651,7 +670,7 @@ const Reports = () => {
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">{client.name || 'Unknown'}</div>
-                          <div className="text-xs text-gray-500">{client.email || 'No email'}</div>
+                          <div className="text-xs text-gray-500">{client.phone_number || client.email}</div>
                         </div>
                       </div>
                       <div className="text-sm font-bold text-indigo-600">¢{(client.total_balance_across_all_accounts || 0).toLocaleString()}</div>
@@ -666,18 +685,18 @@ const Reports = () => {
                 Transaction Status Overview
               </h3>
               <div className="space-y-4">
-                {statusItems.map((item, idx) => (
+                {reportData?.status.map((item, idx) => (
                   <div key={idx} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-700">{item.status}</span>
                       <span className="text-sm text-gray-600 font-semibold">
-                        {item.count} ({transactions.length > 0 ? Math.round((item.count / transactions.length) * 100) : 0}%)
+                        {item.count} ({totalTransactions > 0 ? Math.round((item.count / totalTransactions) * 100) : 0}%)
                       </span>
                     </div>
                     <div className="bg-gray-200 rounded-full h-3 w-full overflow-hidden">
                       <div
-                        className={`${colorClassMap[item.color]} h-3 rounded-full transition-all duration-500`}
-                        style={{ width: `${transactions.length > 0 ? (item.count / transactions.length) * 100 : 0}%` }}
+                        className={`${colorClassMap[item.status] || 'bg-green-300' } h-3 rounded-full transition-all duration-500`}
+                        style={{ width: `${totalTransactions > 0 ? (item.count / totalTransactions) * 100 : 0}%` }}
                       ></div>
                     </div>
                   </div>
