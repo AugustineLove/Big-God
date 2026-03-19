@@ -1,5 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Download, Calendar, TrendingUp, Users, PiggyBank, FileText, BarChart3, Filter, Loader2, CheckCircle, XCircle, Eye, TrendingUpIcon, PlusCircle } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  Download, TrendingUp, Users, PiggyBank, BarChart3, Filter,
+  Loader2, CheckCircle, XCircle, Eye, PlusCircle, RefreshCw,
+  ArrowUpRight, ArrowDownRight, Activity, Calendar, DollarSign,
+  AlertCircle, UserX, Clock, FileText
+} from 'lucide-react';
 import { useStats } from '../../contexts/dashboard/DashboardStat';
 import { useTransactions } from '../../contexts/dashboard/Transactions';
 import { useCustomers } from '../../contexts/dashboard/Customers';
@@ -7,703 +12,1017 @@ import { companyId } from '../../constants/appConstants';
 import autoTable from 'jspdf-autotable';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
 
-const Reports = () => {
-  const [selectedReport, setSelectedReport] = useState('overview');
-  const [dateRange, setDateRange] = useState('month');
-  const [exportFormat, setExportFormat] = useState('pdf');
-  const [isExporting, setIsExporting] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const { commissionStats, commissions } = useCommissionStats();
-  const [showPreview, setShowPreview] = useState(false);
-  const [exportStatus, setExportStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ 
-    type: null, 
-    message: '' 
-  });
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-  const { stats } = useStats();
-  const { customers } = useCustomers();
-  const [reportData, setReportData] = useState(null);
-  const { transactions } = useTransactions();
+interface ReportData {
+  summary: Record<string, any>;
+  monthly?: any[];
+  status?: any[];
+  topCustomers?: any[];
+  topContributors?: any[];
+  recentDeposits?: any[];
+  statusBreakdown?: any[];
+  registrationTrend?: any[];
+  clientActivity?: any[];
+  dormantClients?: any[];
+  accountBalances?: any[];
+  monthlyFlow?: any[];
+  commissions?: Record<string, any>;
+  largeTransactions?: any[];
+}
 
-  useEffect(() => {
-    const fetchReport = async () => {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/reports/dashboard/${companyId}`);
-      const data = await res.json();
-      setReportData(data.data);
-    };
+interface ExportStatus {
+  type: 'success' | 'error' | null;
+  message: string;
+}
 
-    fetchReport();
-  }, []);
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-  console.log(reportData)
-  // Calculate metrics from real data
-  const totalClients = reportData?.summary.totalClients;
-  const totalTransactions = reportData?.status.reduce(
-    (sum, item) => sum + Number(item.count),
-    0
+const REPORT_TYPES = [
+  {
+    id: 'overview',
+    name: 'Business Overview',
+    description: 'Full business snapshot: contributions, clients & transactions',
+    icon: BarChart3,
+    color: 'indigo',
+  },
+  {
+    id: 'contributions',
+    name: 'Contributions',
+    description: 'Deposit trends, top contributors & status breakdown',
+    icon: PiggyBank,
+    color: 'emerald',
+  },
+  {
+    id: 'clients',
+    name: 'Client Analysis',
+    description: 'Registration trends, activity levels & dormant clients',
+    icon: Users,
+    color: 'blue',
+  },
+  {
+    id: 'financial',
+    name: 'Financial Summary',
+    description: 'Net flow, account balances & large transactions',
+    icon: TrendingUp,
+    color: 'violet',
+  },
+];
+
+const DATE_RANGES = [
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+  { value: 'quarter', label: 'This Quarter' },
+  { value: 'year', label: 'This Year' },
+  { value: 'custom', label: 'Custom Range' },
+  { value: 'all', label: 'All Time' },
+];
+
+const colorMap: Record<string, string> = {
+  indigo: 'bg-indigo-100 text-indigo-600 border-indigo-500',
+  emerald: 'bg-emerald-100 text-emerald-600 border-emerald-500',
+  blue: 'bg-blue-100 text-blue-600 border-blue-500',
+  violet: 'bg-violet-100 text-violet-600 border-violet-500',
+};
+
+const statusColorMap: Record<string, string> = {
+  completed: 'bg-emerald-500',
+  approved: 'bg-green-500',
+  pending: 'bg-yellow-500',
+  rejected: 'bg-red-500',
+  reversed: 'bg-rose-500',
+};
+
+const statusBadgeMap: Record<string, string> = {
+  completed: 'bg-emerald-100 text-emerald-700',
+  approved: 'bg-green-100 text-green-700',
+  pending: 'bg-yellow-100 text-yellow-700',
+  rejected: 'bg-red-100 text-red-700',
+  reversed: 'bg-rose-100 text-rose-700',
+};
+
+const fmt = (n: any) => Number(n || 0).toLocaleString();
+const fmtCedi = (n: any) => `¢${fmt(n)}`;
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const MetricCard = ({
+  label, value, detail, icon: Icon, bg, textColor, prefix = '¢'
+}: any) => (
+  <div className="bg-white rounded-xl shadow-sm border p-5 hover:shadow-md transition-shadow">
+    <div className="flex items-center justify-between">
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide truncate">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 mt-1 truncate">{prefix}{fmt(value)}</p>
+        {detail && <p className={`text-xs ${textColor} mt-1 font-medium`}>{detail}</p>}
+      </div>
+      <div className={`${bg} p-3 rounded-xl flex-shrink-0 ml-3`}>
+        <Icon className={`h-6 w-6 ${textColor}`} />
+      </div>
+    </div>
+  </div>
+);
+
+const SectionHeader = ({ children }: { children: React.ReactNode }) => (
+  <h3 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">{children}</h3>
+);
+
+const BarRow = ({ label, value, max, color = 'from-indigo-500 to-indigo-400' }: any) => {
+  const pct = max > 0 ? Math.max((value / max) * 100, 3) : 3;
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-20 text-xs font-medium text-gray-600 truncate shrink-0">{label}</div>
+      <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+        <div
+          className={`bg-gradient-to-r ${color} h-5 rounded-full flex items-center justify-end pr-2 transition-all duration-700`}
+          style={{ width: `${pct}%` }}
+        >
+          {pct > 25 && <span className="text-white text-xs font-medium">{fmtCedi(value)}</span>}
+        </div>
+      </div>
+      <div className="w-24 text-xs font-semibold text-gray-800 text-right shrink-0">{fmtCedi(value)}</div>
+    </div>
   );
-  console.log(totalTransactions);
-  const activeClients = reportData?.summary.activeClients;
-  const contributions = transactions.filter(t => t.type === 'deposit');
-  const withdrawals = transactions.filter(t => t.type === 'withdrawal' && (t.status === 'completed' || t.status === 'approved'));
-  const totalContributions = reportData?.summary.totalContributions;
-  const totalWithdrawals = reportData?.summary.totalWithdrawals;
-  const totalCommissions = commissionStats?.total_amount;
-  const totalBalance = stats?.totalBalance || totalContributions - totalWithdrawals;
+};
 
-  const reportTypes = [
-    { id: 'overview', name: 'Business Overview', description: 'Comprehensive summary', icon: BarChart3 },
-    { id: 'contributions', name: 'Contributions Report', description: 'Contribution analysis', icon: PiggyBank },
-    { id: 'clients', name: 'Client Analysis', description: 'Client demographics', icon: Users },
-    { id: 'financial', name: 'Financial Summary', description: 'Income and balances', icon: TrendingUp }
-  ];
+const StatusBadge = ({ status }: { status: string }) => (
+  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBadgeMap[status?.toLowerCase()] || 'bg-gray-100 text-gray-600'}`}>
+    {status}
+  </span>
+);
 
-  // Get monthly data from transactions
-  const getMonthlyData = () => {
-    const months: { [key: string]: number } = {};
-    contributions.forEach(t => {
-      const date = new Date(t.transaction_date);
-      const monthYear = date.toLocaleDateString('en', { month: 'short', year: 'numeric' });
-      months[monthYear] = (months[monthYear] || 0) + Number(t.amount);
-    });
-    return Object.entries(months).map(([month, amount]) => ({ month, amount })).slice(-6);
-  };
+const EmptyState = ({ message }: { message: string }) => (
+  <div className="text-center py-8 text-gray-400 text-sm">{message}</div>
+);
 
-  const monthlyData = reportData?.monthly;
-  const maxAmount = 200000;
+// ─── Preview Sections ─────────────────────────────────────────────────────────
 
-  type StatusColor = 'green' | 'yellow' | 'red';
-  const colorClassMap = {
-    approved: 'bg-green-500',
-    pending: 'bg-yellow-500',
-    rejected: 'bg-red-500',
-    reversed: 'bg-red-500',
-    completed: 'bg-green-500'
-  };
-
-  const statusItems = [
-    { status: 'Approved', count: transactions.filter(t => t.status === 'approved').length, color: 'green' as StatusColor },
-    { status: 'Completed', count: transactions.filter(t => t.status === 'completed').length, color: 'green' as StatusColor },
-    { status: 'Pending', count: transactions.filter(t => t.status === 'pending').length, color: 'yellow' as StatusColor },
-    { status: 'Reversed', count: transactions.filter(t => t.status === 'reversed').length, color: 'red' as StatusColor },
-  ];
-
-  // Filter transactions by date range
-  const filterTransactionsByDateRange = () => {
-    const now = new Date();
-    let startDate = new Date();
-
-    switch (dateRange) {
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-      case 'quarter':
-        startDate.setMonth(now.getMonth() - 3);
-        break;
-      case 'year':
-        startDate.setFullYear(now.getFullYear() - 1);
-        break;
-    }
-
-    return transactions.filter(t => new Date(t.transaction_date) >= startDate);
-  };
-
-  const filterCommissionsByDate = () => {
-    const now = new Date();
-    let startDate = new Date();
-
-    switch (dateRange) {
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-      case 'quarter':
-        startDate.setMonth(now.getMonth() - 3);
-        break;
-      case 'year':
-        startDate.setFullYear(now.getFullYear() - 1);
-        break;
-    }
-
-    return commissions.filter(c => new Date(c.created_at) >= startDate);
-  };
-  
-  const filteredTransactions = filterTransactionsByDateRange();
-  const filteredCommissions = filterCommissionsByDate();
-  // Export to PDF using jsPDF
-  const exportToPDF = async () => {
-    try {
-      // @ts-ignore - Dynamic import
-      const { jsPDF } = await import('jspdf');
-      // @ts-ignore - Dynamic import
-      await import('jspdf-autotable');
-
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      
-      // Title
-      const reportNames: { [key: string]: string } = {
-        'overview': 'Business Overview Report',
-        'contributions': 'Contributions Analysis Report',
-        'clients': 'Client Analysis Report',
-        'financial': 'Financial Summary Report'
-      };
-
-      doc.setFontSize(20);
-      doc.setTextColor(79, 70, 229); // Indigo
-      doc.text(reportNames[selectedReport] || 'Business Report', pageWidth / 2, 20, { align: 'center' });
-
-      // Subtitle
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 28, { align: 'center' });
-      doc.text(`Date Range: ${dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}`, pageWidth / 2, 34, { align: 'center' });
-
-      // Key Metrics Table
-      doc.setFontSize(14);
-      doc.setTextColor(0, 0, 0);
-      doc.text('Key Performance Metrics', 14, 45);
-
-      // @ts-ignore - autoTable plugin
-      autoTable(doc, {
-        startY: 50,
-        head: [['Metric', 'Value']],
-        body: [
-          ['Total Clients', totalClients.toString()],
-          ['Active Clients', activeClients.toString()],
-          ['Total Contributions', `¢${totalContributions.toLocaleString()}.00`],
-          ['Total Commissions', `¢${commissionStats?.total_amount}`],
-          ['Total Withdrawals', `¢${totalWithdrawals.toLocaleString()}.00`],
-          ['Customer Balance', `¢${totalBalance.toLocaleString()}.00`]
-        ],
-        theme: 'grid',
-        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 11 },
-        styles: { fontSize: 10 }
-      });
-
-      // @ts-ignore - autoTable plugin
-      let finalY = doc.lastAutoTable.finalY + 10;
-
-      // Monthly Contributions
-      if (monthlyData.length > 0) {
-        doc.setFontSize(14);
-        doc.text('Monthly Contributions', 14, finalY);
-        
-        // @ts-ignore - autoTable plugin
-        autoTable(doc, {
-          startY: finalY + 5,
-          head: [['Month', 'Amount']],
-          body: monthlyData.map(d => [d.month, `¢${d.amount.toLocaleString()}`]),
-          theme: 'grid',
-          headStyles: { fillColor: [16, 185, 129], textColor: 255 },
-          styles: { fontSize: 10 }
-        });
-
-        // @ts-ignore - autoTable plugin
-        finalY = doc.lastAutoTable.finalY + 10;
-      }
-
-      // Add new page for transactions
-      doc.addPage();
-
-      // Transaction Status
-      doc.setFontSize(14);
-      doc.text('Transaction Status Summary', 14, 20);
-
-      // @ts-ignore - autoTable plugin
-      autoTable(doc, {
-        startY: 25,
-        head: [['Status', 'Count', 'Percentage']],
-        body: statusItems.map(item => {
-          const percentage = transactions.length > 0 ? ((item.count / transactions.length) * 100).toFixed(1) : '0.0';
-          return [item.status, item.count.toString(), `${percentage}%`];
-        }),
-        theme: 'grid',
-        headStyles: { fillColor: [99, 102, 241], textColor: 255 },
-        styles: { fontSize: 10 }
-      });
-
-      // @ts-ignore - autoTable plugin
-      finalY = doc.lastAutoTable.finalY + 10;
-
-      // Recent Transactions
-      doc.setFontSize(14);
-      doc.text('Recent Transactions', 14, finalY);
-
-      // @ts-ignore - autoTable plugin
-      autoTable(doc, {
-        startY: finalY + 5,
-        head: [['Date', 'Type', 'Amount', 'Status']],
-        body: filteredTransactions.slice(0, 20).map(t => [
-          new Date(t.transaction_date).toLocaleDateString(),
-          t.type.charAt(0).toUpperCase() + t.type.slice(1),
-          `¢${Number(t.amount).toLocaleString()}`,
-          t.status.charAt(0).toUpperCase() + t.status.slice(1)
-        ]),
-        theme: 'striped',
-        headStyles: { fillColor: [79, 70, 229], textColor: 255 },
-        styles: { fontSize: 9 }
-      });
-
-      // Save PDF
-      doc.save(`${selectedReport}-report-${Date.now()}.pdf`);
-      return true;
-    } catch (error) {
-      console.error('PDF Error:', error);
-      throw error;
-    }
-  };
-
-  // Export to Excel using xlsx
-  const exportToExcel = async () => {
-    try {
-      // @ts-ignore - Dynamic import
-      const XLSX = await import('xlsx');
-
-      const wb = XLSX.utils.book_new();
-
-      // Summary Sheet
-      const summaryData = [
-        ['Business Report'],
-        [`Generated: ${new Date().toLocaleString()}`],
-        [`Date Range: ${dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}`],
-        [],
-        ['Key Performance Metrics'],
-        ['Metric', 'Value'],
-        ['Total Clients', totalClients],
-        ['Active Clients', activeClients],
-        ['Total Contributions', `¢${totalContributions.toLocaleString()}`],
-        ['Total Commissions', `${commissionStats?.total_amount.toLocaleString()}`],
-        ['Total Withdrawals', `¢${totalWithdrawals.toLocaleString()}`],
-        ['Current Balance', `¢${totalBalance.toLocaleString()}`]
-      ];
-
-      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
-
-      // Monthly Data Sheet
-      if (monthlyData.length > 0) {
-        const monthlySheetData = [
-          ['Monthly Contributions'],
-          [],
-          ['Month', 'Amount'],
-          ...monthlyData.map(d => [d.month, d.amount])
-        ];
-        const monthlySheet = XLSX.utils.aoa_to_sheet(monthlySheetData);
-        XLSX.utils.book_append_sheet(wb, monthlySheet, 'Monthly Data');
-      }
-
-      // Transaction Status Sheet
-      const statusSheetData = [
-        ['Transaction Status Summary'],
-        [],
-        ['Status', 'Count', 'Percentage'],
-        ...statusItems.map(item => {
-          const percentage = transactions.length > 0 ? ((item.count / transactions.length) * 100).toFixed(1) : '0.0';
-          return [item.status, item.count, `${percentage}%`];
-        })
-      ];
-      const statusSheet = XLSX.utils.aoa_to_sheet(statusSheetData);
-      XLSX.utils.book_append_sheet(wb, statusSheet, 'Status');
-
-      // Transactions Sheet
-      const transactionsSheetData = [
-        ['Recent Transactions'],
-        [],
-        ['Date', 'Type', 'Amount', 'Status', 'Account ID'],
-        ...filteredTransactions.slice(0, 100).map(t => [
-          new Date(t.transaction_date).toLocaleDateString(),
-          t.type,
-          Number(t.amount),
-          t.status,
-          t.account_id || 'N/A'
-        ])
-      ];
-      const transactionsSheet = XLSX.utils.aoa_to_sheet(transactionsSheetData);
-      XLSX.utils.book_append_sheet(wb, transactionsSheet, 'Transactions');
-
-      // Save Excel file
-      XLSX.writeFile(wb, `${selectedReport}-report-${Date.now()}.xlsx`);
-      return true;
-    } catch (error) {
-      console.error('Excel Error:', error);
-      throw error;
-    }
-  };
-
-  // Export to CSV
-  const exportToCSV = () => {
-    let csvContent = '';
-
-    // Header
-    csvContent += `Report Type: ${selectedReport}\n`;
-    csvContent += `Date Range: ${dateRange}\n`;
-    csvContent += `Generated: ${new Date().toLocaleString()}\n\n`;
-
-    // Metrics
-    csvContent += 'Key Metrics\n';
-    csvContent += 'Metric,Value\n';
-    csvContent += `Total Clients,${totalClients}\n`;
-    csvContent += `Active Clients,${activeClients}\n`;
-    csvContent += `Total Contributions,${totalContributions}\n`;
-    csvContent += `Total Commissions,${commissionStats?.total_amount}`
-    csvContent += `Total Withdrawals,${totalWithdrawals}\n`;
-    csvContent += `Total Balance,${totalBalance}\n\n`;
-
-    // Monthly Data
-    if (monthlyData.length > 0) {
-      csvContent += 'Monthly Contributions\n';
-      csvContent += 'Month,Amount\n';
-      monthlyData.forEach(d => {
-        csvContent += `${d.month},${d.amount}\n`;
-      });
-      csvContent += '\n';
-    }
-
-    // Transactions
-    csvContent += 'Recent Transactions\n';
-    csvContent += 'Date,Type,Amount,Status,Account\n';
-    filteredTransactions.slice(0, 100).forEach(t => {
-      csvContent += `${new Date(t.transaction_date).toLocaleDateString()},${t.type},${t.amount},${t.status},${t.account_id || 'N/A'}\n`;
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${selectedReport}-report-${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  // GENERATE REPORT - Shows preview/refreshes data
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    setExportStatus({ type: null, message: '' });
-
-    try {
-      // Simulate data refresh/validation
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Show the preview section
-      setShowPreview(true);
-      
-      // Scroll to preview
-      setTimeout(() => {
-        const previewElement = document.getElementById('report-preview');
-        if (previewElement) {
-          previewElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-      
-      setExportStatus({ 
-        type: 'success', 
-        message: `Report generated! Review the data below and click "Export Report" to download.` 
-      });
-    } catch (error) {
-      setExportStatus({ 
-        type: 'error', 
-        message: 'Failed to generate report. Please try again.' 
-      });
-    } finally {
-      setIsGenerating(false);
-      setTimeout(() => setExportStatus({ type: null, message: '' }), 8000);
-    }
-  };
-
-  // EXPORT - Downloads the file
-  const handleExport = async () => {
-    if (!showPreview) {
-      setExportStatus({ 
-        type: 'error', 
-        message: 'Please generate the report first before exporting.' 
-      });
-      setTimeout(() => setExportStatus({ type: null, message: '' }), 5000);
-      return;
-    }
-
-    setIsExporting(true);
-    setExportStatus({ type: null, message: '' });
-
-    try {
-      if (exportFormat === 'pdf') {
-        await exportToPDF();
-      } else if (exportFormat === 'xlsx') {
-        await exportToExcel();
-      } else if (exportFormat === 'csv') {
-        exportToCSV();
-      }
-
-      setExportStatus({ 
-        type: 'success', 
-        message: `Report exported successfully as ${exportFormat.toUpperCase()}! Check your downloads folder.` 
-      });
-    } catch (error) {
-      setExportStatus({ 
-        type: 'error', 
-        message: 'Failed to export report. Please try again.' 
-      });
-      console.error('Export error:', error);
-    } finally {
-      setIsExporting(false);
-      setTimeout(() => setExportStatus({ type: null, message: '' }), 5000);
-    }
-  };
+const OverviewPreview = ({ data }: { data: ReportData }) => {
+  const { summary, monthly = [], status = [], topCustomers = [] } = data;
+  const totalTx = status.reduce((s, i) => s + Number(i.count), 0);
+  const maxMonthly = Math.max(...monthly.map(m => Number(m.contributions || 0)), 1);
 
   return (
     <div className="space-y-6">
+      {/* Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <MetricCard label="Total Clients" value={summary.total_clients} detail={`${fmt(summary.active_clients)} active`} icon={Users} bg="bg-indigo-100" textColor="text-indigo-600" prefix="" />
+        <MetricCard label="Active Clients" value={summary.active_clients} detail="Currently active" icon={Activity} bg="bg-green-100" textColor="text-green-600" prefix="" />
+        <MetricCard label="Contributions" value={summary.total_contributions} detail="Total deposits" icon={PiggyBank} bg="bg-emerald-100" textColor="text-emerald-600" />
+        <MetricCard label="Withdrawals" value={summary.total_withdrawals} detail="Approved + completed" icon={ArrowDownRight} bg="bg-orange-100" textColor="text-orange-600" />
+        <MetricCard label="Transactions" value={summary.total_transactions} detail="In selected period" icon={BarChart3} bg="bg-violet-100" textColor="text-violet-600" prefix="" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Monthly Trend */}
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><TrendingUp className="h-4 w-4 text-indigo-500" />Monthly Contributions</SectionHeader>
+          {monthly.length > 0 ? (
+            <div className="space-y-3">
+              {monthly.map((d: any, i: number) => (
+                <BarRow key={i} label={d.month} value={d.contributions} max={maxMonthly} />
+              ))}
+            </div>
+          ) : <EmptyState message="No contribution data available" />}
+        </div>
+
+        {/* Status breakdown */}
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><BarChart3 className="h-4 w-4 text-indigo-500" />Transaction Status</SectionHeader>
+          {status.length > 0 ? (
+            <div className="space-y-3">
+              {status.map((item: any, i: number) => (
+                <div key={i}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium capitalize text-gray-700">{item.status}</span>
+                    <span className="text-gray-500">{fmt(item.count)} ({totalTx > 0 ? Math.round((item.count / totalTx) * 100) : 0}%)</span>
+                  </div>
+                  <div className="bg-gray-100 rounded-full h-3">
+                    <div
+                      className={`${statusColorMap[item.status?.toLowerCase()] || 'bg-gray-400'} h-3 rounded-full transition-all duration-500`}
+                      style={{ width: `${totalTx > 0 ? (item.count / totalTx) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <EmptyState message="No transaction status data" />}
+        </div>
+      </div>
+
+      {/* Top Customers */}
+      <div className="bg-white rounded-xl border shadow-sm p-5">
+        <SectionHeader><Users className="h-4 w-4 text-indigo-500" />Top Clients by Balance</SectionHeader>
+        {topCustomers.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">#</th>
+                  <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">Client</th>
+                  <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">Contact</th>
+                  <th className="text-right py-2 px-2 text-xs font-semibold text-gray-500">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topCustomers.map((c: any, i: number) => (
+                  <tr key={c.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                    <td className="py-2 px-2 text-gray-400 font-bold text-xs">#{i + 1}</td>
+                    <td className="py-2 px-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold text-xs shrink-0">
+                          {(c.name || 'N/A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-gray-800 truncate">{c.name || 'Unknown'}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 px-2 text-gray-500 text-xs">{c.phone_number || c.email || '—'}</td>
+                    <td className="py-2 px-2 text-right font-semibold text-indigo-600">{fmtCedi(c.total_balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <EmptyState message="No client data available" />}
+      </div>
+    </div>
+  );
+};
+
+const ContributionsPreview = ({ data }: { data: ReportData }) => {
+  const { summary, monthly = [], topContributors = [], statusBreakdown = [], recentDeposits = [] } = data;
+  const maxMonthly = Math.max(...monthly.map((m: any) => Number(m.amount || 0)), 1);
+  const totalStatusCount = statusBreakdown.reduce((s: number, i: any) => s + Number(i.count), 0);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <MetricCard label="Total Deposits" value={summary.total_deposits} detail="Transactions" icon={PiggyBank} bg="bg-emerald-100" textColor="text-emerald-600" prefix="" />
+        <MetricCard label="Total Amount" value={summary.total_amount} detail="Gross contributions" icon={DollarSign} bg="bg-green-100" textColor="text-green-600" />
+        <MetricCard label="Average Deposit" value={Number(summary.average_amount || 0).toFixed(2)} detail="Per transaction" icon={Activity} bg="bg-blue-100" textColor="text-blue-600" />
+        <MetricCard label="Highest Deposit" value={summary.highest_deposit} detail="Single transaction" icon={ArrowUpRight} bg="bg-violet-100" textColor="text-violet-600" />
+        <MetricCard label="Lowest Deposit" value={summary.lowest_deposit} detail="Single transaction" icon={ArrowDownRight} bg="bg-orange-100" textColor="text-orange-600" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><TrendingUp className="h-4 w-4 text-emerald-500" />Monthly Deposit Trend</SectionHeader>
+          {monthly.length > 0 ? (
+            <div className="space-y-3">
+              {monthly.map((d: any, i: number) => (
+                <BarRow key={i} label={d.month} value={d.amount} max={maxMonthly} color="from-emerald-500 to-teal-400" />
+              ))}
+            </div>
+          ) : <EmptyState message="No monthly data in selected range" />}
+        </div>
+
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><BarChart3 className="h-4 w-4 text-emerald-500" />Status Breakdown</SectionHeader>
+          {statusBreakdown.length > 0 ? (
+            <div className="space-y-4">
+              {statusBreakdown.map((item: any, i: number) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1">
+                    <StatusBadge status={item.status} />
+                    <div className="flex-1 bg-gray-100 rounded-full h-2.5">
+                      <div
+                        className={`${statusColorMap[item.status?.toLowerCase()] || 'bg-gray-400'} h-2.5 rounded-full`}
+                        style={{ width: `${totalStatusCount > 0 ? (item.count / totalStatusCount) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-right ml-3 shrink-0">
+                    <div className="text-sm font-semibold text-gray-800">{fmt(item.count)}</div>
+                    <div className="text-xs text-gray-400">{fmtCedi(item.amount)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <EmptyState message="No status data available" />}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top contributors */}
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><Users className="h-4 w-4 text-emerald-500" />Top Contributors</SectionHeader>
+          {topContributors.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">#</th>
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">Client</th>
+                    <th className="text-center py-2 px-2 text-xs font-semibold text-gray-500">Deposits</th>
+                    <th className="text-right py-2 px-2 text-xs font-semibold text-gray-500">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topContributors.map((c: any, i: number) => (
+                    <tr key={c.id} className="border-b last:border-0 hover:bg-gray-50">
+                      <td className="py-2 px-2 text-gray-400 text-xs font-bold">#{i + 1}</td>
+                      <td className="py-2 px-2">
+                        <div className="font-medium text-gray-800">{c.name || 'Unknown'}</div>
+                        <div className="text-xs text-gray-400">{c.phone_number}</div>
+                      </td>
+                      <td className="py-2 px-2 text-center text-gray-600">{fmt(c.deposit_count)}</td>
+                      <td className="py-2 px-2 text-right font-semibold text-emerald-600">{fmtCedi(c.total_contributed)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <EmptyState message="No contributor data available" />}
+        </div>
+
+        {/* Recent deposits */}
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><Clock className="h-4 w-4 text-emerald-500" />Recent Deposits</SectionHeader>
+          {recentDeposits.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {recentDeposits.slice(0, 15).map((t: any, i: number) => (
+                <div key={t.id || i} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+                      <PiggyBank className="h-3.5 w-3.5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-gray-800">{t.customer_name || 'Unknown'}</div>
+                      <div className="text-xs text-gray-400">{new Date(t.transaction_date).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-gray-900">{fmtCedi(t.amount)}</div>
+                    <StatusBadge status={t.status} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <EmptyState message="No recent deposits" />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ClientsPreview = ({ data }: { data: ReportData }) => {
+  const { summary, registrationTrend = [], clientActivity = [], dormantClients = [] } = data;
+  const maxReg = Math.max(...registrationTrend.map((m: any) => Number(m.new_clients || 0)), 1);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard label="Total Clients" value={summary.total_clients} detail="All time" icon={Users} bg="bg-blue-100" textColor="text-blue-600" prefix="" />
+        <MetricCard label="Active Clients" value={summary.active_clients} detail="Currently active" icon={Activity} bg="bg-green-100" textColor="text-green-600" prefix="" />
+        <MetricCard label="Inactive Clients" value={summary.inactive_clients} detail="Need reactivation" icon={UserX} bg="bg-orange-100" textColor="text-orange-600" prefix="" />
+        <MetricCard label="New This Month" value={summary.new_this_month} detail="Recent joins" icon={ArrowUpRight} bg="bg-violet-100" textColor="text-violet-600" prefix="" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Registration trend */}
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><TrendingUp className="h-4 w-4 text-blue-500" />Registration Trend (12 months)</SectionHeader>
+          {registrationTrend.length > 0 ? (
+            <div className="space-y-3">
+              {registrationTrend.map((d: any, i: number) => (
+                <BarRow key={i} label={d.month} value={d.new_clients} max={maxReg} color="from-blue-500 to-cyan-400" />
+              ))}
+            </div>
+          ) : <EmptyState message="No registration data available" />}
+        </div>
+
+        {/* Dormant clients */}
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><AlertCircle className="h-4 w-4 text-orange-500" />Dormant Clients (30+ days inactive)</SectionHeader>
+          {dormantClients.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {dormantClients.map((c: any, i: number) => (
+                <div key={c.id || i} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-xs">
+                      {(c.name || 'N/A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-gray-800">{c.name}</div>
+                      <div className="text-xs text-gray-400">{c.phone_number}</div>
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-gray-500">
+                    {c.last_transaction ? `Last: ${new Date(c.last_transaction).toLocaleDateString()}` : 'No transactions'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <EmptyState message="No dormant clients found 🎉" />}
+        </div>
+      </div>
+
+      {/* Client activity table */}
+      <div className="bg-white rounded-xl border shadow-sm p-5">
+        <SectionHeader><Activity className="h-4 w-4 text-blue-500" />Client Activity (Top 20)</SectionHeader>
+        {clientActivity.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Client</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Transactions</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Deposits</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Withdrawals</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientActivity.map((c: any, i: number) => (
+                  <tr key={c.id || i} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="py-2 px-3">
+                      <div className="font-medium text-gray-800">{c.name}</div>
+                      <div className="text-xs text-gray-400">{c.phone_number}</div>
+                    </td>
+                    <td className="py-2 px-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${c.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3 text-right text-gray-700">{fmt(c.transaction_count)}</td>
+                    <td className="py-2 px-3 text-right text-emerald-600 font-medium">{fmtCedi(c.total_deposits)}</td>
+                    <td className="py-2 px-3 text-right text-orange-600 font-medium">{fmtCedi(c.total_withdrawals)}</td>
+                    <td className="py-2 px-3 text-right text-indigo-600 font-semibold">{fmtCedi(c.current_balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <EmptyState message="No client activity data" />}
+      </div>
+    </div>
+  );
+};
+
+const FinancialPreview = ({ data }: { data: ReportData }) => {
+  const { summary, accountBalances = [], monthlyFlow = [], commissions, largeTransactions = [] } = data;
+  const maxFlow = Math.max(...monthlyFlow.map((m: any) => Math.max(Number(m.deposits || 0), Number(m.withdrawals || 0))), 1);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard label="Total Contributions" value={summary.total_contributions} detail="Gross deposits" icon={ArrowUpRight} bg="bg-emerald-100" textColor="text-emerald-600" />
+        <MetricCard label="Total Withdrawals" value={summary.total_withdrawals} detail="Approved + completed" icon={ArrowDownRight} bg="bg-red-100" textColor="text-red-600" />
+        <MetricCard
+          label="Net Flow"
+          value={Math.abs(summary.net_flow)}
+          detail={Number(summary.net_flow) >= 0 ? '↑ Positive' : '↓ Negative'}
+          icon={TrendingUp}
+          bg={Number(summary.net_flow) >= 0 ? 'bg-green-100' : 'bg-red-100'}
+          textColor={Number(summary.net_flow) >= 0 ? 'text-green-600' : 'text-red-600'}
+        />
+        <MetricCard label="Total Commissions" value={commissions?.total_commissions} detail={`${fmt(commissions?.commission_count)} records`} icon={PlusCircle} bg="bg-violet-100" textColor="text-violet-600" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Monthly flow */}
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><TrendingUp className="h-4 w-4 text-violet-500" />Monthly Cash Flow (12 months)</SectionHeader>
+          {monthlyFlow.length > 0 ? (
+            <div className="space-y-4">
+              {monthlyFlow.map((d: any, i: number) => (
+                <div key={i} className="space-y-1">
+                  <div className="text-xs font-medium text-gray-600 mb-1">{d.month}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-emerald-600 w-16 shrink-0">In</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-3">
+                      <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-3 rounded-full" style={{ width: `${Math.max((d.deposits / maxFlow) * 100, 3)}%` }} />
+                    </div>
+                    <span className="text-xs font-medium text-emerald-600 w-20 text-right">{fmtCedi(d.deposits)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-red-500 w-16 shrink-0">Out</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-3">
+                      <div className="bg-gradient-to-r from-red-400 to-rose-500 h-3 rounded-full" style={{ width: `${Math.max((d.withdrawals / maxFlow) * 100, 3)}%` }} />
+                    </div>
+                    <span className="text-xs font-medium text-red-500 w-20 text-right">{fmtCedi(d.withdrawals)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <EmptyState message="No flow data available" />}
+        </div>
+
+        {/* Account balances */}
+        <div className="bg-white rounded-xl border shadow-sm p-5">
+          <SectionHeader><DollarSign className="h-4 w-4 text-violet-500" />Balance by Account Type</SectionHeader>
+          {accountBalances.length > 0 ? (
+            <div className="space-y-3">
+              {accountBalances.map((a: any, i: number) => {
+                const maxBal = Math.max(...accountBalances.map((x: any) => Number(x.total_balance || 0)), 1);
+                return (
+                  <div key={i}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-gray-700 capitalize">{a.account_type}</span>
+                      <span className="font-semibold text-violet-600">{fmtCedi(a.total_balance)} <span className="text-gray-400">({fmt(a.account_count)} accts)</span></span>
+                    </div>
+                    <div className="bg-gray-100 rounded-full h-3">
+                      <div className="bg-gradient-to-r from-violet-500 to-purple-400 h-3 rounded-full" style={{ width: `${(a.total_balance / maxBal) * 100}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : <EmptyState message="No account balance data" />}
+        </div>
+      </div>
+
+      {/* Large transactions */}
+      <div className="bg-white rounded-xl border shadow-sm p-5">
+        <SectionHeader><FileText className="h-4 w-4 text-violet-500" />Top Transactions by Amount</SectionHeader>
+        {largeTransactions.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Date</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Client</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Type</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {largeTransactions.map((t: any, i: number) => (
+                  <tr key={t.id || i} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="py-2 px-3 text-gray-500 text-xs">{new Date(t.transaction_date).toLocaleDateString()}</td>
+                    <td className="py-2 px-3 font-medium text-gray-800">{t.customer_name || '—'}</td>
+                    <td className="py-2 px-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${t.type === 'deposit' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+                        {t.type}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3"><StatusBadge status={t.status} /></td>
+                    <td className="py-2 px-3 text-right font-semibold text-gray-900">{fmtCedi(t.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <EmptyState message="No transaction data" />}
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const Reports = () => {
+  const [selectedReport, setSelectedReport] = useState('overview');
+  const [dateRange, setDateRange] = useState('month');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [exportFormat, setExportFormat] = useState('pdf');
+  const [isExporting, setIsExporting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [exportStatus, setExportStatus] = useState<ExportStatus>({ type: null, message: '' });
+
+  const { stats } = useStats();
+  const { transactions } = useTransactions();
+  const { commissionStats, commissions } = useCommissionStats();
+
+  const setStatus = (type: ExportStatus['type'], message: string, duration = 6000) => {
+    setExportStatus({ type, message });
+    setTimeout(() => setExportStatus({ type: null, message: '' }), duration);
+  };
+
+  // Fetch report data from backend
+  const fetchReport = useCallback(async () => {
+    setIsGenerating(true);
+    setExportStatus({ type: null, message: '' });
+    try {
+      const params = new URLSearchParams({ reportType: selectedReport, dateRange });
+      if (dateRange === 'custom') {
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+      }
+
+      const res = await fetch(
+        `https://susu-pro-backend.onrender.com/api/reports/dashboard/${companyId}?${params}`
+      );
+      if (!res.ok) throw new Error('Request failed');
+      const json = await res.json();
+      setReportData(json.data);
+      setShowPreview(true);
+      setTimeout(() => {
+        document.getElementById('report-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      setStatus('success', 'Report generated! Review below, then export when ready.');
+    } catch (err) {
+      setStatus('error', 'Failed to generate report. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [selectedReport, dateRange, startDate, endDate]);
+
+  // PDF export
+  const exportToPDF = async () => {
+    const { jsPDF } = await import('jspdf');
+    await import('jspdf-autotable');
+
+    const doc = new jsPDF();
+    const pw = doc.internal.pageSize.getWidth();
+    const reportLabel = REPORT_TYPES.find(r => r.id === selectedReport)?.name || 'Report';
+    const rangeLabel = DATE_RANGES.find(r => r.value === dateRange)?.label || dateRange;
+
+    // Header
+    doc.setFillColor(79, 70, 229);
+    doc.rect(0, 0, pw, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.text(reportLabel, pw / 2, 18, { align: 'center' });
+    doc.setFontSize(9);
+    doc.text(`Date Range: ${rangeLabel}  |  Generated: ${new Date().toLocaleString()}`, pw / 2, 30, { align: 'center' });
+
+    let y = 50;
+
+    if (!reportData) throw new Error('No data');
+
+    const { summary } = reportData;
+
+    // Summary table
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(13);
+    doc.text('Summary Metrics', 14, y);
+    y += 4;
+
+    const summaryRows: any[] = [];
+    if (selectedReport === 'overview' || selectedReport === 'financial') {
+      summaryRows.push(
+        ['Total Contributions', fmtCedi(summary.total_contributions)],
+        ['Total Withdrawals', fmtCedi(summary.total_withdrawals)],
+        ['Net Flow', fmtCedi(summary.net_flow ?? (Number(summary.total_contributions) - Number(summary.total_withdrawals)))],
+        ['Total Clients', fmt(summary.total_clients)],
+        ['Active Clients', fmt(summary.active_clients)],
+      );
+    }
+    if (selectedReport === 'contributions') {
+      summaryRows.push(
+        ['Total Deposits', fmt(summary.total_deposits)],
+        ['Total Amount', fmtCedi(summary.total_amount)],
+        ['Average Deposit', fmtCedi(Number(summary.average_amount || 0).toFixed(2))],
+        ['Highest Deposit', fmtCedi(summary.highest_deposit)],
+      );
+    }
+    if (selectedReport === 'clients') {
+      summaryRows.push(
+        ['Total Clients', fmt(summary.total_clients)],
+        ['Active Clients', fmt(summary.active_clients)],
+        ['Inactive Clients', fmt(summary.inactive_clients)],
+        ['New This Month', fmt(summary.new_this_month)],
+      );
+    }
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Metric', 'Value']],
+      body: summaryRows,
+      theme: 'grid',
+      headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+      styles: { fontSize: 10 },
+    });
+
+    // @ts-ignore
+    y = doc.lastAutoTable.finalY + 12;
+
+    // Monthly data
+    const monthly = reportData.monthly || reportData.monthlyFlow || [];
+    if (monthly.length > 0) {
+      if (y > 240) { doc.addPage(); y = 20; }
+      doc.setFontSize(13);
+      doc.text('Monthly Data', 14, y);
+      y += 4;
+      const monthHead = reportData.monthlyFlow
+        ? [['Month', 'Deposits (In)', 'Withdrawals (Out)']]
+        : [['Month', 'Amount', 'Count']];
+      const monthBody = reportData.monthlyFlow
+        ? (reportData.monthlyFlow as any[]).map(d => [d.month, fmtCedi(d.deposits), fmtCedi(d.withdrawals)])
+        : (monthly as any[]).map(d => [d.month, fmtCedi(d.amount ?? d.contributions), fmt(d.count ?? '')]);
+
+      autoTable(doc, {
+        startY: y,
+        head: monthHead,
+        body: monthBody,
+        theme: 'striped',
+        headStyles: { fillColor: [16, 185, 129], textColor: 255 },
+        styles: { fontSize: 10 },
+      });
+      // @ts-ignore
+      y = doc.lastAutoTable.finalY + 12;
+    }
+
+    // Transactions / activity table
+    const txData = reportData.recentDeposits || reportData.largeTransactions || reportData.clientActivity || [];
+    if (txData.length > 0) {
+      doc.addPage();
+      doc.setFontSize(13);
+      doc.text(selectedReport === 'clients' ? 'Client Activity' : 'Transactions', 14, 20);
+
+      const isClients = selectedReport === 'clients';
+      autoTable(doc, {
+        startY: 25,
+        head: [isClients
+          ? ['Name', 'Status', 'Transactions', 'Deposits', 'Withdrawals', 'Balance']
+          : ['Date', 'Client', 'Type', 'Amount', 'Status']
+        ],
+        body: isClients
+          ? (txData as any[]).map(c => [c.name, c.status, fmt(c.transaction_count), fmtCedi(c.total_deposits), fmtCedi(c.total_withdrawals), fmtCedi(c.current_balance)])
+          : (txData as any[]).slice(0, 50).map(t => [
+              new Date(t.transaction_date).toLocaleDateString(),
+              t.customer_name || '—',
+              t.type || 'deposit',
+              fmtCedi(t.amount),
+              t.status,
+            ]),
+        theme: 'striped',
+        headStyles: { fillColor: [99, 102, 241], textColor: 255 },
+        styles: { fontSize: 9 },
+      });
+    }
+
+    doc.save(`${selectedReport}-report-${Date.now()}.pdf`);
+  };
+
+  // Excel export
+  const exportToExcel = async () => {
+    const XLSX = await import('xlsx');
+    if (!reportData) throw new Error('No data');
+
+    const wb = XLSX.utils.book_new();
+    const rangeLabel = DATE_RANGES.find(r => r.value === dateRange)?.label || dateRange;
+
+    // Summary sheet
+    const summarySheet = XLSX.utils.aoa_to_sheet([
+      [`${REPORT_TYPES.find(r => r.id === selectedReport)?.name} Report`],
+      [`Generated: ${new Date().toLocaleString()}`],
+      [`Date Range: ${rangeLabel}`],
+      [],
+      ['Metric', 'Value'],
+      ...Object.entries(reportData.summary).map(([k, v]) => [k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), v])
+    ]);
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
+
+    // Monthly sheet
+    const monthly = reportData.monthly || reportData.monthlyFlow || [];
+    if (monthly.length > 0) {
+      const headers = Object.keys(monthly[0]);
+      const monthlySheet = XLSX.utils.aoa_to_sheet([
+        headers.map(h => h.replace(/_/g, ' ').toUpperCase()),
+        ...monthly.map((row: any) => headers.map(h => row[h]))
+      ]);
+      XLSX.utils.book_append_sheet(wb, monthlySheet, 'Monthly Data');
+    }
+
+    // Detail sheet
+    const detail = reportData.recentDeposits || reportData.largeTransactions || reportData.clientActivity || reportData.topContributors || reportData.topCustomers || [];
+    if (detail.length > 0) {
+      const headers = Object.keys(detail[0]);
+      const detailSheet = XLSX.utils.aoa_to_sheet([
+        headers.map(h => h.replace(/_/g, ' ').toUpperCase()),
+        ...detail.map((row: any) => headers.map(h => row[h]))
+      ]);
+      XLSX.utils.book_append_sheet(wb, detailSheet, 'Details');
+    }
+
+    XLSX.writeFile(wb, `${selectedReport}-report-${Date.now()}.xlsx`);
+  };
+
+  // CSV export
+  const exportToCSV = () => {
+    if (!reportData) throw new Error('No data');
+    const rangeLabel = DATE_RANGES.find(r => r.value === dateRange)?.label || dateRange;
+    let csv = `Report: ${selectedReport}\nDate Range: ${rangeLabel}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+
+    csv += 'Summary\nMetric,Value\n';
+    Object.entries(reportData.summary).forEach(([k, v]) => {
+      csv += `"${k.replace(/_/g, ' ')}","${v}"\n`;
+    });
+
+    const monthly = reportData.monthly || reportData.monthlyFlow || [];
+    if (monthly.length > 0) {
+      csv += '\nMonthly Data\n';
+      csv += Object.keys(monthly[0]).join(',') + '\n';
+      monthly.forEach((row: any) => {
+        csv += Object.values(row).join(',') + '\n';
+      });
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${selectedReport}-report-${Date.now()}.csv`;
+    document.body.appendChild(a); a.click();
+    URL.revokeObjectURL(url); document.body.removeChild(a);
+  };
+
+  const handleExport = async () => {
+    if (!showPreview || !reportData) {
+      setStatus('error', 'Please generate the report first before exporting.');
+      return;
+    }
+    setIsExporting(true);
+    try {
+      if (exportFormat === 'pdf') await exportToPDF();
+      else if (exportFormat === 'xlsx') await exportToExcel();
+      else exportToCSV();
+      setStatus('success', `Report exported as ${exportFormat.toUpperCase()}! Check your downloads folder.`);
+    } catch (err) {
+      setStatus('error', 'Export failed. Please try again.');
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const selectedType = REPORT_TYPES.find(r => r.id === selectedReport)!;
+  const colorClasses = colorMap[selectedType.color];
+
+  return (
+    <div className="space-y-6 pb-10">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600">Generate comprehensive reports and analyze your data</p>
+          <p className="text-sm text-gray-500 mt-0.5">Generate, preview and export detailed business reports</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex gap-2 flex-wrap">
           <button
-            onClick={handleGenerate}
+            onClick={fetchReport}
             disabled={isGenerating}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium shadow-sm"
           >
-            {isGenerating ? (
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            ) : (
-              <Eye className="h-5 w-5 mr-2" />
-            )}
-            {isGenerating ? 'Generating...' : 'Generate Report'}
+            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+            {isGenerating ? 'Generating…' : 'Generate Report'}
           </button>
           <button
             onClick={handleExport}
             disabled={isExporting || !showPreview}
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium shadow-sm"
           >
-            {isExporting ? (
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            ) : (
-              <Download className="h-5 w-5 mr-2" />
-            )}
-            {isExporting ? 'Exporting...' : 'Export Report'}
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {isExporting ? 'Exporting…' : 'Export Report'}
           </button>
         </div>
       </div>
 
-      {/* Status Message */}
+      {/* Status banner */}
       {exportStatus.type && (
-        <div
-          className={`flex items-center p-4 rounded-lg animate-fade-in ${
-            exportStatus.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-          }`}
-        >
-          {exportStatus.type === 'success' ? (
-            <CheckCircle className="h-5 w-5 text-green-600 mr-3 flex-shrink-0" />
-          ) : (
-            <XCircle className="h-5 w-5 text-red-600 mr-3 flex-shrink-0" />
-          )}
-          <p className={exportStatus.type === 'success' ? 'text-green-800' : 'text-red-800'}>{exportStatus.message}</p>
+        <div className={`flex items-center gap-3 p-4 rounded-xl border ${exportStatus.type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          {exportStatus.type === 'success'
+            ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+            : <XCircle className="h-5 w-5 text-red-600 shrink-0" />
+          }
+          <p className={`text-sm font-medium ${exportStatus.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+            {exportStatus.message}
+          </p>
         </div>
       )}
 
-      {/* Configuration */}
+      {/* Configuration panel */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h2 className="text-lg font-semibold mb-4">Report Configuration</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Filter className="h-4 w-4 text-gray-500" /> Report Configuration
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Report type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Report Type</label>
             <select
               value={selectedReport}
-              onChange={(e) => {
-                setSelectedReport(e.target.value);
-                setShowPreview(false);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+              onChange={e => { setSelectedReport(e.target.value); setShowPreview(false); }}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              {reportTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
+              {REPORT_TYPES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
+
+          {/* Date range */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Date Range</label>
             <select
               value={dateRange}
-              onChange={(e) => {
-                setDateRange(e.target.value);
-                setShowPreview(false);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+              onChange={e => { setDateRange(e.target.value); setShowPreview(false); }}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="quarter">This Quarter</option>
-              <option value="year">This Year</option>
+              {DATE_RANGES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
+
+          {/* Custom dates */}
+          {dateRange === 'custom' && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Export format */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Export Format</label>
             <select
               value={exportFormat}
-              onChange={(e) => setExportFormat(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+              onChange={e => setExportFormat(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <option value="pdf">PDF</option>
+              <option value="pdf">PDF Document</option>
               <option value="xlsx">Excel (XLSX)</option>
-              <option value="csv">CSV</option>
+              <option value="csv">CSV Spreadsheet</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Report Types */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {reportTypes.map((type) => (
-          <div
-            key={type.id}
-            onClick={() => {
-              setSelectedReport(type.id);
-              setShowPreview(false);
-            }}
-            className={`bg-white rounded-xl shadow-sm border-2 p-6 cursor-pointer transition-all hover:shadow-md ${
-              selectedReport === type.id ? 'border-indigo-500 bg-indigo-50 transform scale-105' : 'border-gray-200 hover:border-indigo-300'
-            }`}
-          >
-            <div className={`p-3 rounded-lg mb-4 transition-colors ${selectedReport === type.id ? 'bg-indigo-100' : 'bg-gray-100'}`}>
-              <type.icon className={`h-8 w-8 ${selectedReport === type.id ? 'text-indigo-600' : 'text-gray-600'}`} />
+      {/* Report type selector cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {REPORT_TYPES.map(type => {
+          const active = selectedReport === type.id;
+          const cc = colorMap[type.color];
+          return (
+            <div
+              key={type.id}
+              onClick={() => { setSelectedReport(type.id); setShowPreview(false); }}
+              className={`rounded-xl border-2 p-4 cursor-pointer transition-all hover:shadow-md ${active ? `border-current ${cc.split(' ')[0]} ${cc}` : 'border-gray-200 bg-white hover:border-gray-300'}`}
+            >
+              <div className={`p-2.5 rounded-lg mb-3 w-fit ${active ? 'bg-white/60' : 'bg-gray-100'}`}>
+                <type.icon className={`h-6 w-6 ${active ? cc.split(' ')[1] : 'text-gray-500'}`} />
+              </div>
+              <div className={`text-sm font-semibold ${active ? cc.split(' ')[1] : 'text-gray-800'}`}>{type.name}</div>
+              <div className="text-xs text-gray-500 mt-1 leading-snug">{type.description}</div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{type.name}</h3>
-            <p className="text-sm text-gray-600">{type.description}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Report Preview Section */}
-      {showPreview && (
-        <div id="report-preview" className="space-y-6 animate-fade-in">
-          <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-lg">
-            <div className="flex items-center">
-              <Eye className="h-5 w-5 text-indigo-600 mr-2" />
-              <p className="text-sm text-indigo-800 font-medium">
-                Report Preview - This data will be included in your export
-              </p>
-            </div>
-          </div>
-
-          {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { label: 'Total Clients', value: totalClients, detail: `${activeClients || 0} active`, icon: Users, bg: 'bg-indigo-100', textColor: 'text-indigo-600' },
-              { label: 'Overall Contributions', value: `${(totalContributions || 0).toLocaleString()}`, detail: '↑ Growth', icon: PiggyBank, bg: 'bg-green-100', textColor: 'text-green-600' },
-              { label: 'Current Balance Due', value: `${(totalBalance || 0).toLocaleString()}`, detail: 'Available', icon: TrendingUp, bg: 'bg-blue-100', textColor: 'text-blue-600' },
-              { label: 'Total Commissions', value: `${(totalCommissions || 0)?.toLocaleString()}`, detail: 'Paid', icon: PlusCircle, bg: 'bg-green-100', textColor: 'text-green-600' },
-              { label: 'Total Withdrawals', value: `${(totalWithdrawals || 0).toLocaleString()}`, detail: 'Completed', icon: Download, bg: 'bg-orange-100', textColor: 'text-orange-600' }
-            ].map((metric, idx) => (
-              <div key={idx} className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">{metric.label}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">¢{metric.value}</p>
-                    <p className={`text-sm ${metric.textColor} mt-1`}>{metric.detail}</p>
-                  </div>
-                  <div className={`${metric.bg} p-3 rounded-lg`}>
-                    <metric.icon className={`h-8 w-8 ${metric.textColor}`} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Charts */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold">Monthly Contributions Trend</h2>
-              <div className="flex items-center space-x-2">
-                <Filter className="h-5 w-5 text-gray-400" />
-                <span className="text-sm text-gray-600">Last 6 months</span>
+      {/* Preview */}
+      {showPreview && reportData && (
+        <div id="report-preview" className="space-y-4">
+          {/* Preview banner */}
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-indigo-600" />
+              <div>
+                <p className="text-sm font-semibold text-indigo-800">
+                  {selectedType.name} — {DATE_RANGES.find(r => r.value === dateRange)?.label}
+                </p>
+                <p className="text-xs text-indigo-600">Generated {new Date().toLocaleString()}</p>
               </div>
             </div>
-            <div className="space-y-4">
-              {reportData?.monthly.length > 0 ? (
-                reportData?.monthly.map((data, idx) => (
-                  <div key={idx} className="flex items-center space-x-4">
-                    <div className="w-24 text-sm font-medium text-gray-600">{data.month}</div>
-                    <div className="flex-1 bg-gray-200 rounded-full h-6 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-indigo-600 to-teal-600 h-6 rounded-full transition-all duration-1000 flex items-center justify-end pr-2"
-                        style={{ width: `${Math.max((data.amount / maxAmount) * 100, 5)}%` }}
-                      >
-                        {(data.amount / maxAmount) * 100 > 20 && (
-                          <span className="text-white text-xs font-medium">¢{(data.amount  || 0).toLocaleString()}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="w-28 text-sm font-medium text-gray-900 text-right">¢{(data.amount  || 0).toLocaleString()}</div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">No data available for the selected period</div>
-              )}
-            </div>
+            <button
+              onClick={fetchReport}
+              className="flex items-center gap-1.5 text-xs font-medium text-indigo-700 hover:text-indigo-900 bg-indigo-100 hover:bg-indigo-200 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </button>
           </div>
 
-          {/* Analysis */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <Users className="h-5 w-5 mr-2 text-indigo-600" />
-                Top Contributing Clients
-              </h3>
-              <div className="space-y-4">
-                {reportData?.topCustomers
-                  .sort((a, b) => (b.total_balance_across_all_accounts || 0) - (a.total_balance_across_all_accounts || 0))
-                  .slice(0, 5)
-                  .map((client, idx) => (
-                    <div key={client.id} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg transition-colors">
-                      <div className="flex items-center space-x-3">
-                        <div className="text-sm font-bold text-gray-400">#{idx + 1}</div>
-                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <span className="text-indigo-600 font-semibold text-sm">
-                            {client.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'N/A'}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{client.name || 'Unknown'}</div>
-                          <div className="text-xs text-gray-500">{client.phone_number || client.email}</div>
-                        </div>
-                      </div>
-                      <div className="text-sm font-bold text-indigo-600">¢{(client.total_balance_across_all_accounts || 0).toLocaleString()}</div>
-                    </div>
-                  ))}
-              </div>
-            </div>
+          {/* Report-specific preview */}
+          {selectedReport === 'overview' && <OverviewPreview data={reportData} />}
+          {selectedReport === 'contributions' && <ContributionsPreview data={reportData} />}
+          {selectedReport === 'clients' && <ClientsPreview data={reportData} />}
+          {selectedReport === 'financial' && <FinancialPreview data={reportData} />}
+        </div>
+      )}
 
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <BarChart3 className="h-5 w-5 mr-2 text-indigo-600" />
-                Transaction Status Overview
-              </h3>
-              <div className="space-y-4">
-                {reportData?.status.map((item, idx) => (
-                  <div key={idx} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700">{item.status}</span>
-                      <span className="text-sm text-gray-600 font-semibold">
-                        {item.count} ({totalTransactions > 0 ? Math.round((item.count / totalTransactions) * 100) : 0}%)
-                      </span>
-                    </div>
-                    <div className="bg-gray-200 rounded-full h-3 w-full overflow-hidden">
-                      <div
-                        className={`${colorClassMap[item.status] || 'bg-green-300' } h-3 rounded-full transition-all duration-500`}
-                        style={{ width: `${totalTransactions > 0 ? (item.count / totalTransactions) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* Placeholder when no preview */}
+      {!showPreview && (
+        <div className="bg-white rounded-xl border-2 border-dashed border-gray-200 p-12 text-center">
+          <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BarChart3 className="h-7 w-7 text-indigo-500" />
           </div>
+          <h3 className="text-base font-semibold text-gray-700 mb-1">Ready to generate your report</h3>
+          <p className="text-sm text-gray-400 mb-5">Select a report type and date range above, then click <strong>Generate Report</strong></p>
+          <button
+            onClick={fetchReport}
+            disabled={isGenerating}
+            className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 text-sm font-medium inline-flex items-center gap-2 disabled:opacity-50"
+          >
+            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+            {isGenerating ? 'Generating…' : 'Generate Report'}
+          </button>
         </div>
       )}
     </div>
