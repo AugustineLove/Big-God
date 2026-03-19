@@ -829,7 +829,7 @@ const accountOptions = allAccounts.map(account => ({
                   >
                     <option value="all">All Accounts</option>
                     {accounts.map((account) => (
-                      <option key={account.id} value={account.account_type}>{account.account_type}</option>
+                      <option key={account.id} value={account.account_type}>{account.account_number} - {(account.account_type).toLowerCase()}</option>
                     ))}
                   </select>
                   <ChevronDown className="w-4 h-4 text-gray-500 absolute right-2 top-3" />

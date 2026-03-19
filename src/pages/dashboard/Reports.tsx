@@ -159,6 +159,7 @@ const EmptyState = ({ message }: { message: string }) => (
 
 const OverviewPreview = ({ data }: { data: ReportData }) => {
   const { summary, monthly = [], status = [], topCustomers = [] } = data;
+  console.log(`Overview Monthly: ${JSON.stringify(monthly)}`);
   const totalTx = status.reduce((s, i) => s + Number(i.count), 0);
   const maxMonthly = Math.max(...monthly.map(m => Number(m.contributions || 0)), 1);
 
@@ -251,6 +252,7 @@ const OverviewPreview = ({ data }: { data: ReportData }) => {
 
 const ContributionsPreview = ({ data }: { data: ReportData }) => {
   const { summary, monthly = [], topContributors = [], statusBreakdown = [], recentDeposits = [] } = data;
+  console.log(`Contribution Monthly: ${JSON.stringify(monthly)}`);
   const maxMonthly = Math.max(...monthly.map((m: any) => Number(m.amount || 0)), 1);
   const totalStatusCount = statusBreakdown.reduce((s: number, i: any) => s + Number(i.count), 0);
 
@@ -575,7 +577,7 @@ const FinancialPreview = ({ data }: { data: ReportData }) => {
 
 const Reports = () => {
   const [selectedReport, setSelectedReport] = useState('overview');
-  const [dateRange, setDateRange] = useState('month');
+  const [dateRange, setDateRange] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [exportFormat, setExportFormat] = useState('pdf');
@@ -585,6 +587,7 @@ const Reports = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [exportStatus, setExportStatus] = useState<ExportStatus>({ type: null, message: '' });
 
+  console.log(reportData);
   const { stats } = useStats();
   const { transactions } = useTransactions();
   const { commissionStats, commissions } = useCommissionStats();
