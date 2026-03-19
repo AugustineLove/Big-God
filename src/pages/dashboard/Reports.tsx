@@ -27,7 +27,7 @@ const Reports = () => {
 
   useEffect(() => {
     const fetchReport = async () => {
-      const res = await fetch(`http://localhost:5000/api/reports/dashboard/${companyId}`);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/reports/dashboard/${companyId}`);
       const data = await res.json();
       setReportData(data.data);
     };
