@@ -337,12 +337,12 @@ const accountOptions = allAccounts.map(account => ({
                 <p className="text-gray-600">Customer ID: {customerData.id}</p>
                 <div className="flex items-center space-x-2 mt-1">
                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full
-                          ${customer.status === 'Active'
+                          ${customerData.status === 'Active'
                             ? 'bg-green-100 text-green-700 ring-1 ring-green-600/20'
                             : 'bg-red-100 text-red-700 ring-1 ring-red-600/20'
                           }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${customer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`} />
-                          {customer.status}
+                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${customerData.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`} />
+                          {customerData.status}
                         </span>
                   <span className="text-sm text-gray-500">
                     Member since {formatDate(customerData.date_of_registration)}
@@ -1039,12 +1039,12 @@ const accountOptions = allAccounts.map(account => ({
                       <div>
                         <p className="text-sm text-gray-600">Account Status</p>
                          <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full
-                          ${customer.status === 'Active'
+                          ${customerData.status === 'Active'
                             ? 'bg-green-100 text-green-700 ring-1 ring-green-600/20'
                             : 'bg-red-100 text-red-700 ring-1 ring-red-600/20'
                           }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${customer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`} />
-                          {customer.status}
+                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${customerData.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`} />
+                          {customerData.status}
                         </span>
                       </div>
                     </div>
