@@ -1,364 +1,681 @@
-import React, { useState } from 'react';
-import { X, TrendingUp, TrendingDown, Download, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  X, TrendingUp, TrendingDown, Download, Calendar,
+  ArrowUpRight, ArrowDownRight, DollarSign, BarChart3,
+  Lightbulb, RefreshCw, Loader2
+} from 'lucide-react';
+import { companyId } from '../../../constants/appConstants';
 
-const PLModal = ({ isOpen, onClose, operationalMetrics, expenses, commissionStats, budgets }) => {
-  const [timeRange, setTimeRange] = useState('this-month'); // this-month, last-month, quarter, year
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface PLModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const fmt = (n: any) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtCedi = (n: any) => `¢${fmt(n)}`;
+const fmtPct = (n: any) => `${Number(n || 0).toFixed(1)}%`;
+
+const DATE_RANGES = [
+  { value: 'this-month',  label: 'This Month' },
+  { value: 'last-month',  label: 'Last Month' },
+  { value: 'quarter',     label: 'This Quarter' },
+  { value: 'year',        label: 'This Year' },
+  { value: 'custom',      label: 'Custom Range' },
+];
+
+// ─── Export Helpers ───────────────────────────────────────────────────────────
+
+const exportToCSV = (plData: any, range: string, periodLabel: string) => {
+  const { summary, expenseByCategory, monthlyTrend } = plData;
+
+  let csv = `Profit & Loss Statement — ${periodLabel}\n`;
+  csv += `Generated: ${new Date().toLocaleString()}\n\n`;
+
+  csv += `INCOME SUMMARY\n`;
+  csv += `Revenue,${fmtCedi(summary.totalRevenue)}\n`;
+  csv += `Commission Income,${fmtCedi(summary.totalCommission)}\n`;
+  csv += `Total Income,${fmtCedi(summary.totalIncome)}\n\n`;
+
+  csv += `EXPENSES\n`;
+  csv += `Total Operating Expenses,${fmtCedi(summary.totalExpenses)}\n`;
+  expenseByCategory.forEach((cat: any) => {
+    csv += `  ${cat.category},${fmtCedi(cat.amount)},${fmtPct(cat.pct)}\n`;
+  });
+  csv += `\n`;
+
+  csv += `PROFITABILITY\n`;
+  csv += `Gross Profit,${fmtCedi(summary.grossProfit)}\n`;
+  csv += `Profit Margin,${fmtPct(summary.profitMargin)}\n`;
+  csv += `Expense/Revenue Ratio,${fmtPct(summary.expenseToRevenueRatio)}\n\n`;
+
+  csv += `MONTHLY TREND\nMonth,Revenue,Expenses,Commission,Profit\n`;
+  monthlyTrend.forEach((m: any) => {
+    csv += `${m.month},${m.revenue},${m.expenses},${m.commissions},${m.profit}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pl-statement-${range}-${Date.now()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
+const exportToPDF = async (plData: any, periodLabel: string) => {
+  const { jsPDF } = await import('jspdf');
+  const autoTable = (await import('jspdf-autotable')).default;
+  const { summary, expenseByCategory, monthlyTrend } = plData;
+
+  const doc = new jsPDF();
+  const pw = doc.internal.pageSize.getWidth();
+
+  // Header
+  doc.setFillColor(99, 102, 241);
+  doc.rect(0, 0, pw, 36, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.text('Profit & Loss Statement', pw / 2, 15, { align: 'center' });
+  doc.setFontSize(9);
+  doc.text(`${periodLabel}  |  Generated ${new Date().toLocaleString()}`, pw / 2, 27, { align: 'center' });
+
+  doc.setTextColor(0, 0, 0);
+  let y = 46;
+
+  // Income
+  doc.setFontSize(12);
+  doc.text('Income Summary', 14, y); y += 4;
+  autoTable(doc, {
+    startY: y,
+    head: [['Item', 'Amount']],
+    body: [
+      ['Revenue', fmtCedi(summary.totalRevenue)],
+      ['Commission Income', fmtCedi(summary.totalCommission)],
+      ['Total Income', fmtCedi(summary.totalIncome)],
+    ],
+    theme: 'grid',
+    headStyles: { fillColor: [99, 102, 241], textColor: 255 },
+    styles: { fontSize: 10 },
+  });
+  // @ts-ignore
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Profitability
+  doc.setFontSize(12);
+  doc.text('Profitability', 14, y); y += 4;
+  autoTable(doc, {
+    startY: y,
+    head: [['Metric', 'Value']],
+    body: [
+      ['Total Expenses', fmtCedi(summary.totalExpenses)],
+      ['Gross Profit', fmtCedi(summary.grossProfit)],
+      ['Profit Margin', fmtPct(summary.profitMargin)],
+      ['Expense/Revenue Ratio', fmtPct(summary.expenseToRevenueRatio)],
+    ],
+    theme: 'grid',
+    headStyles: { fillColor: [16, 185, 129], textColor: 255 },
+    styles: { fontSize: 10 },
+  });
+  // @ts-ignore
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Expense breakdown
+  if (expenseByCategory.length > 0) {
+    doc.setFontSize(12);
+    doc.text('Expense Breakdown', 14, y); y += 4;
+    autoTable(doc, {
+      startY: y,
+      head: [['Category', 'Amount', '%']],
+      body: expenseByCategory.map((c: any) => [c.category, fmtCedi(c.amount), fmtPct(c.pct)]),
+      theme: 'striped',
+      headStyles: { fillColor: [245, 158, 11], textColor: 255 },
+      styles: { fontSize: 10 },
+    });
+    // @ts-ignore
+    y = doc.lastAutoTable.finalY + 8;
+  }
+
+  // Monthly trend (new page if needed)
+  if (y > 230) { doc.addPage(); y = 20; }
+  doc.setFontSize(12);
+  doc.text('Monthly Trend', 14, y); y += 4;
+  autoTable(doc, {
+    startY: y,
+    head: [['Month', 'Revenue', 'Expenses', 'Commission', 'Profit']],
+    body: monthlyTrend.map((m: any) => [
+      m.month,
+      fmtCedi(m.revenue),
+      fmtCedi(m.expenses),
+      fmtCedi(m.commissions),
+      fmtCedi(m.profit),
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+    styles: { fontSize: 9 },
+  });
+
+  doc.save(`pl-statement-${Date.now()}.pdf`);
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const KPICard = ({ label, value, sub, icon: Icon, bg, textColor, subColor }: any) => (
+  <div className={`${bg} rounded-2xl p-4 border border-opacity-20`}>
+    <div className="flex items-start justify-between">
+      <div>
+        <p className={`text-[11px] font-semibold uppercase tracking-wider ${textColor} opacity-70 mb-1`}>{label}</p>
+        <p className={`text-2xl font-medium ${textColor} tracking-tight leading-none`}>{value}</p>
+        {sub && <p className={`text-[11px] mt-1.5 font-medium ${subColor || textColor} opacity-80`}>{sub}</p>}
+      </div>
+      <div className="opacity-40">
+        <Icon className={`w-5 h-5 ${textColor}`} />
+      </div>
+    </div>
+  </div>
+);
+
+const BarRow = ({ label, value, max, color, pct }: any) => {
+  const width = max > 0 ? Math.max((value / max) * 100, 2) : 2;
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-[12px] font-medium text-gray-700 truncate max-w-[140px]">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-gray-400">{fmtPct(pct)}</span>
+          <span className="text-[12px] font-semibold text-gray-800 tabular-nums">{fmtCedi(value)}</span>
+        </div>
+      </div>
+      <div className="bg-gray-100 rounded-full h-2">
+        <div className={`${color} h-2 rounded-full transition-all duration-700`} style={{ width: `${width}%` }} />
+      </div>
+    </div>
+  );
+};
+
+const PLRow = ({ label, value, isTotal, isIncome, indent }: any) => (
+  <div className={`flex justify-between items-center py-2.5
+    ${isTotal ? 'border-t border-gray-200 mt-1' : 'border-b border-gray-50'}
+    ${indent ? 'pl-4' : ''}`}>
+    <span className={`text-[13px] ${isTotal ? 'font-semibold text-gray-900' : indent ? 'text-gray-500' : 'font-medium text-gray-700'}`}>
+      {label}
+    </span>
+    <span className={`text-[13px] font-semibold tabular-nums
+      ${isTotal
+        ? (Number(value) >= 0 ? 'text-emerald-600' : 'text-red-500')
+        : isIncome ? 'text-emerald-600' : 'text-red-500'}`}>
+      {isIncome ? '+' : Number(value) < 0 ? '' : '-'}{fmtCedi(Math.abs(value))}
+    </span>
+  </div>
+);
+
+// ─── Main Modal ───────────────────────────────────────────────────────────────
+
+const PLModal: React.FC<PLModalProps> = ({ isOpen, onClose }) => {
+  const [range, setRange] = useState('this-month');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [plData, setPLData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [exportLoading, setExportLoading] = useState(false);
+  const [activeSection, setActiveSection] = useState<'overview' | 'trend' | 'breakdown'>('overview');
+
+  const periodLabel = useMemo(() => {
+    const r = DATE_RANGES.find(d => d.value === range);
+    if (range === 'custom' && startDate && endDate) return `${startDate} – ${endDate}`;
+    return r?.label || range;
+  }, [range, startDate, endDate]);
+
+  const fetchPLData = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = new URLSearchParams({ range });
+      if (range === 'custom') {
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+      }
+      const res = await fetch(
+        `https://susu-pro-backend.onrender.com/api/financials/get-financials/${companyId}?${params}`
+      );
+      if (!res.ok) throw new Error('Request failed');
+      const json = await res.json();
+
+      const { data } = json;
+      const { plSummary, expenseByCategory, monthlyTrend } = data;
+
+      // Enrich categories with pct
+      const totalExp = Number(plSummary.totalExpenses);
+      const enrichedCategories = (expenseByCategory || []).map((c: any) => ({
+        ...c,
+        amount: Number(c.amount),
+        pct: totalExp > 0 ? (Number(c.amount) / totalExp) * 100 : 0,
+      }));
+
+      setPLData({
+        summary: plSummary,
+        expenseByCategory: enrichedCategories,
+        monthlyTrend: (monthlyTrend || []).map((m: any) => ({
+          ...m,
+          revenue: Number(m.revenue),
+          expenses: Number(m.expenses),
+          commissions: Number(m.commissions),
+          profit: Number(m.profit),
+        })),
+        operationalMetrics: data.operationalMetrics,
+      });
+    } catch (e) {
+      setError('Failed to load P&L data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Auto-fetch when range changes (not on custom until dates set)
+  React.useEffect(() => {
+    if (!isOpen) return;
+    if (range === 'custom' && (!startDate || !endDate)) return;
+    fetchPLData();
+  }, [range, isOpen]);
+
+  const handleCustomFetch = () => {
+    if (startDate && endDate) fetchPLData();
+  };
+
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    if (!plData) return;
+    setExportLoading(true);
+    try {
+      if (format === 'csv') {
+        exportToCSV(plData, range, periodLabel);
+      } else {
+        await exportToPDF(plData, periodLabel);
+      }
+    } catch (e) {
+      console.error('Export error', e);
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
-  // Calculate detailed P&L metrics
-  const calculatePLData = () => {
-    const totalRevenue = operationalMetrics.monthlyRevenue;
-    const totalCommission = commissionStats?.this_month_amount || 0;
-    const totalIncome = totalRevenue + totalCommission;
-    
-    // Break down expenses by category
-    const expensesByCategory = expenses.reduce((acc, expense) => {
-      const category = expense.category || 'Other';
-      acc[category] = (acc[category] || 0) + Number(expense.amount);
-      return acc;
-    }, {});
-
-    const totalExpenses = operationalMetrics.monthlyExpenses;
-    const grossProfit = totalIncome - totalExpenses;
-    const netProfitMargin = totalIncome > 0 ? (grossProfit / totalIncome) * 100 : 0;
-
-    return {
-      totalRevenue,
-      totalCommission,
-      totalIncome,
-      expensesByCategory,
-      totalExpenses,
-      grossProfit,
-      netProfitMargin
-    };
-  };
-
-  const plData = calculatePLData();
-
-  // Data for expense breakdown chart
-  const expenseCategories = Object.entries(plData.expensesByCategory).map(([category, amount]) => ({
-    category,
-    amount: Number(amount),
-    percentage: (Number(amount) / plData.totalExpenses) * 100
-  })).sort((a, b) => b.amount - a.amount);
-
-  // Monthly trend data (mock data - replace with actual historical data)
-  const monthlyTrend = [
-    { month: 'Jan', revenue: 45000, expenses: 32000, profit: 13000 },
-    { month: 'Feb', revenue: 52000, expenses: 35000, profit: 17000 },
-    { month: 'Mar', revenue: 48000, expenses: 33000, profit: 15000 },
-    { month: 'Apr', revenue: operationalMetrics.monthlyRevenue, expenses: operationalMetrics.monthlyExpenses, profit: operationalMetrics.grossProfit }
+  const SECTION_TABS = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'trend', label: 'Monthly Trend' },
+    { id: 'breakdown', label: 'Expense Breakdown' },
   ];
 
-  const maxValue = Math.max(...monthlyTrend.map(m => Math.max(m.revenue, m.expenses)));
+  const BAR_COLORS = [
+    'bg-indigo-500', 'bg-violet-500', 'bg-blue-500',
+    'bg-teal-500', 'bg-amber-500', 'bg-pink-500', 'bg-rose-500',
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        
-        {/* Modal Header */}
-        <div className="px-8 py-6 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.45)' }}
+    >
+      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl">
+
+        {/* ── Header ── */}
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-4 flex-shrink-0">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Profit & Loss Statement</h2>
-            <p className="text-sm text-gray-600 mt-1">Detailed financial performance analysis</p>
+            <h2 className="text-base font-semibold text-gray-900">Profit & Loss Statement</h2>
+            <p className="text-[12px] text-gray-400 mt-0.5">{periodLabel}</p>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Time Range Selector */}
-            <select 
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Range selector */}
+            <div className="relative">
+              <select
+                value={range}
+                onChange={(e) => { setRange(e.target.value); setPLData(null); }}
+                className="appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 pr-7 text-[13px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
+              >
+                {DATE_RANGES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-[10px]">▼</span>
+            </div>
+
+            {/* Custom date pickers */}
+            {range === 'custom' && (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="date" value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+                <span className="text-gray-400 text-[11px]">to</span>
+                <input
+                  type="date" value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+                <button
+                  onClick={handleCustomFetch}
+                  disabled={!startDate || !endDate}
+                  className="px-3 py-2 bg-indigo-500 text-white text-[12px] font-medium rounded-xl hover:bg-indigo-600 disabled:opacity-40 transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+
+            {/* Refresh */}
+            <button
+              onClick={fetchPLData}
+              disabled={loading}
+              className="p-2 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+              title="Refresh"
             >
-              <option value="this-month">This Month</option>
-              <option value="last-month">Last Month</option>
-              <option value="quarter">This Quarter</option>
-              <option value="year">This Year</option>
-            </select>
-            
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm font-medium">
-              <Download className="w-4 h-4" />
-              Export
+              <RefreshCw className={`w-4 h-4 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            
-            <button 
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+
+            {/* Export CSV */}
+            <button
+              onClick={() => handleExport('csv')}
+              disabled={!plData || exportLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-[12px] font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <Download className="w-3.5 h-3.5" /> CSV
+            </button>
+
+            {/* Export PDF */}
+            <button
+              onClick={() => handleExport('pdf')}
+              disabled={!plData || exportLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-500 text-white rounded-xl text-[12px] font-medium hover:bg-indigo-600 disabled:opacity-40 transition-colors"
+            >
+              {exportLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              PDF
+            </button>
+
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+              <X className="w-4 h-4 text-gray-500" />
             </button>
           </div>
         </div>
 
-        {/* Modal Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          
-          {/* Key Metrics Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-              <p className="text-sm text-green-700 font-medium mb-1">Total Income</p>
-              <p className="text-2xl font-bold text-green-900">¢{plData.totalIncome.toLocaleString()}</p>
-              <div className="flex items-center mt-2 text-green-600">
-                <ArrowUpRight className="w-4 h-4 mr-1" />
-                <span className="text-xs">Revenue + Commission</span>
-              </div>
-            </div>
-
-            <div className="bg-red-50 rounded-xl p-4 border border-red-100">
-              <p className="text-sm text-red-700 font-medium mb-1">Total Expenses</p>
-              <p className="text-2xl font-bold text-red-900">¢{plData.totalExpenses.toLocaleString()}</p>
-              <div className="flex items-center mt-2 text-red-600">
-                <ArrowDownRight className="w-4 h-4 mr-1" />
-                <span className="text-xs">All categories</span>
-              </div>
-            </div>
-
-            <div className={`${plData.grossProfit >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'} rounded-xl p-4 border`}>
-              <p className={`text-sm font-medium mb-1 ${plData.grossProfit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Net Profit</p>
-              <p className={`text-2xl font-bold ${plData.grossProfit >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
-                ¢{plData.grossProfit.toLocaleString()}
-              </p>
-              <div className={`flex items-center mt-2 ${plData.grossProfit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-                {plData.grossProfit >= 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                <span className="text-xs">{plData.netProfitMargin.toFixed(1)}% margin</span>
-              </div>
-            </div>
-
-            <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-              <p className="text-sm text-purple-700 font-medium mb-1">Profit Margin</p>
-              <p className="text-2xl font-bold text-purple-900">{plData.netProfitMargin.toFixed(1)}%</p>
-              <div className="flex items-center mt-2 text-purple-600">
-                <Calendar className="w-4 h-4 mr-1" />
-                <span className="text-xs">This month</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Monthly Trend Chart */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">4-Month Trend Analysis</h3>
-            <div className="space-y-6">
-              {monthlyTrend.map((data, index) => (
-                <div key={index}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">{data.month}</span>
-                    <div className="flex gap-6 text-xs">
-                      <span className="text-green-600">Revenue: ¢{data.revenue.toLocaleString()}</span>
-                      <span className="text-red-600">Expenses: ¢{data.expenses.toLocaleString()}</span>
-                      <span className={data.profit >= 0 ? 'text-blue-600' : 'text-orange-600'}>
-                        Profit: ¢{data.profit.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="relative h-12 bg-gray-50 rounded-lg overflow-hidden">
-                    {/* Revenue Bar */}
-                    <div 
-                      className="absolute top-0 left-0 h-4 bg-green-400 rounded"
-                      style={{ width: `${(data.revenue / maxValue) * 100}%` }}
-                    />
-                    {/* Expenses Bar */}
-                    <div 
-                      className="absolute top-5 left-0 h-4 bg-red-400 rounded"
-                      style={{ width: `${(data.expenses / maxValue) * 100}%` }}
-                    />
-                    {/* Profit Indicator */}
-                    <div 
-                      className={`absolute top-10 left-0 h-2 rounded ${data.profit >= 0 ? 'bg-blue-500' : 'bg-orange-500'}`}
-                      style={{ width: `${Math.abs(data.profit / maxValue) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-6 mt-6 pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-400 rounded"></div>
-                <span className="text-xs text-gray-600">Revenue</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-400 rounded"></div>
-                <span className="text-xs text-gray-600">Expenses</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                <span className="text-xs text-gray-600">Profit</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            {/* Detailed Income Statement */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Income Statement</h3>
-              
-              {/* Revenue Section */}
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-medium text-gray-900">Revenue</span>
-                  <span className="text-sm font-semibold text-green-600">
-                    ¢{plData.totalRevenue.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 pl-4">
-                  <span className="text-sm text-gray-600">Commission Income</span>
-                  <span className="text-sm font-medium text-green-600">
-                    +¢{plData.totalCommission.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 pt-3 border-t border-gray-100">
-                  <span className="text-sm font-semibold text-gray-900">Total Income</span>
-                  <span className="text-sm font-bold text-green-600">
-                    ¢{plData.totalIncome.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              {/* Expenses Section */}
-              <div className="space-y-3 mb-6 pt-4 border-t border-gray-200">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-medium text-gray-900">Operating Expenses</span>
-                  <span className="text-sm font-semibold text-red-600">
-                    ¢{plData.totalExpenses.toLocaleString()}
-                  </span>
-                </div>
-                {expenseCategories.slice(0, 5).map((cat, idx) => (
-                  <div key={idx} className="flex justify-between items-center py-2 pl-4">
-                    <span className="text-sm text-gray-600">{cat.category}</span>
-                    <span className="text-sm font-medium text-red-600">
-                      -¢{cat.amount.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Net Profit */}
-              <div className="pt-4 border-t-2 border-gray-300">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-base font-bold text-gray-900">Net Profit</span>
-                  <span className={`text-lg font-bold ${plData.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {plData.grossProfit >= 0 ? '+' : ''}¢{plData.grossProfit.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-sm text-gray-600">Net Margin</span>
-                  <span className={`text-sm font-medium ${plData.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {plData.netProfitMargin.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Expense Breakdown Chart */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Expense Breakdown</h3>
-              
-              <div className="space-y-4">
-                {expenseCategories.map((cat, idx) => {
-                  const colors = [
-                    'bg-blue-500',
-                    'bg-purple-500',
-                    'bg-pink-500',
-                    'bg-orange-500',
-                    'bg-teal-500',
-                    'bg-indigo-500',
-                    'bg-red-500'
-                  ];
-                  const color = colors[idx % colors.length];
-                  
-                  return (
-                    <div key={idx}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 ${color} rounded`}></div>
-                          <span className="text-sm font-medium text-gray-700">{cat.category}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-sm font-semibold text-gray-900">
-                            ¢{cat.amount.toLocaleString()}
-                          </span>
-                          <span className="text-xs text-gray-500 ml-2">
-                            ({cat.percentage.toFixed(1)}%)
-                          </span>
-                        </div>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2">
-                        <div 
-                          className={`${color} h-2 rounded-full transition-all duration-500`}
-                          style={{ width: `${cat.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Summary */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">Total Expenses</span>
-                  <span className="text-lg font-bold text-red-600">
-                    ¢{plData.totalExpenses.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs text-gray-500">Number of categories</span>
-                  <span className="text-xs font-medium text-gray-700">
-                    {expenseCategories.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Key Insights */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 mt-8 border border-blue-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <p className="text-xs text-gray-600 mb-1">Top Expense Category</p>
-                <p className="text-sm font-bold text-gray-900">{expenseCategories[0]?.category}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  ¢{expenseCategories[0]?.amount.toLocaleString()} ({expenseCategories[0]?.percentage.toFixed(1)}%)
-                </p>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <p className="text-xs text-gray-600 mb-1">Expense to Revenue Ratio</p>
-                <p className="text-sm font-bold text-gray-900">
-                  {((plData.totalExpenses / plData.totalIncome) * 100).toFixed(1)}%
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {((plData.totalExpenses / plData.totalIncome) * 100) < 70 ? 'Healthy ratio' : 'Consider optimization'}
-                </p>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <p className="text-xs text-gray-600 mb-1">Break-even Point</p>
-                <p className="text-sm font-bold text-gray-900">
-                  ¢{plData.totalExpenses.toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Monthly revenue needed
-                </p>
-              </div>
-            </div>
-          </div>
-
+        {/* ── Section tabs ── */}
+        <div className="px-6 pt-3 pb-0 border-b border-gray-100 flex gap-1 flex-shrink-0">
+          {SECTION_TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveSection(tab.id as any)}
+              className={`px-4 py-2.5 text-[12px] font-medium rounded-t-lg border-b-2 transition-colors
+                ${activeSection === tab.id
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-8 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-          <p className="text-xs text-gray-500">
-            Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+        {/* ── Content ── */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+
+          {/* Loading */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+              <p className="text-[13px] text-gray-400">Loading P&L data…</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && !loading && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <p className="text-[13px] text-red-500">{error}</p>
+              <button onClick={fetchPLData} className="text-[12px] text-indigo-600 underline">Try again</button>
+            </div>
+          )}
+
+          {/* Custom range prompt */}
+          {!loading && !error && !plData && range === 'custom' && (
+            <div className="flex flex-col items-center justify-center py-20 gap-2">
+              <Calendar className="w-8 h-8 text-gray-300" />
+              <p className="text-[13px] text-gray-400">Select a start and end date above, then click Apply.</p>
+            </div>
+          )}
+
+          {/* Data */}
+          {!loading && !error && plData && (
+
+            <>
+              {/* ─ OVERVIEW ─ */}
+              {activeSection === 'overview' && (
+                <div className="space-y-5">
+
+                  {/* KPI strip */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <KPICard
+                      label="Total Income"
+                      value={fmtCedi(plData.summary.totalIncome)}
+                      sub="Revenue + Commission"
+                      icon={ArrowUpRight}
+                      bg="bg-emerald-50" textColor="text-emerald-700"
+                    />
+                    <KPICard
+                      label="Total Expenses"
+                      value={fmtCedi(plData.summary.totalExpenses)}
+                      sub="All categories"
+                      icon={ArrowDownRight}
+                      bg="bg-red-50" textColor="text-red-700"
+                    />
+                    <KPICard
+                      label="Net Profit"
+                      value={fmtCedi(plData.summary.grossProfit)}
+                      sub={`${fmtPct(plData.summary.profitMargin)} margin`}
+                      icon={plData.summary.grossProfit >= 0 ? TrendingUp : TrendingDown}
+                      bg={plData.summary.grossProfit >= 0 ? 'bg-indigo-50' : 'bg-orange-50'}
+                      textColor={plData.summary.grossProfit >= 0 ? 'text-indigo-700' : 'text-orange-700'}
+                    />
+                    <KPICard
+                      label="Profit Margin"
+                      value={fmtPct(plData.summary.profitMargin)}
+                      sub={periodLabel}
+                      icon={BarChart3}
+                      bg="bg-violet-50" textColor="text-violet-700"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                    {/* Income Statement */}
+                    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+                      <div className="px-5 py-4 border-b border-gray-100">
+                        <p className="text-[13px] font-semibold text-gray-800">Income Statement</p>
+                      </div>
+                      <div className="px-5 py-4">
+                        {/* Income */}
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Income</p>
+                        <PLRow label="Revenue" value={plData.summary.totalRevenue} isIncome />
+                        <PLRow label="Commission" value={plData.summary.totalCommission} isIncome indent />
+                        <PLRow label="Total Income" value={plData.summary.totalIncome} isTotal isIncome />
+
+                        {/* Expenses */}
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-4 mb-2">Expenses</p>
+                        {plData.expenseByCategory.slice(0, 5).map((cat: any) => (
+                          <PLRow key={cat.category} label={cat.category} value={cat.amount} indent />
+                        ))}
+                        {plData.expenseByCategory.length > 5 && (
+                          <PLRow
+                            label={`+${plData.expenseByCategory.length - 5} more categories`}
+                            value={plData.expenseByCategory.slice(5).reduce((s: number, c: any) => s + c.amount, 0)}
+                            indent
+                          />
+                        )}
+                        <PLRow label="Total Expenses" value={plData.summary.totalExpenses} isTotal />
+
+                        {/* Net */}
+                        <div className="mt-4 pt-4 border-t-2 border-gray-200 flex justify-between items-center">
+                          <span className="text-[14px] font-bold text-gray-900">Net Profit</span>
+                          <span className={`text-[16px] font-bold tabular-nums
+                            ${plData.summary.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {plData.summary.grossProfit >= 0 ? '+' : ''}{fmtCedi(plData.summary.grossProfit)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Key Insights */}
+                    <div className="flex flex-col gap-3">
+                      <div className="bg-white border border-gray-100 rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Lightbulb className="w-4 h-4 text-amber-500" />
+                          <p className="text-[13px] font-semibold text-gray-800">Key Insights</p>
+                        </div>
+                        <div className="space-y-3">
+                          {[
+                            {
+                              label: 'Top Expense Category',
+                              value: plData.summary.topExpenseCategory,
+                              sub: `${fmtCedi(plData.summary.topExpenseCategoryAmount)} (${fmtPct(plData.summary.topExpenseCategoryPct)})`,
+                              color: 'bg-orange-50',
+                            },
+                            {
+                              label: 'Expense / Revenue Ratio',
+                              value: fmtPct(plData.summary.expenseToRevenueRatio),
+                              sub: plData.summary.expenseToRevenueRatio < 70 ? 'Healthy ratio' : 'Consider optimising',
+                              color: plData.summary.expenseToRevenueRatio < 70 ? 'bg-emerald-50' : 'bg-amber-50',
+                            },
+                            {
+                              label: 'Break-even Point',
+                              value: fmtCedi(plData.summary.breakEvenPoint),
+                              sub: 'Monthly revenue needed',
+                              color: 'bg-indigo-50',
+                            },
+                            {
+                              label: 'Cash Runway',
+                              value: `${Number(plData.operationalMetrics?.runway || 0).toFixed(1)} months`,
+                              sub: 'Based on burn rate',
+                              color: 'bg-violet-50',
+                            },
+                          ].map(insight => (
+                            <div key={insight.label} className={`${insight.color} rounded-xl p-3`}>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-0.5">{insight.label}</p>
+                              <p className="text-[14px] font-semibold text-gray-900">{insight.value}</p>
+                              <p className="text-[11px] text-gray-500 mt-0.5">{insight.sub}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─ TREND ─ */}
+              {activeSection === 'trend' && (
+                <div className="space-y-4">
+                  <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                      <p className="text-[13px] font-semibold text-gray-800">6-Month Trend</p>
+                      <div className="flex items-center gap-4 text-[11px]">
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-emerald-400 inline-block" />Revenue</span>
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-red-400 inline-block" />Expenses</span>
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-indigo-500 inline-block" />Profit</span>
+                      </div>
+                    </div>
+                    <div className="px-5 py-4 space-y-5">
+                      {(() => {
+                        const maxVal = Math.max(...plData.monthlyTrend.flatMap((m: any) => [m.revenue, m.expenses]), 1);
+                        return plData.monthlyTrend.map((m: any, i: number) => (
+                          <div key={i}>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-[12px] font-semibold text-gray-700 w-20">{m.month}</span>
+                              <div className="flex gap-4 text-[11px]">
+                                <span className="text-emerald-600 tabular-nums">Rev: {fmtCedi(m.revenue + m.commissions)}</span>
+                                <span className="text-red-500 tabular-nums">Exp: {fmtCedi(m.expenses)}</span>
+                                <span className={`tabular-nums font-semibold ${m.profit >= 0 ? 'text-indigo-600' : 'text-orange-500'}`}>
+                                  P/L: {fmtCedi(m.profit)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-gray-400 w-12">Revenue</span>
+                                <div className="flex-1 bg-gray-100 rounded-full h-3">
+                                  <div className="bg-emerald-400 h-3 rounded-full" style={{ width: `${(m.revenue + m.commissions / maxVal) * 100}%` }} />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-gray-400 w-12">Expenses</span>
+                                <div className="flex-1 bg-gray-100 rounded-full h-3">
+                                  <div className="bg-red-400 h-3 rounded-full" style={{ width: `${(m.expenses / maxVal) * 100}%` }} />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-gray-400 w-12">Profit</span>
+                                <div className="flex-1 bg-gray-100 rounded-full h-3">
+                                  <div
+                                    className={`h-3 rounded-full ${m.profit >= 0 ? 'bg-indigo-500' : 'bg-orange-400'}`}
+                                    style={{ width: `${Math.min((Math.abs(m.profit) / maxVal) * 100, 100)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─ BREAKDOWN ─ */}
+              {activeSection === 'breakdown' && (
+                <div className="space-y-4">
+                  <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                      <p className="text-[13px] font-semibold text-gray-800">Expense Breakdown</p>
+                      <span className="text-[11px] text-gray-400">{plData.expenseByCategory.length} categories</span>
+                    </div>
+                    {plData.expenseByCategory.length > 0 ? (
+                      <div className="px-5 py-4 space-y-4">
+                        {plData.expenseByCategory.map((cat: any, i: number) => (
+                          <BarRow
+                            key={cat.category}
+                            label={cat.category}
+                            value={cat.amount}
+                            max={plData.expenseByCategory[0].amount}
+                            color={BAR_COLORS[i % BAR_COLORS.length]}
+                            pct={cat.pct}
+                          />
+                        ))}
+                        <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                          <span className="text-[12px] font-semibold text-gray-700">Total Expenses</span>
+                          <span className="text-[14px] font-bold text-red-500 tabular-nums">{fmtCedi(plData.summary.totalExpenses)}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center text-[13px] text-gray-400">No expense data for this period</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="px-6 py-3.5 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between flex-shrink-0">
+          <p className="text-[11px] text-gray-400">
+            Last refreshed: {new Date().toLocaleString()}
           </p>
-          <div className="flex gap-3">
-            <button 
+          <div className="flex gap-2">
+            <button
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium text-gray-700"
+              className="px-4 py-2 text-[13px] font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
             >
               Close
-            </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-              Schedule Report
             </button>
           </div>
         </div>

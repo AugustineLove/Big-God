@@ -13,7 +13,7 @@ type FinanceContextType ={
   };
   loading: boolean;
   error: string | null;
-  fetchFinanceData: () => Promise<void>;
+  fetchFinanceData: (range: string, startDate: string, endDate: string) => Promise<void>;
   addAsset: (company_id: string, data: Omit<Asset, "id">) => Promise<boolean>;
   addExpense: (company_id: string, data: Omit<Expense, "id">) => Promise<boolean>;
   addPayment: (company_id: string, data: Omit<Payment, "id">) => Promise<boolean>;
@@ -44,15 +44,16 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const API_BASE = "https://susu-pro-backend.onrender.com/api"; // adjust to your backend
   // const API_BASE = "https://susu-pro-backend.onrender.com/api";
   // Fetch both assets + expenses
-  const fetchFinanceData = async () => {
-        try {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/financials/get-financials/${companyId}`);
+  const fetchFinanceData = async (range = 'this-month', startDate?: string, endDate?: string) => {
+    try{
+      const params = new URLSearchParams({ range });
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/financials/get-financials/${companyId}?${params}`);
       const json = await res.json();
       if (json.status === "success") {
         setData(json.data);
         }
-        
-      
       } catch (err) {
       console.error("Failed to fetch financials:", err);
     }

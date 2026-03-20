@@ -11,6 +11,8 @@ import { ClientModal } from './Components/clientModal';
 import { useNavigate } from 'react-router-dom';
 import DeleteCustomerModal from '../../components/deleteComfirmationModal';
 import { userPermissions } from '../../constants/appConstants';
+import { useTabContext } from '../../layouts/DashboardLayout';
+ 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,7 +125,7 @@ const Clients: React.FC = () => {
   const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
   const [sortConfig, setSortConfig]       = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
-
+ const { openInNewTab } = useTabContext();
   // ── Pagination State ──────────────────────────────────────────────────────
   const [currentPage, setCurrentPage]     = useState(1);
   const [paginationMeta, setPaginationMeta] = useState<PaginationMeta>({
@@ -553,7 +555,7 @@ const Clients: React.FC = () => {
                 sortedCustomers.map((customer) => (
                   <tr
                     key={customer.customer_id}
-                    onClick={() => navigate(`customer-details/${customer.customer_id}`)}
+                    onClick={() => openInNewTab(customer.name, `clients/customer-details/${customer.customer_id}`, Users)}
                     className="group hover:bg-blue-50/50 transition-all duration-200 cursor-pointer border-b border-gray-100 last:border-0"
                   >
                     {/* ── Client Info ───────────────────────────────────── */}

@@ -405,7 +405,7 @@ const fetchWithdrawals = useCallback(async (
       }
       
       const json = await res.json();
-      
+      // console.log(`Fetching customer transactions: ${JSON.stringify(json)}`)
       if (json.status === 'success' && Array.isArray(json.data)) {
         setCustomerTransactions(json.data);
       } else {

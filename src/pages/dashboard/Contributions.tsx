@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   Search, Plus, Trash2, Calendar, Filter, Download,
   PiggyBank, Eye, User, Undo2, ChevronLeft, ChevronRight,
+  Users,
 } from 'lucide-react';
 import { mockContributions, mockClients, Contribution, Transaction } from '../../data/mockData';
 import { useTransactions } from '../../contexts/dashboard/Transactions';
@@ -14,6 +15,7 @@ import { useCustomers } from '../../contexts/dashboard/Customers';
 import { userPermissions } from '../../constants/appConstants';
 import { handlePdfExport } from '../../utils/helper';
 import { useNavigate } from 'react-router-dom';
+import { useTabContext } from '../../layouts/DashboardLayout';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,6 +126,7 @@ const Contributions: React.FC = () => {
   const [transactionTypeFilter, setTransactionTypeFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const { openInNewTab } = useTabContext();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -623,7 +626,7 @@ const Contributions: React.FC = () => {
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDeleted ? 'bg-gray-200' : 'bg-indigo-100'}`}>
                             <span
                               className={`font-medium text-sm cursor-pointer ${isDeleted ? 'text-gray-400' : 'text-indigo-600'}`}
-                              onClick={() => navigate(`/dashboard/clients/customer-details/${contribution.customer_id}`)}
+                              onClick={() => openInNewTab(contribution.customer_name,`/dashboard/clients/customer-details/${contribution.customer_id}`, Users)}
                             >
                               {contribution.customer_name.split(' ').map(n => n[0]).join('')}
                             </span>

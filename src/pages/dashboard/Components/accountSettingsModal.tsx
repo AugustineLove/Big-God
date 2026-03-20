@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, DollarSign, AlertTriangle, Save, Settings, TrendingDown, Shield } from 'lucide-react';
 
 const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
@@ -8,15 +8,28 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
 
   // Form state
   const [settings, setSettings] = useState({
-    minimumBalance: account?.minimum_balance || 0,
+    minimumBalance: parseFloat(account?.minimum_balance) || 0,
     allowNegativeBalance: account?.allowNegativeBalance || false,
     overdraftLimit: account?.overdraftLimit || 0,
-    maintenanceFee: account?.maintenanceFee || 0,
+    maintenanceFee: parseFloat(account?.maintenanceFee) || 0,
     notifyOnLowBalance: account?.notifyOnLowBalance || true,
-    lowBalanceThreshold: account?.lowBalanceThreshold || 100,
+    lowBalanceThreshold: parseFloat(account?.lowBalanceThreshold) || 100,
   });
+  
+  
+  useEffect(() => {
+  if (account) {
+    setSettings({
+      minimumBalance: parseFloat(account.minimum_balance) || 0,
+      allowNegativeBalance: account.allowNegativeBalance || false,
+      overdraftLimit: account.overdraftLimit || 0,
+      maintenanceFee: parseFloat(account.maintenanceFee) || 0,
+      notifyOnLowBalance: account.notifyOnLowBalance ?? true,
+      lowBalanceThreshold: parseFloat(account.lowBalanceThreshold) || 100,
+    });
+    }
+  }, [account]);
 
-  console.log(account)
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
