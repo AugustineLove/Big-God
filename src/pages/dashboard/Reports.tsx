@@ -661,8 +661,9 @@ const Reports = () => {
     if (selectedReport === 'overview' || selectedReport === 'financial') {
       summaryRows.push(
         ['Total Contributions', fmtCedi(summary.total_contributions)],
+        ['Total Commissions', fmtCedi(summary.total_commissions)],
         ['Total Withdrawals', fmtCedi(summary.total_withdrawals)],
-        ['Net Flow', fmtCedi(summary.net_flow ?? (Number(summary.total_contributions) - Number(summary.total_withdrawals)))],
+        ['Net Flow', fmtCedi(summary.net_flow ?? (Number(summary.total_contributions) - Number(summary.total_withdrawals) - Number(summary.total_commissions) ))],
         ['Total Clients', fmt(summary.total_clients)],
         ['Active Clients', fmt(summary.active_clients)],
       );
