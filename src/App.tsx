@@ -51,6 +51,7 @@ import SecurityTab from './pages/dashboard/Security';
 import { SettingsProvider } from './contexts/dashboard/Settings';
 import ForcePasswordChange from './pages/dashboard/forcePasswordChange';
 import SusuQRTransfer from './pages/dashboard/SusuQrTransfer';
+import UpdatesPage from './pages/dashboard/UpdatesPage';
 
 function App() {
   return (
@@ -127,6 +128,7 @@ function App() {
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="reports" element={<Reports />} />
             <Route path="chat" element={<Chat />} />
+            <Route path="updates" element={<UpdatesPage />} />
             <Route path="expenses" element={<FinancialDashboard />} />
             <Route path="staffs" element={<StaffManagement />} />
             <Route path="loans" element={<LoanManagement/>} />

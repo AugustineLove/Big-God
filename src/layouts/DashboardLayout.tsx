@@ -6,6 +6,7 @@ import {
   Settings, LogOut, X, BarChart3, MessageCircle as Chat,
   CreditCard, Bell, ChevronDown, ChevronRight, ChevronLeft,
   ChevronRight as ChevronRightIcon, MenuIcon, User, Shield,
+  Sparkles,
 } from 'lucide-react';
 import { companyName, userPermissions, userRole, userStaffId } from '../constants/appConstants';
 
@@ -19,14 +20,8 @@ interface Tab {
   icon: any;
 }
 
-// ─── TabContext: lets child pages open new tabs programmatically ──────────────
-
 interface TabContextValue {
-  /**
-   * Always opens a brand-new tab and navigates to `path`.
-   * Use this from inside a page when navigating to something in another
-   * section (e.g. clicking a customer row while inside Deposits).
-   */
+ 
   openInNewTab: (name: string, path: string, icon: any) => void;
 }
 
@@ -88,6 +83,7 @@ const DashboardLayout: React.FC = () => {
     ...(userPermissions?.MANAGE_STAFF    ? [{ name: 'Staffs',  href: '/dashboard/staffs',  icon: Users      }] : []),
     ...(userPermissions?.LOAN_PRIVILEGES ? [{ name: 'Loans',   href: '/dashboard/loans',   icon: CreditCard }] : []),
     { name: 'Security', href: '/dashboard/security', icon: Shield },
+    { name: 'Updates', href: '/dashboard/updates', icon: Sparkles },
     { name: 'Chat',     href: '/dashboard/chat',     icon: Chat   },
   ], []);
 
@@ -446,13 +442,13 @@ const DashboardLayout: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => handleOpenTab('Chat', '/dashboard/chat', Chat)}
+                {/* <button
+                  onClick={() => handleOpenTab('Updates', '/dashboard/updates', Chat)}
                   className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <Bell className="h-5 w-5" />
                   <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full ring-2 ring-white" />
-                </button>
+                </button> */}
 
                 <div className="relative">
                   <button
