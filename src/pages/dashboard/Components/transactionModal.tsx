@@ -1,26 +1,19 @@
-import { useState, useContext, createContext, useEffect, useRef } from "react";
-import { 
-  DollarSign, 
-  CreditCard, 
-  ArrowUpCircle, 
-  ArrowDownCircle, 
-  Search, 
-  User, 
-  Calendar,
-  FileText,
-  UserCheck,
-  CheckCircle,
-  X,
-  Wallet,
-  Building2
+import { useState, useEffect, useRef } from "react";
+import {
+  CreditCard, Search, User, Calendar, FileText,
+  UserCheck, CheckCircle, X, Wallet, Building2,
+  ArrowUpCircle, ArrowDownCircle, DollarSign, AlertCircle,
 } from "lucide-react";
 import { useCustomers } from "../../../contexts/dashboard/Customers";
 import { useStaff } from "../../../contexts/dashboard/Staff";
 import { useAccounts } from "../../../contexts/dashboard/Account";
-import { companyId, companyName, makeSuSuProName, parentCompanyName, userRole, userUUID } from "../../../constants/appConstants";
 import { useTransactions } from "../../../contexts/dashboard/Transactions";
-import toast from 'react-hot-toast';
+import {
+  companyId, userRole, userUUID,
+} from "../../../constants/appConstants";
+import toast from "react-hot-toast";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Customer {
   company_id?: string;
@@ -42,7 +35,7 @@ interface Customer {
   date_of_registration?: string;
   gender?: string;
   registered_by?: string;
-  customer_id?: string; 
+  customer_id?: string;
   total_balance_across_all_accounts?: string;
   account_number?: string;
 }
@@ -52,6 +45,7 @@ interface Account {
   account_number: string;
   account_type: string;
   balance: number;
+  status?: string;
   created_at: string;
   customer_id?: string;
 }
@@ -68,873 +62,557 @@ interface Transaction {
   status: string;
 }
 
-
 interface TransactionModalProps {
   transaction?: Transaction | null;
   onSave: (transaction: any) => void;
   onClose: () => void;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const ACCOUNT_ICONS: Record<string, React.ReactNode> = {
+  savings: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  ),
+  current: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+    </svg>
+  ),
+};
+
+const getAccountIcon = (type: string) =>
+  ACCOUNT_ICONS[type.toLowerCase()] ?? <Building2 className="w-4 h-4" />;
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const FieldError = ({ msg }: { msg?: string }) =>
+  msg ? (
+    <p className="flex items-center gap-1 text-[12px] text-red-500 mt-1">
+      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {msg}
+    </p>
+  ) : null;
+
+const Label = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
+  <p className="text-[12px] font-medium text-gray-500 mb-1.5">
+    {children}{required && <span className="text-red-400 ml-0.5">*</span>}
+  </p>
+);
+
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">{children}</p>
+);
+
+// ─── Main Modal ───────────────────────────────────────────────────────────────
+
 const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave, onClose }) => {
-  const { customers, customerLoading: customersLoading, refreshCustomers, fetchCustomerById } = useCustomers();
+  const { customerLoading, refreshCustomers } = useCustomers();
   const { staffList, loading: staffLoading } = useStaff();
   const { accounts, refreshAccounts, setAccounts } = useAccounts();
+  const { addTransaction, refreshTransactions, loading } = useTransactions();
+
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Customer[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [formData, setFormData] = useState({
-    account_id: transaction?.account_id || '',
-    amount: transaction?.amount?.toString() || '',
-    transaction_type: transaction?.transaction_type || 'deposit' as 'deposit' | 'withdrawal',
-    description: transaction?.description || '',
-    transaction_date: transaction?.transaction_date 
+    account_id: transaction?.account_id || "",
+    amount: transaction?.amount?.toString() || "",
+    transaction_type: (transaction?.transaction_type || "deposit") as "deposit" | "withdrawal",
+    withdrawal_type: "",
+    description: transaction?.description || "",
+    transaction_date: transaction?.transaction_date
       ? new Date(transaction.transaction_date).toISOString().slice(0, 16)
       : new Date().toISOString().slice(0, 16),
-    staked_by: selectedCustomer?.registered_by || transaction?.staked_by || '',
+    staked_by: transaction?.staked_by || "",
     company_id: companyId,
     staff_id: userUUID,
-    withdrawal_type: ''
   });
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [results, setResults] = useState([]);
-  const [iLoading, setILoading] = useState(false);
- 
-  const [customerSearch,  setCustomerSearch] = useState('');
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const { addTransaction, refreshTransactions, loading } = useTransactions();
-  const [loadingAccounts, setLoadingAccounts] = useState(false);
-
-useEffect(() => {
-  const loadAccounts = async () => {
-    if (!selectedCustomer) return;
-
-    setLoadingAccounts(true);
-    setAccounts([]);
-
-    await refreshAccounts(selectedCustomer.id);
-    setLoadingAccounts(false);
-  };
-
-  loadAccounts();
-}, [selectedCustomer]);
-
-  useEffect(() => {
-    if (selectedCustomer) {
-      formData.staked_by = selectedCustomer.registered_by || '';
-    }
-  }, [selectedCustomer]);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get Mobile Bankers
-  const mobileBankers = staffList.filter(staff => staff.role === 'Mobile Banker' || staff.role === 'mobile banker' || staff.role === 'mobile_banker' || staff.role === 'teller');
+  const mobileBankers = staffList.filter(
+    (s) => ["Mobile Banker", "mobile banker", "mobile_banker", "teller"].includes(s.role)
+  );
 
+  // ── Debounced customer search ──
   useEffect(() => {
-  if (!customerSearch.trim()) {
-    setResults([]);
-    return;
-  }
-
-  const timeout = setTimeout(async () => {
-    try {
-      setILoading(true);
-      const res = await fetch(
-        `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${customerSearch}`
-      );
-      const data = await res.json();
-      setResults(data.data);
-    } catch (err) {
-      console.error("Search failed");
-    } finally {
-      setILoading(false);
-    }
-  }, 400); // debounce
-
-  return () => clearTimeout(timeout);
-}, [customerSearch]);
-
-//   // Filter customers based on search
-// const results = customers.filter(customer =>
-//   (customer.name || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
-//   (customer.phone_number || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
-//   (customer.email || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
-//   (customer.account_number || "").toLowerCase().includes(customerSearch.toLowerCase())
-// );
-
-  // Set initial customer and account if editing
-  useEffect(() => {
-    if (transaction?.account_id) {
-      // Find the account first
-      const account = accounts.find(acc => acc.id === transaction.account_id);
-      if (account) {
-        setSelectedAccount(account);
-        // Find the customer who owns this account
-        const customer = customers.find(c => c.id === account.customer_id);
-        if (customer) {
-          setSelectedCustomer(customer);
-          setCustomerSearch(customer.name);
-          // Load accounts for this customer
-          refreshAccounts(customer.customer_id || customer.id);
-        }
+    if (!customerSearch.trim()) { setSearchResults([]); return; }
+    const t = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await fetch(
+          `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${customerSearch}`
+        );
+        const data = await res.json();
+        setSearchResults(data.data || []);
+      } catch { /* silent */ } finally {
+        setSearchLoading(false);
       }
-    }
-  }, [transaction, customers, refreshAccounts]);
+    }, 380);
+    return () => clearTimeout(t);
+  }, [customerSearch]);
 
-  // Handle clicks outside dropdown
+  // ── Load accounts when customer changes ──
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
-          searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
-        setShowCustomerDropdown(false);
-      }
+    if (!selectedCustomer) return;
+    setLoadingAccounts(true);
+    setAccounts([]);
+    refreshAccounts(selectedCustomer.id).finally(() => setLoadingAccounts(false));
+  }, [selectedCustomer]);
+
+  // ── Auto-set staked_by from customer ──
+  useEffect(() => {
+    if (selectedCustomer?.registered_by) {
+      setFormData((p) => ({ ...p, staked_by: selectedCustomer.registered_by! }));
+    }
+  }, [selectedCustomer]);
+
+  // ── Close dropdown on outside click ──
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        searchInputRef.current && !searchInputRef.current.contains(e.target as Node)
+      ) setShowDropdown(false);
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    setFormData((p) => ({ ...p, [name]: value }));
+    if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
   };
 
-  const handleCustomerSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setCustomerSearch(value);
-    setShowCustomerDropdown(true);
-    
-    if (!value) {
-      setSelectedCustomer(null);
-      setSelectedAccount(null);
-      setFormData(prev => ({ ...prev, account_id: '' }));
-    }
-
-    if (errors.account_id) {
-      setErrors(prev => ({ ...prev, account_id: '' }));
-    }
-  };
-
-  const selectCustomer = (customer: Customer) => {
-    console.log('Selected customer:', customer.customer_id);
-    setSelectedCustomer(customer);
-    setCustomerSearch(customer.name);
-    setShowCustomerDropdown(false);
-    
-    // Reset account selection when customer changes
+  const selectCustomer = (c: Customer) => {
+    setSelectedCustomer(c);
+    setCustomerSearch(c.name);
+    setShowDropdown(false);
     setSelectedAccount(null);
-    setFormData(prev => ({ ...prev, account_id: '' }));
-    
-    // Fetch accounts for the selected customer
-    console.log(customer)
-    refreshAccounts(customer.customer_id);
-    
-    if (errors.account_id) {
-      setErrors(prev => ({ ...prev, account_id: '' }));
-    }
+    setFormData((p) => ({ ...p, account_id: "" }));
+    refreshAccounts(c.customer_id || c.id);
   };
 
-  const selectAccount = (account: Account) => {
-    setSelectedAccount(account);
-    setFormData(prev => ({ ...prev, account_id: account.id }));
-    
-    if (errors.account_id) {
-      setErrors(prev => ({ ...prev, account_id: '' }));
-    }
+  const selectAccount = (a: Account) => {
+    setSelectedAccount(a);
+    setFormData((p) => ({ ...p, account_id: a.id }));
+    if (errors.account_id) setErrors((p) => ({ ...p, account_id: "" }));
   };
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.account_id) newErrors.account_id = 'Please select a customer account';
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      newErrors.amount = 'Please enter a valid amount greater than 0';
-    }
-    if (!formData.staked_by) newErrors.staked_by = 'Please select who is creating this transaction';
-    if(!formData.description || formData.description == '') newErrors.description = 'Description is required';
-    // if( formData.transaction_type === 'withdrawal' && !formData.withdrawal_type || formData.withdrawal_type == '') newErrors.withdrawal_type = 'Please select withdrawal type';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!formData.account_id) e.account_id = "Select a customer account";
+    if (!formData.amount || parseFloat(formData.amount) <= 0) e.amount = "Enter a valid amount";
+    if (!formData.description.trim()) e.description = "Description is required";
+    if (!formData.staked_by) e.staked_by = "Select a mobile banker";
+    if (formData.transaction_type === "withdrawal" && !formData.withdrawal_type)
+      e.withdrawal_type = "Select a withdrawal type";
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async () => {
-     const toastId= toast.loading('Adding transaction...');
-      if (!validateForm()){
-       toast.error('Please fix all errors before submitting', {id: toastId});
-       return
-    };
-    const status = formData.transaction_type === 'withdrawal' ? 'pending' : 'completed';
-    const transactionData = {
+    if (!validate()) return;
+    const toastId = toast.loading("Adding transaction…");
+    const status = formData.transaction_type === "withdrawal" ? "pending" : "completed";
+    const payload = {
       ...formData,
       amount: parseFloat(formData.amount),
       transaction_date: new Date(formData.transaction_date).toISOString(),
       company_id: companyId,
-      unique_code: '',
-      status: status,
+      unique_code: "",
+      status,
     };
-    const addBool = await addTransaction(transactionData, selectedAccount, selectedCustomer, formData.amount);
-    if (addBool === true) {
+    const ok = await addTransaction(payload, selectedAccount, selectedCustomer, formData.amount);
+    if (ok === true) {
+      toast.success("Transaction added successfully", { id: toastId });
       onClose();
       refreshTransactions("1", 20);
-      const filters = {
-      search:    searchTerm    || undefined,
-      location:   'all',
-      status:     'all',
-      staff:      'all',
-      dateRange:  'all',
-    };
-      refreshCustomers(String(1), 20, filters);
-      toast.success('Transaction successfully created', {id: toastId});
-     } else {
-      toast.error('Failed\nTransaction amount greater than account balance or minimum balance', {id: toastId});
-    }
-    if (transaction) {
-      onSave({ ...transaction, ...transactionData });
+      refreshCustomers(String(1), 20, { location: "all", status: "all", staff: "all", dateRange: "all" });
+      if (transaction) onSave({ ...transaction, ...payload });
     } else {
-      // onSave(transactionData);
+      toast.error("Failed — amount may exceed balance or minimum balance", { id: toastId });
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
+  const isWithdrawal = formData.transaction_type === "withdrawal";
 
-  
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ background: "rgba(0,0,0,0.4)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-tr-2xl rounded-tl-2xl shadow-2xl max-w-2xl w-full flex flex-col h-[70vh]">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-t-2xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-white bg-opacity-20 rounded-lg">
-                <CreditCard className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-white">
-                {transaction ? 'Edit Transaction' : 'New Transaction'}
-              </h3>
+      <div className="bg-white rounded-t-3xl w-full max-w-xl flex flex-col"
+        style={{ maxHeight: "90vh" }}>
+
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+              <CreditCard className="w-5 h-5 text-emerald-600" />
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-white" />
-            </button>
+            <div>
+              <p className="text-[15px] font-semibold text-gray-900">
+                {transaction ? "Edit transaction" : "New transaction"}
+              </p>
+              <p className="text-[12px] text-gray-400 mt-0.5">Fill in the details to record a transaction</p>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0"
+          >
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Customer Selection Section */}
-              <div className="md:col-span-2">
-                <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <User className="w-5 h-5 mr-2 text-emerald-600" />
-                  Customer Selection
-                </h4>
-              </div>
+        {/* ── Body ── */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-6">
 
-              <div className="md:col-span-2 relative">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <Search className="w-4 h-4 mr-2 text-gray-500" />
-                  Search Customer
-                  <span className="text-red-500 ml-1">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={customerSearch}
-                    onChange={handleCustomerSearch}
-                    onFocus={() => setShowCustomerDropdown(true)}
-                    placeholder="Type customer name, account number, phone, or email..."
-                    className={`w-full px-4 py-3 pr-10 border rounded-xl focus:ring-2 focus:ring-emerald-500 transition-colors ${
-                      errors.account_id 
-                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                        : 'border-gray-300 focus:border-emerald-500'
-                    }`}
-                  />
-                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  
-                  {selectedCustomer && (
-                    <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-                      <CheckCircle className="w-5 h-5 text-emerald-500" />
-                    </div>
-                  )}
-                </div>
+          {/* Customer search */}
+          <div>
+            <SectionTitle>Customer</SectionTitle>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={customerSearch}
+                onChange={(e) => {
+                  setCustomerSearch(e.target.value);
+                  setShowDropdown(true);
+                  if (!e.target.value) { setSelectedCustomer(null); setSelectedAccount(null); }
+                }}
+                onFocus={() => setShowDropdown(true)}
+                placeholder="Search by name, phone or account number…"
+                className={`w-full pl-10 pr-10 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none transition-all
+                  ${errors.account_id
+                    ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                    : "border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"}`}
+              />
+              {selectedCustomer && (
+                <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+              )}
 
-                {/* Customer Dropdown */}
-                {showCustomerDropdown && customerSearch && (
-                  <div 
-                    ref={dropdownRef}
-                    className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto"
-                  >
-                    {customersLoading ? (
-                      <div className="p-4 text-center text-gray-500">Loading customers...</div>
-                    ) : results.length > 0 ? (
-                      results.map((customer) => (
-                        <div
-                          key={customer.id}
-                          onClick={() => selectCustomer(customer)}
-                          className="p-4 hover:bg-emerald-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                            <div className="flex items-center justify-center">
-                              <div className="font-medium text-gray-900">{customer.name}</div>
-                              <div className="text-sm text-gray-500 ml-2"> {customer.account_number || 'N/A'}</div>
-                            </div>
-                              <div className="text-sm text-gray-500">{customer.phone_number}</div>
-                              <div className="text-xs text-gray-400">{customer.email}</div>
-                            <div className="text-xs text-gray-400">{customer.registered_by_name}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm font-medium text-emerald-600">
-                                ¢{parseFloat(customer.total_balance_across_all_accounts || '0').toLocaleString()}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {customer.total_transactions} transactions
-                              </div>
-                            </div>
+              {/* Dropdown */}
+              {showDropdown && customerSearch && (
+                <div
+                  ref={dropdownRef}
+                  className="absolute z-20 w-full mt-1.5 bg-white border border-gray-100 rounded-2xl shadow-lg overflow-hidden"
+                  style={{ maxHeight: 220, overflowY: "auto" }}
+                >
+                  {searchLoading ? (
+                    <div className="py-4 text-center text-[13px] text-gray-400">Searching…</div>
+                  ) : searchResults.length > 0 ? (
+                    searchResults.map((c) => (
+                      <div
+                        key={c.id}
+                        onClick={() => selectCustomer(c)}
+                        className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-700 text-[11px] font-semibold flex-shrink-0">
+                            {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-medium text-gray-900">{c.name}</p>
+                            <p className="text-[11px] text-gray-400">{c.phone_number} · {c.account_number || "—"}</p>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="p-4 text-center text-gray-500">
-                        No customers found matching "{customerSearch}"
+                        <div className="text-right">
+                          <p className="text-[13px] font-semibold text-emerald-600">
+                            ¢{parseFloat(c.total_balance_across_all_accounts || "0").toLocaleString()}
+                          </p>
+                          <p className="text-[11px] text-gray-400">{c.total_transactions} txns</p>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
+                    ))
+                  ) : (
+                    <div className="py-4 text-center text-[13px] text-gray-400">No customers found</div>
+                  )}
+                </div>
+              )}
+            </div>
 
-                {errors.account_id && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    {errors.account_id}
+            <FieldError msg={errors.account_id} />
+
+            {/* Selected customer chip */}
+            {selectedCustomer && (
+              <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-white border border-emerald-200 flex items-center justify-center text-emerald-700 text-[12px] font-semibold flex-shrink-0">
+                    {selectedCustomer.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-gray-900">{selectedCustomer.name}</p>
+                    <p className="text-[11px] text-gray-500">{selectedCustomer.phone_number}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[16px] font-semibold text-emerald-600">
+                    ¢{parseFloat(selectedCustomer.total_balance_across_all_accounts || "0").toLocaleString()}
                   </p>
-                )}
-
-                {/* Selected Customer Display */}
-                {selectedCustomer && (
-                  <div className="mt-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                          <div className="font-medium text-emerald-900">{selectedCustomer.name}</div>
-                        <div className="font-medium text-emerald-900 text-sm">{selectedCustomer.account_number}</div>
-                        <div className="text-sm text-emerald-700">{selectedCustomer.phone_number}</div>
-
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-semibold text-emerald-600">
-                          ¢{parseFloat(selectedCustomer.total_balance_across_all_accounts || '0').toLocaleString()}
-                        </div>
-                        <div className="text-xs text-emerald-600">Current Balance</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Account Selection */} 
-{selectedCustomer && (
-  <div>
-    {loadingAccounts ? (
-      /* 🔹 Loader */
-      <div className="flex justify-center items-center py-10">
-        <svg
-          className="w-6 h-6 animate-spin text-emerald-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-          />
-        </svg>
-        <span className="ml-3 text-gray-600">Loading accounts...</span>
-      </div>
-    ) : accounts.length > 0 ? (
-      /* 🔹 Accounts */
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
-          <Wallet className="w-4 h-4 mr-2 text-gray-500" />
-          Select Account
-          <span className="text-red-500 ml-1">*</span>
-        </label>
-
-        <div className="space-y-3">
-          {accounts.map((account) => {
-            const isNormalAccount = account.account_type.toLowerCase() === "normal";
-            const isTellerRestricted =
-              userRole === "teller" && isNormalAccount || account.status === 'Inactive';
-
-            const isSelected = selectedAccount?.id === account.id;
-
-            return (
-              <div
-                key={account.id}
-                onClick={() => {
-                  if (!isTellerRestricted) {
-                    selectAccount(account);
-                  }
-                }} 
-                className={`
-                  p-4 border-2 rounded-xl transition-all
-                  ${
-                    isTellerRestricted
-                      ? "opacity-40 cursor-not-allowed bg-gray-50"
-                      : "cursor-pointer hover:shadow-md"
-                  }
-                  ${
-                    isSelected
-                      ? "border-emerald-500 bg-emerald-50 shadow-md"
-                      : "border-gray-200 hover:border-emerald-300"
-                  }
-                `}
-              >
-                <div className="flex items-center justify-between">
-                  {/* Left */}
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`p-2 rounded-lg ${
-                        isSelected
-                          ? "bg-emerald-100"
-                          : "bg-gray-100"
-                      }`}
-                    >
-                      <Building2
-                        className={`w-5 h-5 ${
-                          isSelected
-                            ? "text-emerald-600"
-                            : "text-gray-600"
-                        }`}
-                      />
-                    </div>
-
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {account.account_number}
-                      </div>
-                      <div
-                        className={`text-sm ${
-                          isSelected
-                            ? "text-emerald-700"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {account.account_type.charAt(0).toUpperCase() +
-                          account.account_type.slice(1)}{" "}
-                        Account
-                      </div>
-
-                      {isTellerRestricted && (
-                        <div className="text-xs text-red-500 mt-1">
-                          Not accessible
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right */}
-                  <div className="text-right">
-                    <div
-                      className={`text-lg font-semibold ${
-                        isSelected
-                          ? "text-emerald-600"
-                          : "text-gray-900"
-                      }`}
-                    >
-                      ¢
-                      {account.balance
-                        ? account.balance.toLocaleString()
-                        : "0"}
-                    </div>
-                    <div
-                      className={`text-xs ${
-                        isSelected
-                          ? "text-emerald-600"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      Available Balance
-                    </div>
-                  </div>
+                  <p className="text-[10px] text-emerald-500">Total balance</p>
                 </div>
-
-                {/* Selected Icon */}
-                {isSelected && !isTellerRestricted && (
-                  <div className="mt-2 flex justify-end">
-                    <CheckCircle className="w-5 h-5 text-emerald-500" />
-                  </div>
-                )}
               </div>
-            );
-          })}
-        </div>
-
-        {/* Error */}
-        {errors.account_id && (
-          <p className="mt-2 text-sm text-red-600 flex items-center">
-            <svg
-              className="w-4 h-4 mr-1"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            {errors.account_id}
-          </p>
-        )}
-      </div>
-    ) : (
-      /* 🔹 Empty State */
-      <div className="text-gray-500 text-center py-6">
-        No accounts found for this customer.
-      </div>
-    )}
-  </div>
-)}
-  </div>
-
-              {/* Transaction Details Section */}
-              <div className="md:col-span-2 mt-6">
-                <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <CreditCard className="w-5 h-5 mr-2 text-emerald-600" />
-                  Transaction Details
-                </h4>
-              </div>
-
-             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <ArrowUpCircle className="w-4 h-4 mr-2 text-gray-500" />
-                  Transaction Type
-                  <span className="text-red-500 ml-1">*</span>
-                </label>
-
-                <select
-                  name="transaction_type"
-                  value={formData.transaction_type}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                >
-                  <option value="deposit">Deposit (Add Money)</option>
-                  <option value="withdrawal">Withdrawal (Take Money)</option>
-                </select>
-              </div>
-
-              {/* Withdrawal type (conditional) */}
-              {formData.transaction_type === 'withdrawal' && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Withdrawal Type
-                    <span className="text-red-500 ml-1">*</span>
-                  </label>
-
-                  <select
-                    name="withdrawal_type"
-                    value={formData.withdrawal_type}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  >
-                    <option value="" disabled>
-                      Select withdrawal type
-                    </option>
-                    <option value="advance">Advance</option>
-                    <option value="commission">Commission-based</option>
-                  </select>
-                </div>
-              )}
-
-
-             <FormField
-              label="Amount"
-              name="amount"
-              type="text"
-              // inputMode="decimal"
-              value={formData.amount}
-              onChange={handleChange}
-              required
-              error={errors.amount}
-              icon={<DollarSign className="w-4 h-4" />}
-              placeholder="Enter amount (e.g., 100.00)"
-            />
-
-
-              <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <FileText className="w-4 h-4 mr-2 text-gray-500" />
-                Description <span className="text-red-500 ml-1">*</span>
-              </label>
-
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-                className={`w-full px-4 py-3 border rounded-xl transition-colors resize-none
-                  ${
-                    errors.description
-                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'
-                  }`}
-                placeholder="Add notes about this transaction..."
-              />
-
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-              )}
-            </div>
-
-              <FormField
-                label="Transaction Date & Time"
-                name="transaction_date"
-                type="datetime-local"
-                value={formData.transaction_date}
-                onChange={handleChange}
-                icon={<Calendar className="w-4 h-4" />}
-              />
-
-              <div>
-  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-    <UserCheck className="w-4 h-4 mr-2 text-gray-500" />
-    Created By (Mobile Banker)
-    <span className="text-red-500 ml-1">*</span>
-  </label>
-
-  <select
-    name="staked_by"
-    value={formData.staked_by || selectedCustomer?.registered_by || ''}
-    onChange={handleChange}
-    required
-    disabled={staffLoading}
-    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 transition-colors ${
-      errors.staked_by
-        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-        : 'border-gray-300 focus:border-emerald-500'
-    }`}
-  >
-    {/* Show the registered banker as the selected option */}
-    {selectedCustomer?.registered_by && (
-      <option value={selectedCustomer.registered_by}>
-        {selectedCustomer.registered_by_name} 
-      </option>
-    )}
-
-    {/* List other bankers, skipping the one already selected */}
-    {mobileBankers
-      .filter((banker) => banker.id !== selectedCustomer?.registered_by)
-      .map((banker) => (
-        <option key={banker.staff_id} value={banker.id}>
-          {banker.full_name} ({banker.staff_id})
-        </option>
-      ))}
-  </select>
-
-  {errors.staked_by && (
-    <p className="mt-1 text-sm text-red-600 flex items-center">
-      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-        <path
-          fillRule="evenodd"
-          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-          clipRule="evenodd"
-        />
-      </svg>
-      {errors.staked_by}
-    </p>
-  )}
-</div>
-
-
-
-            </div>
+            )}
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl max-w-2xl w-full">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-600 to-blue-600 text-white rounded-xl hover:from-emerald-700 hover:to-blue-700 transition-all font-medium shadow-lg"
-            >
-              {transaction ? 'Update Transaction' : loading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Adding transaction...
+          {/* Account selection */}
+          {selectedCustomer && (
+            <div>
+              <SectionTitle>Select account</SectionTitle>
+              {loadingAccounts ? (
+                <div className="flex items-center gap-3 py-5 text-[13px] text-gray-400">
+                  <svg className="w-5 h-5 animate-spin text-emerald-500" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                  </svg>
+                  Loading accounts…
+                </div>
+              ) : accounts.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {accounts.map((account) => {
+                    const restricted =
+                      (userRole === "teller" && account.account_type.toLowerCase() === "normal") ||
+                      account.status === "Inactive";
+                    const selected = selectedAccount?.id === account.id;
+                    return (
+                      <div
+                        key={account.id}
+                        onClick={() => !restricted && selectAccount(account)}
+                        className={`flex items-center justify-between px-4 py-3.5 border-2 rounded-2xl transition-all
+                          ${restricted ? "opacity-40 cursor-not-allowed bg-gray-50" : "cursor-pointer"}
+                          ${selected
+                            ? "border-emerald-400 bg-emerald-50"
+                            : "border-gray-100 hover:border-emerald-200 bg-white"}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
+                            ${selected ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-500"}`}>
+                            {getAccountIcon(account.account_type)}
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-semibold text-gray-900 capitalize">
+                              {account.account_type} account
+                            </p>
+                            <p className="text-[11px] text-gray-400 font-mono">•••• {account.account_number}</p>
+                            {restricted && <p className="text-[10px] text-red-400 mt-0.5">Not accessible</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <div className="text-right">
+                            <p className={`text-[14px] font-semibold ${selected ? "text-emerald-600" : "text-gray-900"}`}>
+                              ¢{(account.balance || 0).toLocaleString()}
+                            </p>
+                            <p className="text-[10px] text-gray-400">Available</p>
+                          </div>
+                          {selected && (
+                            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                              <CheckCircle className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
-                'Add transaction'
+                <div className="py-6 text-center text-[13px] text-gray-400 bg-gray-50 rounded-2xl">
+                  No accounts found for this customer
+                </div>
               )}
-            </button>
+              <FieldError msg={errors.account_id} />
+            </div>
+          )}
+
+          {/* Transaction type toggle */}
+          <div>
+            <SectionTitle>Transaction type</SectionTitle>
+            <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl">
+              {(["deposit", "withdrawal"] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setFormData((p) => ({ ...p, transaction_type: type, withdrawal_type: "" }))}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-medium transition-all
+                    ${formData.transaction_type === type
+                      ? type === "deposit"
+                        ? "bg-white text-emerald-600 shadow-sm"
+                        : "bg-white text-red-500 shadow-sm"
+                      : "text-gray-400 hover:text-gray-600"}`}
+                >
+                  {type === "deposit"
+                    ? <ArrowUpCircle className="w-4 h-4" />
+                    : <ArrowDownCircle className="w-4 h-4" />}
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Withdrawal type — required when withdrawal selected */}
+          {isWithdrawal && (
+            <div>
+              <SectionTitle>Withdrawal type</SectionTitle>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "advance", label: "Advance", desc: "Early payout against savings" },
+                  { value: "commission", label: "Commission", desc: "Commission-based payout" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setFormData((p) => ({ ...p, withdrawal_type: opt.value }));
+                      if (errors.withdrawal_type) setErrors((p) => ({ ...p, withdrawal_type: "" }));
+                    }}
+                    className={`text-left px-4 py-3 rounded-2xl border-2 transition-all
+                      ${formData.withdrawal_type === opt.value
+                        ? "border-red-300 bg-red-50"
+                        : "border-gray-100 bg-white hover:border-gray-200"}`}
+                  >
+                    <p className={`text-[13px] font-semibold ${formData.withdrawal_type === opt.value ? "text-red-600" : "text-gray-900"}`}>
+                      {opt.label}
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+              <FieldError msg={errors.withdrawal_type} />
+            </div>
+          )}
+
+          {/* Amount + Date */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label required>Amount</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-gray-400">¢</span>
+                <input
+                  type="text"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                  className={`w-full pl-7 pr-3 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none transition-all
+                    ${errors.amount
+                      ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
+                      : "border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"}`}
+                />
+              </div>
+              <FieldError msg={errors.amount} />
+            </div>
+            <div>
+              <Label required>Date & time</Label>
+              <input
+                type="datetime-local"
+                name="transaction_date"
+                value={formData.transaction_date}
+                onChange={handleChange}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 focus:outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <Label required>Description</Label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={3}
+              placeholder="e.g. Monthly contribution, emergency withdrawal…"
+              className={`w-full px-4 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none resize-none transition-all
+                ${errors.description
+                  ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
+                  : "border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"}`}
+            />
+            <FieldError msg={errors.description} />
+          </div>
+
+          {/* Mobile Banker */}
+          <div>
+            <Label required>Recorded by (Mobile Banker)</Label>
+            <select
+              name="staked_by"
+              value={formData.staked_by}
+              onChange={handleChange}
+              disabled={staffLoading}
+              className={`w-full px-4 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none transition-all appearance-none
+                ${errors.staked_by
+                  ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
+                  : "border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"}`}
+            >
+              <option value="">Select mobile banker…</option>
+              {selectedCustomer?.registered_by && (
+                <option value={selectedCustomer.registered_by}>
+                  {selectedCustomer.registered_by_name} (assigned)
+                </option>
+              )}
+              {mobileBankers
+                .filter((b) => b.id !== selectedCustomer?.registered_by)
+                .map((b) => (
+                  <option key={b.staff_id} value={b.id}>
+                    {b.full_name} · {b.staff_id}
+                  </option>
+                ))}
+            </select>
+            <FieldError msg={errors.staked_by} />
+          </div>
+
         </div>
+
+        {/* ── Footer ── */}
+        <div className="flex gap-2.5 px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-white">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 border border-gray-200 rounded-2xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex-[2] py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl text-[13px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                </svg>
+                Adding…
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                {transaction ? "Update transaction" : "Add transaction"}
+              </>
+            )}
+          </button>
+        </div>
+
       </div>
-   
+    </div>
   );
 };
 
-// Enhanced FormField component
-const FormField = ({
-  label,
-  name,
-  value,
-  onChange,
-  type = 'text',
-  required = false,
-  step,
-  min,
-  error,
-  icon,
-  placeholder
-}: {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  type?: string;
-  required?: boolean;
-  step?: string;
-  min?: string;
-  error?: string;
-  icon?: React.ReactNode;
-  placeholder?: string;
-}) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-      {icon && <span className="mr-2 text-gray-500">{icon}</span>}
-      {label}
-      {required && <span className="text-red-500 ml-1">*</span>}
-    </label>
-    <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      required={required}
-      step={step}
-      min={min}
-      placeholder={placeholder}
-      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 transition-colors ${
-        error 
-          ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-          : 'border-gray-300 focus:border-emerald-500'
-      }`}
-    />
-    {error && <p className="mt-1 text-sm text-red-600 flex items-center">
-      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-      </svg>
-      {error}
-    </p>}
-  </div>
-);
-
-// Export the TransactionModal component
 export { TransactionModal };
-
-// Demo component
-export default function TransactionModalDemo() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
-
-  const handleSave = (transactionData: any) => {
-    console.log('Saving transaction:', transactionData);
-    setIsModalOpen(false);
-    setEditTransaction(null);
-  };
-
-  const handleClose = () => {
-    setIsModalOpen(false);
-    setEditTransaction(null);
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Transaction Modal Demo</h1>
-        
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex gap-4 mb-6">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-            >
-              New Transaction
-            </button>
-            <button
-              onClick={() => {
-                setEditTransaction({} as Transaction);
-                setIsModalOpen(true);
-              }}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Edit Sample Transaction
-            </button>
-          </div>
-
-          <div className="text-gray-600">
-            <p>Click the buttons above to test the transaction modal:</p>
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>✅ Customer autocomplete search</li>
-              <li>✅ Real-time customer filtering</li>
-              <li>✅ Customer balance display</li>
-              <li>✅ Transaction type selection</li>
-              <li>✅ Amount validation</li>
-              <li>✅ Date/time picker</li>
-              <li>✅ Mobile banker assignment</li>
-              <li>✅ Form validation</li>
-              <li>✅ Modern responsive design</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {isModalOpen && (
-        <TransactionModal
-          transaction={editTransaction}
-          onSave={handleSave}
-          onClose={handleClose}
-        />
-      )}
-    </div>
-  );
-}
+export default TransactionModal;

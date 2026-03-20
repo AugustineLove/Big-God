@@ -1,17 +1,24 @@
-import { useState, useContext, createContext, useEffect } from "react";
-import { Calendar, User, Mail, Phone, MapPin, CreditCard, Users, DollarSign, UserCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  User, Mail, Phone, MapPin, CreditCard, Users,
+  Calendar, UserCheck, X, CheckCircle, AlertCircle,
+  DollarSign, PiggyBank, Home,
+} from "lucide-react";
 import { Account, Customer } from "../../../data/mockData";
 import { useCustomers } from "../../../contexts/dashboard/Customers";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useStaff } from "../../../contexts/dashboard/Staff";
-import { getEffectiveCompanyId, makeSuSuProName, parentCompanyName, userPermissions } from "../../../constants/appConstants";
+import {
+  getEffectiveCompanyId, makeSuSuProName,
+  parentCompanyName, userPermissions,
+} from "../../../constants/appConstants";
 import toast from "react-hot-toast";
-import { useAccountNumber } from "../../../contexts/dashboard/NextAccountNumber";
 import { useAccountNumbers } from "../../../contexts/dashboard/NextAccNumbers";
-import { registerVersion } from "firebase/app";
+import { useAccountNumber } from "../../../contexts/dashboard/NextAccountNumber";
 import { useTransactions } from "../../../contexts/dashboard/Transactions";
 
-// Staff Context (you can import this from your actual context file)
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface Staff {
   id: string;
   staff_id: string;
@@ -23,14 +30,6 @@ interface Staff {
   created_at: string;
 }
 
-interface StaffContextType {
-  staffList: Staff[];
-  loading: boolean;
-  refreshStaff: () => void;
-}
-
-const StaffContext = createContext<StaffContextType | undefined>(undefined);
-
 interface ClientModalProps {
   account: Account | null;
   client?: Customer | null;
@@ -38,468 +37,36 @@ interface ClientModalProps {
   onClose: () => void;
 }
 
-export const ClientModal: React.FC<ClientModalProps> = ({ account, client, onSave, onClose }) => {
-  const { staffList, loading: staffLoading } = useStaff();
-  const { customers, addCustomer, customerLoading } = useCustomers();
-  const { company } = useAuth();
-  const [startedAdding, setStartedAdding] = useState(false);
-  const companyId = getEffectiveCompanyId();
-  const { getNextAccountNumber, fetchLastAccountNumbers } = useAccountNumbers();
-  const [selectedStaffId, setSelectedStaffId] = useState<string>(client?.registered_by || '');
-  const [nextAccNumber, setNextAccountNumber] = useState<string | null>(null);
-  const { nextAccountNumber, refreshAccountNumber, loading } = useAccountNumber();
-  const { sendMessage } = useTransactions();
-  const [formData, setFormData] = useState({
-    name: client?.name || '',
-    email: client?.email || '',
-    phone_number: client?.phone_number || '',
-    momo_number: client?.momo_number || '',
-    account_number: client?.account_number || nextAccNumber || '',
-    city: client?.city || '',
-    id_card: client?.id_card || '',
-    gender: client?.gender
-  ? client.gender.charAt(0).toUpperCase() + client.gender.slice(1)
-  : '',
-    next_of_kin: client?.next_of_kin || '',
-    location: client?.location || '',
-    daily_rate: client?.daily_rate || '',
-    date_of_registration: client?.date_of_registration
-  ? client.date_of_registration.split('T')[0]
-  : new Date().toISOString().split('T')[0],
-  date_of_birth: client?.date_of_birth ? client.date_of_birth.split('T')[0] : new Date().toISOString().split('T')[0],
-    registered_by: client?.registered_by || '',
-    account_type: account?.account_type || '',
-    company_id: companyId,
-    created_by: client?.registered_by
-  });
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  // Filter staff to get only Mobile Bankers
-  const mobileBankers = !userPermissions.MANAGE_STAFF ? staffList.filter(staff => staff.role === 'Mobile Banker' || staff.role === 'mobile banker' ||  staff.role === 'mobile_banker' || staff.role === 'teller') : staffList;
-  
-  const [errors, setErrors] = useState<Record<string, string>>({});
+const FieldError = ({ msg }: { msg?: string }) =>
+  msg ? (
+    <p className="flex items-center gap-1 text-[12px] text-red-500 mt-1">
+      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+      {msg}
+    </p>
+  ) : null;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    console.log(`Form data updated: ${formData.registered_by}`);
-    setFormData(prev => ({ ...prev, [name]: value }));
-     // If the changed field is 'registered_by', generate next account number
-  if (name === 'registered_by' && value.length > 0) {
-    const nextAccount = getNextAccountNumber(value);
-    console.log('Next account number generated:', nextAccount);
-    setNextAccountNumber(nextAccount);
-  }
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.name.trim()) newErrors.name = 'Full name is required';
-    if (!formData.phone_number.trim()) newErrors.phone_number = 'Phone number is required';
-    if (!formData.id_card.trim()) newErrors.id_card = 'ID card number is required';
-    if (!formData.registered_by) newErrors.registered_by = 'Please assign a mobile banker';
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-    if(!formData.account_type.trim()) newErrors.account_type = 'Account type is required';
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    setStartedAdding(true);
-    e.preventDefault();
-    const toastId = "Adding customer...";
-    console.log('Button clicked')
-    if (!validateForm()) setStartedAdding(false);
-    console.log('Form validated')
-    if (!client) {
-      let account_number;
-      console.log('Assigned mobile banker:', formData.registered_by);
-      if (formData.account_type === 'Susu'){
-        account_number = `${nextAccNumber}SU1`;
-      }
-      else {
-        account_number = `${nextAccNumber}SA1`;
-      }
-      const data =   { 
-      ...formData, 
-      company_id: companyId, 
-      registered_by: formData.registered_by,
-      account_type: formData.account_type,
-      date_of_birth: formData.date_of_birth,
-      total_balance: '0.00',
-      total_transactions: '0',
-      account_number: nextAccNumber
-    }
-    const addAccount = {"account_type": formData.account_type,} as Account;
-      console.log('Updating client:', data);
-      console.log('Add account', addAccount);
-      const addedCustomerData = await addCustomer(data, formData.account_type, account_number);
-      await fetchLastAccountNumbers();
-      await sendMessage({
-        messageTo: formData.phone_number,
-        messageFrom: makeSuSuProName(parentCompanyName),
-        message: `Dear ${formData.name}, you have successfully opened a ${formData.account_type} account with ${parentCompanyName}. Your customer account number is, ${addedCustomerData.data.account_number}. \nYour secret withdrawal code is ${addedCustomerData.data.withdrawal_code}. Please do not share this code with anyone. \nThank you for choosing us!`
-      });
-      toast.success('Client added successfully', { id: toastId });
-      setStartedAdding(false);
-      // window.location.reload();
-      onClose();
-    } else {
-      onSave({
-        customer_id: client?.customer_id,
-        ...formData,
-        id: Date.now().toString(),
-        joinDate: new Date().toISOString().split('T')[0]
-      });
-      setStartedAdding(false);
-      onClose();
-    }
-  };
-
-  // Close modal when clicking backdrop
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-2xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-white bg-opacity-20 rounded-lg">
-                <User className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-white">
-                {client ? 'Edit Client' : 'Add New Client'}
-              </h3>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Personal Information Section */}
-              <div className="md:col-span-2">
-                <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <User className="w-5 h-5 mr-2 text-indigo-600" />
-                  Personal Information
-                </h4>
-              </div>
-
-              <FormField
-                label="Full Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                error={errors.name}
-                icon={<User className="w-4 h-4" />}
-              />
-
-              <FormField
-                label="Email Address"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                error={errors.email}
-                icon={<Mail className="w-4 h-4" />}
-              />
-
-              <FormField
-                label="Phone Number"
-                name="phone_number"
-                value={formData.phone_number}
-                onChange={handleChange}
-                required
-                error={errors.phone_number}
-                icon={<Phone className="w-4 h-4" />}
-              />
-
-              <FormField
-                label="Momo Number"
-                name="momo_number"
-                value={formData.momo_number}
-                onChange={handleChange}
-                error={errors.momo_number}
-                icon={<Phone className="w-4 h-4" />}
-              />
-
-              <FormField
-                label="ID Card Number"
-                name="id_card"
-                value={formData.id_card}
-                onChange={handleChange}
-                required
-                error={errors.id_card}
-                icon={<CreditCard className="w-4 h-4" />}
-              />
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <User className="w-4 h-4 mr-2 text-gray-500" />
-                  Gender
-                </label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-              </div>
-
-              <FormField
-                label="Date of Registration"
-                name="date_of_registration"
-                type="date"
-                value={formData.date_of_registration}
-                onChange={handleChange}
-                icon={<Calendar className="w-4 h-4" />}
-              />
-              <FormField
-                label="Date of Birth"
-                name="date_of_birth"
-                type="date"
-                value={formData.date_of_birth}
-                onChange={handleChange}
-                icon={<Calendar className="w-4 h-4" />}
-              />
-
-              {/* Contact & Location Section */}
-              <div className="md:col-span-2 mt-6">
-                <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <MapPin className="w-5 h-5 mr-2 text-indigo-600" />
-                  Contact & Location
-                </h4>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                  Town/City
-                </label>
-                <textarea
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors resize-none"
-                  placeholder="Enter city..."
-                />
-              </div>
-
-              <FormField
-                label="Location/Area"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                icon={<MapPin className="w-4 h-4" />}
-                placeholder="e.g., Downtown, Suburb name"
-              />
-
-              <FormField
-                label="Next of Kin"
-                name="next_of_kin"
-                value={formData.next_of_kin}
-                onChange={handleChange}
-                icon={<Users className="w-4 h-4" />}
-                placeholder="Emergency contact person"
-              />
-
-              {/* Financial Information */}
-              <div className="md:col-span-2 mt-6">
-                <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  
-                  Financial Information
-                </h4>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <UserCheck className="w-4 h-4 mr-2 text-gray-500" />
-                  Assigned Mobile Banker
-                  <span className="text-red-500 ml-1">*</span>
-                </label>
-                <select
-                  name="registered_by"
-                  value={formData.registered_by}
-                  onChange={handleChange}
-                  required
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 transition-colors ${
-                    errors.registered_by
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 focus:border-indigo-500'
-                  }`}
-                  disabled={staffLoading}
-                >
-                  <option value="">
-                    {staffLoading ? 'Loading mobile bankers...' : 'Select a Mobile Banker'}
-                  </option>
-                  {mobileBankers.map((banker) => (
-                    <option key={banker.id} value={banker.id}>
-                      {banker.full_name} ({banker.staff_id})
-                    </option>
-                  ))}
-                </select>
-                {errors.assigned_mobile_banker && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    {errors.assigned_mobile_banker}
-                  </p>
-                )}
-                {mobileBankers.length === 0 && !staffLoading && (
-                  <p className="mt-1 text-sm text-amber-600 flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    No Mobile Bankers available
-                  </p>
-                )}
-              </div>
-
-               <FormField
-                label="Account Number"
-                name="account_number"
-                value={nextAccNumber || ''}
-                onChange={handleChange}
-                required
-                error={errors.account_number}
-                icon={<Phone className="w-4 h-4" />}
-              />
-
-              <FormField
-                label="Daily Rate"
-                name="daily_rate"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.daily_rate}
-                onChange={handleChange}
-               
-                placeholder="0.00"
-              />
-            </div>
-
-            <div className="mt-7">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <User className="w-4 h-4 mr-2 text-gray-500" />
-                  Account
-                </label>
-                <select
-                  name="account_type"
-                  value={formData.account_type}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                >
-                  <option value="">Select Account</option>
-                  <option value="Susu">Susu</option>
-                  <option value="Savings">Savings</option>
-                </select>
-                {errors.account_type && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    {errors.account_type}
-                  </p>
-                )}
-              </div>
-              
-
-          </div>
-        </div>
-
-        
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              onClick={handleSubmit}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-medium shadow-lg"
-            >
-             {client ? (
-                customerLoading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Updating client...
-                  </div>
-                ) : (
-                  "Update Client"
-                )
-              ) : (
-                customerLoading || startedAdding ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Adding client...
-                  </div>
-                ) : (
-                  "Add Client"
-                )
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Enhanced FormField component
-const FormField = ({
-  label,
-  name,
-  value,
-  onChange,
-  type = 'text',
-  required = false,
-  step,
-  min,
-  error,
-  icon,
-  placeholder
+const Label = ({
+  children,
+  required,
 }: {
+  children: React.ReactNode;
+  required?: boolean;
+}) => (
+  <p className="text-[12px] font-medium text-gray-500 mb-1.5">
+    {children}
+    {required && <span className="text-red-400 ml-0.5">*</span>}
+  </p>
+);
+
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 pb-2.5 border-b border-gray-100 mb-4">
+    {children}
+  </p>
+);
+
+interface FieldProps {
   label: string;
   name: string;
   value: string;
@@ -509,15 +76,16 @@ const FormField = ({
   step?: string;
   min?: string;
   error?: string;
-  icon?: React.ReactNode;
   placeholder?: string;
+  readOnly?: boolean;
+}
+
+const Field: React.FC<FieldProps> = ({
+  label, name, value, onChange, type = "text",
+  required, step, min, error, placeholder, readOnly,
 }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-      {icon && <span className="mr-2 text-gray-500">{icon}</span>}
-      {label}
-      {required && <span className="text-red-500 ml-1">*</span>}
-    </label>
+    <Label required={required}>{label}</Label>
     <input
       type={type}
       name={name}
@@ -527,17 +95,389 @@ const FormField = ({
       step={step}
       min={min}
       placeholder={placeholder}
-      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 transition-colors ${
-        error 
-          ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-          : 'border-gray-300 focus:border-indigo-500'
-      }`}
+      readOnly={readOnly}
+      className={`w-full px-3.5 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none transition-all
+        ${readOnly ? "cursor-default text-gray-500" : ""}
+        ${error
+          ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
+          : "border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"}`}
     />
-    {error && <p className="mt-1 text-sm text-red-600 flex items-center">
-      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-      </svg>
-      {error}
-    </p>}
+    <FieldError msg={error} />
   </div>
 );
+
+// ─── Account type options ─────────────────────────────────────────────────────
+
+const ACCOUNT_TYPES = [
+  {
+    value: "Susu",
+    label: "Susu",
+    desc: "Daily contributions",
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+      </svg>
+    ),
+  },
+  {
+    value: "Savings",
+    label: "Savings",
+    desc: "Regular savings account",
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    ),
+  },
+];
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export const ClientModal: React.FC<ClientModalProps> = ({
+  account, client, onSave, onClose,
+}) => {
+  const { staffList, loading: staffLoading } = useStaff();
+  const { addCustomer, customerLoading } = useCustomers();
+  const { company } = useAuth();
+  const { sendMessage } = useTransactions();
+  const companyId = getEffectiveCompanyId();
+  const { getNextAccountNumber, fetchLastAccountNumbers } = useAccountNumbers();
+  const { nextAccountNumber } = useAccountNumber();
+
+  const [startedAdding, setStartedAdding] = useState(false);
+  const [nextAccNumber, setNextAccNumber] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [formData, setFormData] = useState({
+    name:                 client?.name || "",
+    email:                client?.email || "",
+    phone_number:         client?.phone_number || "",
+    momo_number:          client?.momo_number || "",
+    account_number:       client?.account_number || "",
+    city:                 client?.city || "",
+    id_card:              client?.id_card || "",
+    gender:               client?.gender
+      ? client.gender.charAt(0).toUpperCase() + client.gender.slice(1)
+      : "",
+    next_of_kin:          client?.next_of_kin || "",
+    location:             client?.location || "",
+    daily_rate:           client?.daily_rate || "",
+    date_of_registration: client?.date_of_registration
+      ? client.date_of_registration.split("T")[0]
+      : new Date().toISOString().split("T")[0],
+    date_of_birth:        client?.date_of_birth
+      ? client.date_of_birth.split("T")[0]
+      : new Date().toISOString().split("T")[0],
+    registered_by:        client?.registered_by || "",
+    account_type:         account?.account_type || "",
+    company_id:           companyId,
+    created_by:           client?.registered_by,
+  });
+
+  const mobileBankers = !userPermissions.MANAGE_STAFF
+    ? staffList.filter((s) =>
+        ["Mobile Banker", "mobile banker", "mobile_banker", "teller"].includes(s.role)
+      )
+    : staffList;
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((p) => ({ ...p, [name]: value }));
+    if (name === "registered_by" && value) {
+      setNextAccNumber(getNextAccountNumber(value));
+    }
+    if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
+  };
+
+  const setAccountType = (type: string) => {
+    setFormData((p) => ({ ...p, account_type: type }));
+    if (errors.account_type) setErrors((p) => ({ ...p, account_type: "" }));
+  };
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!formData.name.trim())        e.name        = "Full name is required";
+    if (!formData.phone_number.trim()) e.phone_number = "Phone number is required";
+    if (!formData.id_card.trim())     e.id_card     = "Ghana card number is required";
+    if (!formData.registered_by)      e.registered_by = "Please assign a mobile banker";
+    if (!formData.account_type)       e.account_type = "Please select an account type";
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email))
+      e.email = "Please enter a valid email address";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setStartedAdding(true);
+    const toastId = toast.loading(client ? "Updating client…" : "Adding client…");
+
+    if (!client) {
+      const suffix = formData.account_type === "Susu" ? "SU1" : "SA1";
+      const account_number = `${nextAccNumber}${suffix}`;
+      const data = {
+        ...formData,
+        company_id: companyId,
+        total_balance: "0.00",
+        total_transactions: "0",
+        account_number: nextAccNumber,
+      };
+      try {
+        const added = await addCustomer(data, formData.account_type, account_number);
+        await fetchLastAccountNumbers();
+        await sendMessage({
+          messageTo: formData.phone_number,
+          messageFrom: makeSuSuProName(parentCompanyName),
+          message: `Dear ${formData.name}, you have successfully opened a ${formData.account_type} account with ${parentCompanyName}. Your account number is ${added.data.account_number}. Your secret withdrawal code is ${added.data.withdrawal_code}. Please do not share this code with anyone. Thank you for choosing us!`,
+        });
+        toast.success("Client added successfully", { id: toastId });
+        onClose();
+      } catch {
+        toast.error("Failed to add client. Please try again.", { id: toastId });
+      }
+    } else {
+      onSave({
+        customer_id: client?.customer_id,
+        ...formData,
+        id: Date.now().toString(),
+        joinDate: new Date().toISOString().split("T")[0],
+      });
+      toast.success("Client updated", { id: toastId });
+      onClose();
+    }
+    setStartedAdding(false);
+  };
+
+  const isLoading = customerLoading || startedAdding;
+
+  // ─── Render ──────────────────────────────────────────────────────────────
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ background: "rgba(0,0,0,0.4)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="bg-white rounded-t-3xl w-full max-w-xl flex flex-col"
+        style={{ maxHeight: "92vh" }}
+      >
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+              <User className="w-5 h-5 text-indigo-500" />
+            </div>
+            <div>
+              <p className="text-[15px] font-semibold text-gray-900">
+                {client ? "Edit client" : "Add new client"}
+              </p>
+              <p className="text-[12px] text-gray-400 mt-0.5">
+                {client
+                  ? "Update customer details below"
+                  : "Fill in the details to register a new customer"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0"
+          >
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        {/* ── Body ── */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-6">
+
+          {/* Personal information */}
+          <div>
+            <SectionTitle>Personal information</SectionTitle>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Full name" name="name" value={formData.name} onChange={handleChange} required error={errors.name} placeholder="e.g. Kwame Asante" />
+              <Field label="Phone number" name="phone_number" value={formData.phone_number} onChange={handleChange} required error={errors.phone_number} placeholder="+233 24 000 0000" />
+              <Field label="Email address" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
+              <Field label="MoMo number" name="momo_number" value={formData.momo_number} onChange={handleChange} placeholder="+233 24 000 0000" />
+              <Field label="Ghana card" name="id_card" value={formData.id_card} onChange={handleChange} required error={errors.id_card} placeholder="GHA-000000000-0" />
+
+              {/* Gender */}
+              <div>
+                <Label>Gender</Label>
+                <select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 focus:outline-none transition-all appearance-none"
+                >
+                  <option value="">Select gender…</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+
+              <Field label="Date of birth" name="date_of_birth" type="date" value={formData.date_of_birth} onChange={handleChange} />
+              <Field label="Date of registration" name="date_of_registration" type="date" value={formData.date_of_registration} onChange={handleChange} />
+            </div>
+          </div>
+
+          {/* Location & contacts */}
+          <div>
+            <SectionTitle>Location & contacts</SectionTitle>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Town / City" name="city" value={formData.city} onChange={handleChange} placeholder="e.g. Accra" />
+              <Field label="Area / Location" name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Kasoa, Lapaz" />
+              <div className="col-span-2">
+                <Field label="Next of kin" name="next_of_kin" value={formData.next_of_kin} onChange={handleChange} placeholder="Emergency contact person" />
+              </div>
+            </div>
+          </div>
+
+          {/* Account setup */}
+          <div>
+            <SectionTitle>Account setup</SectionTitle>
+
+            {/* Account type cards */}
+            <div className="mb-4">
+              <Label required>Account type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {ACCOUNT_TYPES.map((opt) => {
+                  const active = formData.account_type === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setAccountType(opt.value)}
+                      className={`flex items-center gap-3 px-4 py-3 border-2 rounded-2xl text-left transition-all
+                        ${active
+                          ? "border-indigo-400 bg-indigo-50"
+                          : "border-gray-100 bg-white hover:border-indigo-200"}`}
+                    >
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
+                        ${active ? "bg-indigo-100 text-indigo-600" : "bg-gray-100 text-gray-500"}`}>
+                        {opt.icon}
+                      </div>
+                      <div>
+                        <p className={`text-[13px] font-semibold ${active ? "text-indigo-700" : "text-gray-900"}`}>
+                          {opt.label}
+                        </p>
+                        <p className="text-[11px] text-gray-400">{opt.desc}</p>
+                      </div>
+                      {active && (
+                        <CheckCircle className="w-4 h-4 text-indigo-500 ml-auto flex-shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <FieldError msg={errors.account_type} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {/* Mobile banker */}
+              <div>
+                <Label required>Mobile banker</Label>
+                <select
+                  name="registered_by"
+                  value={formData.registered_by}
+                  onChange={handleChange}
+                  disabled={staffLoading}
+                  className={`w-full px-3.5 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none transition-all appearance-none
+                    ${errors.registered_by
+                      ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
+                      : "border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"}`}
+                >
+                  <option value="">
+                    {staffLoading ? "Loading…" : "Select mobile banker…"}
+                  </option>
+                  {mobileBankers.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.full_name} · {b.staff_id}
+                    </option>
+                  ))}
+                </select>
+                {mobileBankers.length === 0 && !staffLoading && (
+                  <p className="text-[11px] text-amber-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> No mobile bankers available
+                  </p>
+                )}
+                <FieldError msg={errors.registered_by} />
+              </div>
+
+              {/* Daily rate */}
+              <div>
+                <Label>Daily rate</Label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-gray-400">¢</span>
+                  <input
+                    type="number"
+                    name="daily_rate"
+                    value={formData.daily_rate}
+                    onChange={handleChange}
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    className="w-full pl-8 pr-3.5 py-2.5 border border-gray-200 rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Auto-generated account number */}
+            {nextAccNumber && (
+              <div className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
+                <p className="text-[12px] text-gray-400">Auto-generated account number</p>
+                <p className="text-[14px] font-semibold text-gray-800 font-mono tracking-wide">
+                  {nextAccNumber}
+                  {formData.account_type === "Susu" ? "SU1" : formData.account_type === "Savings" ? "SA1" : ""}
+                </p>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="flex gap-2.5 px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-white">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 border border-gray-200 rounded-2xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className="flex-[2] py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl text-[13px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          >
+            {isLoading ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                </svg>
+                {client ? "Updating…" : "Adding…"}
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                {client ? "Update client" : "Add client"}
+              </>
+            )}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default ClientModal;
