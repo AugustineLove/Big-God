@@ -698,7 +698,7 @@ const Contributions: React.FC = () => {
 
                       {/* Actions — show Reverse button for users WITH PROCESS_TRANSACTIONS permission */}
                       <td className="px-6 py-4">
-                        {userPermissions.MANAGE_CASHACCOUNTS && (
+                        {userPermissions.REVERSE_TRANSACTIONS && (
                           <div
                             className={`flex items-center gap-1 ${
                               isDeleted ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'

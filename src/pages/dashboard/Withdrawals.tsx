@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search, CheckCircle, XCircle, Clock, Eye, Filter,
   Undo2, ChevronLeft, ChevronRight,
+  Users,
 } from 'lucide-react';
 import { Commission } from '../../data/mockData';
 import { useStats } from '../../contexts/dashboard/DashboardStat';
@@ -15,6 +16,7 @@ import { CommissionModal } from '../../components/financeModals';
 import { FormDataState } from './Finance';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
 import { useAccounts } from '../../contexts/dashboard/Account';
+import { useTabContext } from '../../layouts/DashboardLayout';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -129,7 +131,7 @@ const Withdrawals: React.FC = () => {
   const [commissionData, setCommissionData] = useState<TransactionType | undefined>();
   const [commissionTransactionId, setCommissionTransactionId] = useState('');
   const [commissionFormData, setCommissionFormData] = useState<FormDataState>({ amount: 0 });
-
+  const { openInNewTab } = useTabContext();
   // ── Approval lock ─────────────────────────────────────────────────────────
   const [isApproving, setIsApproving] = useState(false);
 
@@ -493,7 +495,8 @@ const Withdrawals: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
-                          <span className="text-indigo-600 font-medium text-sm">
+                          <span className="text-indigo-600 cursor-pointer font-medium text-sm"
+                          onClick={() => openInNewTab(withdrawal.customer_name,`/dashboard/clients/customer-details/${withdrawal.customer_id}`,Users)}>
                             {withdrawal.customer_name.split(' ').map((n: string) => n[0]).join('')}
                           </span>
                         </div>
@@ -567,7 +570,7 @@ const Withdrawals: React.FC = () => {
 
                       {withdrawal.status === 'approved' && (
                         <div className="flex items-center gap-2">
-                          {userPermissions.MANAGE_CASHACCOUNTS && (
+                          {userPermissions.REVERSE_TRANSACTIONS && (
                             <button
                               onClick={() => handleReverse(withdrawal.transaction_id)}
                               className="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors flex items-center gap-1"

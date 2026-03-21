@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { X, Save, Shield, AlertTriangle, Edit, Trash2, Users, UserPlus, Search } from 'lucide-react';
+import { X, Save, Shield, AlertTriangle, Edit, Trash2, Users, UserPlus, Search, Building2 } from 'lucide-react';
 import { useStaff } from '../../../contexts/dashboard/Staff';
+import {  User, ArrowUpDown, FileText, CreditCard,
+  RefreshCcw, UserCog, DollarSign, PlusCircle,
+  BarChart3, Settings } from 'lucide-react';
 
 const OtherStaffTab = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -438,103 +441,139 @@ const OtherStaffTab = () => {
 
       {/* Permissions Modal */}
       {showPermissionsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <Shield className="text-green-600" size={20} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">Manage Permissions</h3>
-                  <p className="text-sm text-gray-600">{selectedStaff?.name}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowPermissionsModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    style={{ background: 'rgba(0,0,0,0.4)' }}
+    onClick={(e) => { if (e.target === e.currentTarget) setShowPermissionsModal(false); }}
+  >
+    <div className="bg-white rounded-3xl w-full max-w-lg flex flex-col" style={{ maxHeight: '88vh' }}>
 
-            {/* Modal Body */}
-            <form onSubmit={handlePermissionsSubmit} className="p-6">
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600 mb-4">
-                  Select the permissions you want to grant to this staff member
-                </p>
-
-                {/* Permission Checkboxes */}
-                {[
-                  { key: 'ALTER_ACCOUNT', label: 'Alter Account', description: 'Can view and edit account details' },
-                  { key: 'PROCESS_TRANSACTIONS', label: 'Process Transactions', description: 'Can create deposit and withdrawal transactions' },
-                  { key: 'VIEW_REPORTS', label: 'View Reports', description: 'Can access system reports and analytics' },
-                  { key: 'MANAGE_CASHACCOUNTS', label: 'Manage Cash Accounts', description: 'Can transfer money between accounts, and can reverse a transaction'},
-                  { key: 'CUSTOMER_EDIT', label: 'Manage Customer', description: 'Can view and edit customer details' },
-                  { key: 'MANAGE_STAFF', label: 'Manage Staff', description: 'Can add, edit, and remove staff members' },
-                  { key: 'LOAN_PRIVILIGES', label: 'Loan Priviliges', description: 'Can view and edit loan requests' },
-                  { key: 'TRANSACTION_CREATE', label: 'Create Transaction', description: 'Can create new transaction' },
-                  { key: 'VIEW_BRIEFING', label: 'View Briefing', description: 'Can view company stat briefing' },
-                  { key: 'SETTINGS_ACCESS', label: 'Access Settings', description: 'Can access company setting details' },
-                  { key: 'DELETE_CUSTOMER', label: 'Delete Customer', description: 'Can delete customer from the system' },
-                ].map((permission) => (
-                  <label
-                    key={permission.key}
-                    className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={permissionsForm[permission.key] || false}
-                      onChange={(e) =>
-                        setPermissionsForm({
-                          ...permissionsForm,
-                          [permission.key]: e.target.checked
-                        })
-                      }
-                      className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">{permission.label}</div>
-                      <div className="text-sm text-gray-600">{permission.description}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setShowPermissionsModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:bg-green-400"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Shield size={18} />
-                      Update Permissions
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <Shield className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-[15px] font-semibold text-gray-900">Manage permissions</p>
+            <p className="text-[12px] text-gray-400 mt-0.5">{selectedStaff?.name}</p>
           </div>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          {/* Enabled count badge */}
+          <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-800 rounded-full px-2.5 py-1">
+            {Object.values(permissionsForm).filter(Boolean).length} enabled
+          </span>
+          <button
+            onClick={() => setShowPermissionsModal(false)}
+            className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+          >
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+      </div>
+
+      <p className="px-6 pt-3 pb-1 text-[12px] text-gray-400 flex-shrink-0">
+        Toggle the permissions you want to grant to this staff member.
+      </p>
+
+      {/* Scrollable permissions list */}
+      <form onSubmit={handlePermissionsSubmit} className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-6 py-3 flex flex-col gap-2">
+          {[
+            { key: 'ALTER_ACCOUNT',         label: 'Alter account',         desc: 'View and edit account details',             icon: <User className="w-3.5 h-3.5" /> },
+            {key: 'ALTER_FINANCE',          label: 'Alter Finance',         desc: 'Can record commission and floats',          icon: <Building2 className='w-3.5 h-3.5' />},
+            { key: 'PROCESS_TRANSACTIONS',  label: 'Process transactions',  desc: 'Create deposits and withdrawals',           icon: <ArrowUpDown className="w-3.5 h-3.5" /> },
+            { key: 'VIEW_REPORTS',          label: 'View reports',          desc: 'Access system reports and analytics',       icon: <FileText className="w-3.5 h-3.5" /> },
+            { key: 'MANAGE_CASHACCOUNTS',   label: 'Manage cash accounts',  desc: 'Transfer money between accounts',           icon: <CreditCard className="w-3.5 h-3.5" /> },
+            { key: 'REVERSE_TRANSACTIONS',  label: 'Reverse transactions',  desc: 'Reverse deposits and withdrawals',          icon: <RefreshCcw className="w-3.5 h-3.5" /> },
+            { key: 'CUSTOMER_EDIT',         label: 'Manage customer',       desc: 'View and edit customer details',            icon: <Users className="w-3.5 h-3.5" /> },
+            { key: 'MANAGE_STAFF',          label: 'Manage staff',          desc: 'Add, edit and remove staff members',        icon: <UserCog className="w-3.5 h-3.5" /> },
+            { key: 'LOAN_PRIVILEGES',       label: 'Loan privileges',       desc: 'View and edit loan requests',               icon: <DollarSign className="w-3.5 h-3.5" /> },
+            { key: 'TRANSACTION_CREATE',    label: 'Create transaction',    desc: 'Can create new transactions',               icon: <PlusCircle className="w-3.5 h-3.5" /> },
+            { key: 'VIEW_BRIEFING',         label: 'View briefing',         desc: 'View company stat briefing',                icon: <BarChart3 className="w-3.5 h-3.5" /> },
+            { key: 'SETTINGS_ACCESS',       label: 'Access settings',       desc: 'Access company setting details',            icon: <Settings className="w-3.5 h-3.5" /> },
+            { key: 'CUSTOMER_CREATE',       label: 'Create Customer',       descl: 'Can create new customers',                 icon: <User className='w-3.5 h-3.5' />},
+            { key: 'DELETE_CUSTOMER',       label: 'Delete customer',       desc: 'Remove customers from the system',          icon: <Trash2 className="w-3.5 h-3.5" /> },
+          ].map((perm) => {
+            const enabled = permissionsForm[perm.key] || false;
+            return (
+              <label
+                key={perm.key}
+                className={`flex items-center justify-between px-4 py-3.5 border rounded-2xl cursor-pointer transition-all
+                  ${enabled
+                    ? 'border-emerald-200 bg-emerald-50/50'
+                    : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50/50'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors
+                    ${enabled ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                    {perm.icon}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-gray-900">{perm.label}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{perm.desc}</p>
+                  </div>
+                </div>
+
+                {/* Toggle switch */}
+                <div className="relative flex-shrink-0 ml-3">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={enabled}
+                    onChange={(e) =>
+                      setPermissionsForm({ ...permissionsForm, [perm.key]: e.target.checked })
+                    }
+                  />
+                  <div
+                    className={`w-9 h-5 rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                  />
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0'}`}
+                  />
+                </div>
+              </label>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-2.5 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowPermissionsModal(false)}
+            disabled={isSubmitting}
+            className="flex-1 py-3 border border-gray-200 rounded-2xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-[2] py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl text-[13px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                </svg>
+                Updating…
+              </>
+            ) : (
+              <>
+                <Shield className="w-4 h-4" />
+                Update permissions
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+)}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
