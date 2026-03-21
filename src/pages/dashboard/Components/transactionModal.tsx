@@ -255,11 +255,11 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.4)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-t-3xl w-full max-w-xl flex flex-col"
+      <div className="bg-white rounded-2xl w-full max-w-xl flex flex-col"
         style={{ maxHeight: "90vh" }}>
 
         {/* ── Header ── */}
