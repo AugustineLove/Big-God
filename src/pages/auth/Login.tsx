@@ -60,7 +60,9 @@ const Login: React.FC = () => {
         {/* Brand mark */}
         <div className="flex items-center gap-3 mb-10">
           <div className="w-10 h-10 bg-[#344a2e] rounded-xl flex items-center justify-center flex-shrink-0">
-            <img src="/logo.png" alt="SusuPro" className="w-7 h-7 object-cover rounded-lg" />
+            <div className='bg-white rounded-xl'>
+                <img src="/logo.png" alt="SusuPro" className="w-7 h-7 object-cover rounded-lg" />
+            </div>
           </div>
           <div>
             <p className="text-[15px] font-bold text-gray-900 leading-none">Big God</p>

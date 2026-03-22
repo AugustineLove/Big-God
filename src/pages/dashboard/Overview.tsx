@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ClientModal } from './Components/clientModal';
 import { useCustomers } from '../../contexts/dashboard/Customers';
 import {TransactionModal} from './Components/transactionModal';
-import { companyId, userPermissions, userRole, userUUID } from '../../constants/appConstants';
+import { companyId, getDisplayName, userPermissions, userRole, userUUID } from '../../constants/appConstants';
 import { useFinance } from '../../contexts/dashboard/Finance';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
 import BulkTransactionModal from './Components/buildTransactionModal';
@@ -38,7 +38,7 @@ const Overview: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
   const todayBudgets = budgets.filter(
-    (budget) => budget.date.split("T")[0] === today
+    (budget) => budget.date.split("T")[0] === today && budget.teller_name === getDisplayName()
   );
   
   // console.log(`View briefing permission: ${JSON.stringify(userPermissions.VIEW_BRIEFING)}`);
@@ -270,7 +270,7 @@ const Overview: React.FC = () => {
     })}
   </div>
 )}
-    {!userPermissions.VIEW_BRIEFING && (
+    {userRole === 'Teller' && (
   <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
     {/* Header Section */}
     <div className="px-6 py-5 border-b border-gray-50 flex justify-between items-center">

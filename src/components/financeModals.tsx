@@ -1,4 +1,5 @@
 import { companyId } from "../constants/appConstants";
+import { DashboardStaff, useStaff } from "../contexts/dashboard/Staff";
 import { Asset, Budget, Expense } from "../data/mockData";
 
 interface FinanceData{
@@ -20,6 +21,7 @@ interface FormDataState {
   allocated?: number;
   method?: string;
   recorded_by?: string;
+  teller_id?: string;
 }
 
 interface ModalProps {
@@ -30,6 +32,7 @@ interface ModalProps {
   onFormChange: (field: keyof FormDataState, value: string) => void;
   loading: boolean;
   transactionId?: string;
+  dashboardStaffList?: DashboardStaff;
 }
 
  // Add Expense Modal
@@ -324,70 +327,131 @@ export const AssetModal: React.FC<ModalProps>  = ({ show, onClose, onSubmit, for
     </div>
   );
 
-export const BudgetModal = ({ show, onClose, onSubmit, formData, onFormChange, loading }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div className="bg-white rounded-xl max-w-md w-full p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Add New Float</h3>
-        <button 
-          onClick={() => onClose()}
-          className="text-gray-400 hover:text-gray-600"
-        >
-          ×
-        </button>
-      </div>
-      <form className="space-y-4" onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit(formData, companyId); 
-        }}>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Amount of float</label>
-          <input
-            value={formData.allocated}
-            required
-            onChange={e => onFormChange('allocated', e.target.value )}
-            type="number"
-            placeholder="0.00"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Float Date</label>
-          <input
-            value={formData.date}
-            onChange={e => onFormChange('date', e.target.value )}
-            type="date"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+export const BudgetModal = ({
+  show,
+  onClose,
+  onSubmit,
+  formData,
+  onFormChange,
+  loading,
+  dashboardStaffList
+}) => {
+  // Filter tellers
+  const tellers = dashboardStaffList?.filter(
+    (staff) => staff.role === "teller"
+  );
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl max-w-md w-full p-6">
         
-        <div className="flex space-x-3 pt-4">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Add New Float
+          </h3>
           <button
-            type="button"
-            onClick={() => onClose()}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
           >
-            Cancel
+            ×
           </button>
-          <button
-            type="submit"
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-             {loading ? (
+        </div>
+
+        {/* Form */}
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit(formData, companyId);
+          }}
+        >
+
+          {/* Teller Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Teller
+            </label>
+            <select
+              required
+              value={formData.teller_id || ""}
+              onChange={(e) =>
+                onFormChange("teller_id", e.target.value)
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Select Teller --</option>
+              {tellers?.map((staff) => (
+                <option key={staff.id} value={staff.id}>
+                  {staff.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Amount of float
+            </label>
+            <input
+              value={formData.allocated}
+              required
+              onChange={(e) =>
+                onFormChange("allocated", e.target.value)
+              }
+              type="number"
+              placeholder="0.00"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Float Date
+            </label>
+            <input
+              value={formData.date}
+              onChange={(e) =>
+                onFormChange("date", e.target.value)
+              }
+              type="date"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              {loading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                   Adding budget...
                 </div>
               ) : (
-                'Add Budget'
+                "Add Budget"
               )}
-          </button>
-        </div>
-      </form>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
-);
-
+  );
+};
 
 
 export const CommissionModal: React.FC<ModalProps> = ({ show, onClose, onSubmit, formData, onFormChange, loading, transactionId }) => {

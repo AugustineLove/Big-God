@@ -137,6 +137,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const addBudget = async ( company_id: string, data: Omit<Budget, "id">) => {
     try {
+      console.log(`New budget data ${JSON.stringify(data)}`);
       setLoading(true);
       const recorded_by = userUUID;
       const res = await fetch(`https://susu-pro-backend.onrender.com/api/financials/budget`, { 
@@ -146,7 +147,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         company_id,
         recorded_by,
         ...data })});
-        console.log('Add budget response:', res);
+        const resData = await res.json();
+        console.log('Add budget response:', resData);
       await fetchFinanceData(); // refresh
     } catch (err: any) {
       setError(err.response?.data?.message || err.message);

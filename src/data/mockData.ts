@@ -246,10 +246,14 @@ export interface Asset {
 }
 
 export interface Budget {
-  date: string;
+  id: string;
   allocated: number;
-  spent?: number;
-  remaining?: number;
+  spent: number;
+  remaining: number;
+  date: string;
+  status?: string;
+  teller_name?: string;
+  teller_id?: string;
 }
 
 export const mockClients: Client[] = [

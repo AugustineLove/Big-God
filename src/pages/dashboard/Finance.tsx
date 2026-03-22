@@ -40,6 +40,8 @@ import { useCommissionStats } from '../../contexts/dashboard/Commissions';
 import NewRevenueModal, { RevenueItem } from './Components/revenueModal';
 import { useBudget } from '../../contexts/dashboard/Budget';
 import PLModal from './Components/plModal';
+import { useStaff } from '../../contexts/dashboard/Staff';
+import FloatTab from './Components/FloatTab';
 
 interface FinanceData{
   expenses: Expense[];
@@ -88,6 +90,7 @@ export interface FormDataState {
   source?: string;
   account_id?: string;
   transactionId?: string;
+  teller_id?: string;
 }
 
 interface ModalProps {
@@ -417,6 +420,7 @@ const FinancialDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("All Status");
   const { deductCommission } = useTransactions();
   const { commissionStats, commissions } = useCommissionStats();
+  const { dashboardStaffList } = useStaff();
   const [setRevenue ] = useState<RevenueItem>();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab') || 'overview';
@@ -631,8 +635,9 @@ const calculateOperationalMetrics = () => {
 
   const submitBudget = async (formData: FormDataState, company_id: string) => {
     try {
-      const { allocated, date } = formData;
-      const budgetData = {allocated, date };
+      const { allocated, date, teller_id } = formData;
+      const budgetData = {allocated, date, teller_id };
+      console.log(budgetData);
       await addBudget(company_id, { ...budgetData });
       setShowBudgetModal(false); 
       setBudgetFormData(defaultBudgetFormData);
@@ -1405,208 +1410,6 @@ const CommissionTab = ({
     </div>
   );
 
-
-// Budget Tab Component
-    const FloatTab = () => {
-      const totalAllocated = budgets.reduce((sum, b) => Number(sum) + Number(b.allocated), 0);
-      const totalSpent = budgets.reduce((sum, b) => Number(sum) + Number(b.spent), 0);
-      const totalRemaining = totalAllocated - totalSpent;
-      const navigate = useNavigate();
-      const { toggleBudgetStatus, fetchBudgets, loadingToggle } = useBudget();
-      return (
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Float Planning</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Plan and monitor departmental floats
-              </p>
-            </div>
-            {
-              userPermissions?.ALTER_FINANCE && (
-                <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-              onClick={() => setShowBudgetModal(true)}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create Float</span>
-            </button>
-              )
-            }
-          </div>
-
-          {/* Budget Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">Total Allocated</h3>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">
-                ₵{totalAllocated.toLocaleString()}
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">Total Spent</h3>
-                <Receipt className="w-5 h-5 text-red-600" />
-              </div>
-              <p className="text-2xl font-bold text-gray-900">
-                ₵{totalSpent.toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-600 mt-2">
-                {totalAllocated > 0
-                  ? `${Math.round((totalSpent / totalAllocated) * 100)}% of budget used`
-                  : "No budget yet"}
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">Remaining</h3>
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-              </div>
-              <p className="text-2xl font-bold text-gray-900">
-                ₵{totalRemaining.toLocaleString()}
-              </p>
-              <p className="text-sm text-blue-600 mt-2">
-                {totalAllocated > 0
-                  ? `${Math.round((totalRemaining / totalAllocated) * 100)}% remaining`
-                  : "No budget yet"}
-              </p>
-            </div>
-          </div>
-
-          {/* Budget Categories */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">
-              Float by Category
-            </h3>
-            <div className="space-y-6">
-              {budgets.length === 0 ? (
-                <p className="text-gray-500 text-sm">No budgets set yet.</p>
-              ) : (
-                budgets.map((budget) => {
-                  const percentage = budget.allocated
-                    ? Math.round((budget.spent / budget.allocated) * 100)
-                    : 0;
-
-                  const remaining = budget.allocated - budget.spent;
-                  const isInactive = budget.status === "Closed";
-
-                  return (
-                    <div
-                      key={budget.id}
-                      onClick={() =>
-                        navigate(`budgets/${budget.id}`, { state: { budget } })
-                      }
-                      className={`relative border rounded-lg p-4 transition-all cursor-pointer
-                        ${isInactive ? "bg-gray-50 border-gray-200 opacity-80" : "border-gray-100 hover:shadow-md"}
-                      `}
-                    >
-                      {/* 📅 Header */}
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="font-medium text-gray-900">
-                          {formatDate(budget.date)}
-                        </h4>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600">
-                            ₵{budget.spent.toLocaleString()} / ₵{budget.allocated.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-gray-500">{percentage}% used</p>
-                        </div>
-                      </div>
-
-                      {/* 📊 Progress Bar */}
-                      <div className="w-full bg-gray-200 rounded-full h-3 mb-3 overflow-hidden">
-                        <div
-                          className={`h-3 rounded-full transition-all duration-500
-                            ${isInactive
-                              ? "bg-gray-400"
-                              : percentage > 80
-                              ? "bg-red-500"
-                              : percentage > 60
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
-                            }`}
-                          style={{ width: `${Math.min(percentage, 100)}%` }}
-                        />
-                      </div>
-
-                      {/* 📈 Footer */}
-                      <div className="flex justify-between items-center text-xs text-gray-500">
-                        <span>Remaining: ₵{remaining.toLocaleString()}</span>
-                        <span>
-                          {isInactive
-                            ? "Float closed"
-                            : remaining < 0
-                            ? "Over budget"
-                            : percentage > 80
-                            ? "Approaching limit"
-                            : "On track"}
-                        </span>
-                      </div>
-
-                      {/* 🔖 Status & Toggle */}
-                      <div className="flex justify-end items-center space-x-3 mt-4">
-                        {/* Status Badge */}
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full font-medium
-                            ${isInactive ? "bg-gray-200 text-gray-600" : "bg-green-100 text-green-700"}
-                          `}
-                        >
-                          {isInactive ? "Closed" : "Active"}
-                        </span>
-
-                        {/* Toggle Button */}
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (loadingToggle) return; // prevent multiple clicks
-                            await toggleBudgetStatus(budget.id);
-                          }}
-                          disabled={loadingToggle}
-                          className={`flex items-center justify-center text-xs px-3 py-1.5 rounded-md font-medium transition
-                            ${isInactive ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-red-100 text-red-600 hover:bg-red-200"}
-                            ${loadingToggle ? "opacity-70 cursor-not-allowed" : ""}
-                          `}
-                        >
-                          {loadingToggle ? (
-                            <svg
-                              className="w-4 h-4 animate-spin mr-1 text-gray-600"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              />
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8v8H4z"
-                              />
-                            </svg>
-                          ) : null}
-                          {loadingToggle ? "Processing..." : isInactive ? "Reopen Float" : "Close Float"}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-
-          </div>
-        </div>
-      );
-    };
-
      // Assets Tab Component
 const AssetsTab = () => {
   // ✅ Compute summary from assets
@@ -2061,7 +1864,7 @@ const AssetsTab = () => {
         {activeTab === 'commission' && <CommissionTab />}
         {activeTab === 'expenses' && <ExpensesTab />}
         {activeTab === 'assets' && <AssetsTab />}
-        {activeTab === 'budget' && <FloatTab />}
+        {activeTab === 'budget' && <FloatTab budgets={data.budgets} setShowBudgetModal={setShowBudgetModal} />}
         {activeTab === 'analytics' && <AnalyticsTab />}
       </div>
 
@@ -2092,6 +1895,7 @@ const AssetsTab = () => {
         onClose={() => setShowBudgetModal(false)}
         onSubmit={submitBudget}
         formData={budgetFormData}
+        dashboardStaffList={dashboardStaffList}
         onFormChange={(field, value) =>
           setBudgetFormData(prev => ({ ...prev, [field]: value }))
         }
