@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { Account, Commission, Customer, Transaction } from '../../data/mockData';
 import { useCustomers } from './Customers';
 import { useStats } from './DashboardStat';
-import { companyId, makeSuSuProName, parentCompanyName } from '../../constants/appConstants';
+import { companyId, makeSuSuProName, parentCompanyName, userUUID } from '../../constants/appConstants';
 import toast from 'react-hot-toast';
 import { useCommissionStats } from './Commissions';
 import { useAccounts } from './Account';
@@ -128,7 +128,7 @@ type TransactionContextType = {
     customer: Customer;
   }>
 ) => Promise<BulkTransactionResponse>;
-  approveTransaction: (transactionId: string, messageData: Record<string, any>, customerId: string, accountId: string, customerPhone: string, amount: string, accountType: string, accountNumber: string) => Promise<boolean>;
+  approveTransaction: (transactionId: string, messageData: Record<string, any>, customerId: string, accountId: string, customerPhone: string, amount: string, accountType: string, accountNumber: string, teller_id: string) => Promise<boolean>;
   rejectTransaction: (transactionId: string) => Promise<boolean>;
   reverseTransaction: (staffId: string,transactionId: string, reason: string) => Promise<any>;
   transferBetweenAccounts:(payload: {
@@ -714,7 +714,8 @@ const fetchWithdrawals = useCallback(async (
     customerPhone: string,
     amount: String,
     accountType: string,
-    accountNumber: string
+    accountNumber: string,
+    teller_id: string,
   ): Promise<boolean> => {
     if (!transactionId) {
       console.error('Transaction ID is required');
@@ -733,6 +734,7 @@ const fetchWithdrawals = useCallback(async (
           headers: {
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({teller_id: teller_id}),
           }
       );
 

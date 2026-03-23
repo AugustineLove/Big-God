@@ -17,6 +17,7 @@ import { FormDataState } from './Finance';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
 import { useAccounts } from '../../contexts/dashboard/Account';
 import { useTabContext } from '../../layouts/DashboardLayout';
+import { useStaff } from '../../contexts/dashboard/Staff';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ const Withdrawals: React.FC = () => {
   const { openInNewTab } = useTabContext();
   // ── Approval lock ─────────────────────────────────────────────────────────
   const [isApproving, setIsApproving] = useState(false);
-
+  const { dashboardStaffList } = useStaff();
   // ── Debounce ref ──────────────────────────────────────────────────────────
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -238,7 +239,9 @@ const Withdrawals: React.FC = () => {
     if (isApproving) return;
     setIsApproving(true);
     const toastId = toast.loading('Approving transaction...');
-
+    const tellers = dashboardStaffList?.filter(
+    (staff) => staff.role === "teller"
+  );
     try {
       const approvalSuccess = await approveTransaction(
         withdrawalId,
@@ -253,6 +256,7 @@ const Withdrawals: React.FC = () => {
         withdrawalAmount,
         accountType,
         accountNumber,
+        teller_id,
       );
 
       if (approvalSuccess) {

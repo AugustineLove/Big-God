@@ -10,7 +10,10 @@ import {
 } from 'lucide-react';
 import { companyName, userPermissions, userRole, userStaffId } from '../constants/appConstants';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+
+import SpotlightSearch from '../components/SpotlightSearch';
+import { useSpotlight } from '../utils/useSpotlight';
+
 
 interface Tab {
   id: string;
@@ -35,6 +38,7 @@ const DashboardLayout: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [openFinance, setOpenFinance]               = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen]   = useState(false);
+  const spotlight = useSpotlight();
 
   const [tabs, setTabs] = useState<Tab[]>([{
     id: 'dashboard',
@@ -237,9 +241,10 @@ const DashboardLayout: React.FC = () => {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
+    
     <TabContext.Provider value={{ openInNewTab }}>
       <div className="flex h-screen bg-gray-50">
-
+<SpotlightSearch isOpen={spotlight.isOpen} onClose={spotlight.close} />
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 transition-opacity lg:hidden"
