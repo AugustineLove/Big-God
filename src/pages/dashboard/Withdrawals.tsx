@@ -256,7 +256,7 @@ const Withdrawals: React.FC = () => {
         withdrawalAmount,
         accountType,
         accountNumber,
-        teller_id,
+        tellers.find(teller => teller.id === ''),
       );
 
       if (approvalSuccess) {
