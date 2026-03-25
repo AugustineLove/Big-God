@@ -161,7 +161,6 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
     return () => clearTimeout(t);
   }, [customerSearch]);
 
-  // ── Load accounts when customer changes ──
   useEffect(() => {
     if (!selectedCustomer) return;
     setLoadingAccounts(true);
@@ -169,14 +168,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
     refreshAccounts(selectedCustomer.id).finally(() => setLoadingAccounts(false));
   }, [selectedCustomer]);
 
-  // ── Auto-set staked_by from customer ──
   useEffect(() => {
     if (selectedCustomer?.registered_by) {
       setFormData((p) => ({ ...p, staked_by: selectedCustomer.registered_by! }));
     }
   }, [selectedCustomer]);
 
-  // ── Close dropdown on outside click ──
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (

@@ -451,19 +451,29 @@ const fetchWithdrawals = useCallback(async (
         const updatedAccounts = await refreshAccounts(customer.customer_id);
         const newAccountBalance = updatedAccounts.find(a => a.id === account.id)?.balance;
         
-      
-      const messageData = {
-            messageTo: customer.phone_number,
+      const shouldSendSms = customer?.send_sms;
+        const numbers = [...new Set(
+          (customer?.sms_numbers?.length
+            ? customer.sms_numbers
+            : customer?.phone_number
+              ? [customer.phone_number]
+              : []
+          ).filter(Boolean)
+        )];
+
+        const isDeposit =
+          newTransaction.transaction_type?.toLowerCase() === 'deposit';
+
+        if (shouldSendSms && numbers.length > 0 && isDeposit) {
+          const messageData = {
+            messageTo: numbers,
             message: `You have successfully credited your ${account?.account_type} account with GHS${amount}.00. Your new balance is GHS${newAccountBalance}`,
             messageFrom: makeSuSuProName(parentCompanyName)
-        } as Record<string, any>;
-        
-        if(newTransaction.transaction_type === 'deposit' || newTransaction.transaction_type === 'Deposit'){
-          if (messageData && Object.keys(messageData).length > 0){
-          sendMessage(messageData).catch(err => 
-            console.warn(`Message sending failed but transaction was sent:`, err)
-          )
-        }
+          };
+
+          sendMessage(messageData).catch(err =>
+            console.warn(`Message sending failed but transaction was successful:`, err)
+          );
         }
         return true;
       } else if (json.status === 'insufficient_balance') {

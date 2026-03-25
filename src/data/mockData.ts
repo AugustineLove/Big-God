@@ -107,6 +107,8 @@ export interface Customer {
   customer_id?: string;
   withdrawal_code?: string;
   status?: string;
+  send_sms?: boolean;
+  sms_numbers?: string[];
 }
 // types/commission.ts
 export interface Commission {

@@ -29,6 +29,9 @@ interface CustomersContextType {
   setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
    addCustomer: (newCustomer: Omit<Customer, 'id' | 'created_at'>, account: string, account_number: string) => Promise<void>;
    deleteCustomer: (customer_id: string) => Promise<void>;
+   addSmsNumber: (customerId: string, phoneNumber: string) => Promise<void>;
+   deleteSmsNumber: (customerId: string, phoneNumber: string) => Promise<void>;
+   toggleSms: (customerId: string) => Promise<void>;
 }
 
 const CustomersContext = createContext<CustomersContextType | undefined>(undefined);
@@ -278,12 +281,111 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     }
   }
 
+  const addSmsNumber = async (customerId: string, phoneNumber: string) => {
+  const token = localStorage.getItem('susupro_token');
+
+  try {
+    const res = await fetch(
+      `https://susu-pro-backend.onrender.com/api/customers/${customerId}/sms-numbers`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ phoneNumber }),
+      }
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      console.log('SMS number added:', data);
+
+      // Refresh customer data
+      await fetchCustomers(String(1), 20, filters);
+
+      return data;
+    } else {
+      const errorText = await res.text();
+      console.error('Failed to add SMS number:', errorText);
+    }
+  } catch (err) {
+    console.error('Error adding SMS number:', err);
+  }
+};
+
+const deleteSmsNumber = async (customerId: string, phoneNumber: string) => {
+  const token = localStorage.getItem('susupro_token');
+
+  try {
+    const res = await fetch(
+      `https://susu-pro-backend.onrender.com/api/customers/${customerId}/sms-numbers`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ phoneNumber }),
+      }
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      console.log('SMS number removed:', data);
+
+      // Refresh
+      await fetchCustomers(String(1), 20, filters);
+
+      return data;
+    } else {
+      const errorText = await res.text();
+      console.error('Failed to delete SMS number:', errorText);
+    }
+  } catch (err) {
+    console.error('Error deleting SMS number:', err);
+  }
+};
+
+const toggleSms = async (customerId: string) => {
+  const token = localStorage.getItem('susupro_token');
+
+  try {
+    const res = await fetch(
+      `https://susu-pro-backend.onrender.com/api/customers/${customerId}/toggle-sms`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      console.log('SMS toggled:', data);
+
+      // Refresh
+      await fetchCustomers(String(1), 20, filters);
+
+      return data;
+    } else {
+      const errorText = await res.text();
+      console.error('Failed to toggle SMS:', errorText);
+    }
+  } catch (err) {
+    console.error('Error toggling SMS:', err);
+  }
+};
+
   useEffect(() => {
     fetchCustomers("1", 20);
   }, []);
 
   return (
-    <CustomersContext.Provider value={{ customers, customer, accounts, transactions, loading, customerLoading, contextPaginationMeta, refreshCustomers: fetchCustomers, editCustomer, fetchCustomerById, setCustomers, addCustomer, deleteCustomer, login  }}>
+    <CustomersContext.Provider value={{ customers, customer, accounts, transactions, loading, customerLoading, contextPaginationMeta,
+     refreshCustomers: fetchCustomers, editCustomer, fetchCustomerById, setCustomers, addCustomer, deleteCustomer,
+      addSmsNumber, deleteSmsNumber, toggleSms, login  }}>
       {children}
     </CustomersContext.Provider>
   );

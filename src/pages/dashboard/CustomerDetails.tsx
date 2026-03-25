@@ -27,7 +27,8 @@ import {
   Settings,
   Trash2,
   EyeOff,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useCustomers } from '../../contexts/dashboard/Customers';
@@ -72,7 +73,8 @@ const CustomerDetailsPage = () => {
   const [transactionFilter, setTransactionFilter] = useState('all');
    const [showAddModal, setShowAddModal] = useState(false); 
     const [editingClient, setEditingClient] = useState<Customer | null>(null);
-    const { fetchCustomerById, editCustomer, addCustomer, refreshCustomers, deleteCustomer, customer, customerLoading, customers } = useCustomers();
+    const { fetchCustomerById, addSmsNumber, deleteSmsNumber, 
+      toggleSms, editCustomer, addCustomer, refreshCustomers, deleteCustomer, customer, customerLoading, customers } = useCustomers();
   const { accounts, allAccounts, customerLoans, refreshAccounts, refreshAllCompanyAccounts, addAccount, toggleAccountStatus } = useAccounts();
   const { fetchCustomerTransactions, customerTransactions } = useTransactions();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -86,9 +88,27 @@ const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [newSettingsSelectedAccount, setNewSettingsSelectedAccount] = useState();
 const [showCode, setShowCode] = useState(false)
 const { transferBetweenAccounts } = useTransactions();
+const [newNumber, setNewNumber] = useState("");
 
  const { id } = useParams();
 
+
+ const handleAddNumber = async () => {
+  if (!newNumber) return;
+
+  await addSmsNumber(id || '', newNumber);
+  await fetchCustomerById(id || '');
+  setNewNumber("");
+};
+
+const handleDeleteNumber = async (num: string) => {
+  await deleteSmsNumber(id || '', num)
+  await fetchCustomerById(id || '');
+};
+
+const toggleSmsStatus = async () => {
+  await toggleSms(id || '')
+};
 
  
  useEffect(() => {
@@ -150,6 +170,8 @@ const accountOptions = allAccounts.map(account => ({
     city: customer?.city,
     withdrawal_code: customer?.withdrawal_code,
     status: customer?.status,
+    send_sms: customer?.send_sms,
+    sms_numbers: customer?.sms_numbers,
     profileImage: null,
     dailyRate: customer?.daily_rate,
     totalBalance: accounts.reduce((sum, acc) => Number(sum) + Number(acc.balance), 0),
@@ -168,7 +190,7 @@ const accountOptions = allAccounts.map(account => ({
       .reduce((sum, txn) => sum + Number(txn.amount), 0),
       }
 
-
+    console.log(`Customer data: ${JSON.stringify(customerData)}`)
     const toCustomer = (dto: CustomerDTO): Customer => ({
     id: dto.id ?? crypto.randomUUID(),
     name: dto.fullName ?? "",
@@ -1089,6 +1111,69 @@ const accountOptions = allAccounts.map(account => ({
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    {/* ================= SMS MANAGEMENT ================= */}
+    <div className="lg:col-span-2 bg-white border border-gray-100 rounded-2xl overflow-hidden">
+
+      <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">SMS Settings</h3>
+          <p className="text-xs text-gray-400">Manage notification numbers</p>
+        </div>
+
+        {/* Toggle */}
+        <button
+          onClick={toggleSmsStatus}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition
+            ${customerData.send_sms
+              ? 'bg-emerald-50 text-emerald-600'
+              : 'bg-gray-100 text-gray-500'}`}
+        >
+          {customerData.send_sms ? 'SMS Enabled' : 'SMS Disabled'}
+        </button>
+      </div>
+
+      <div className="p-4 space-y-3">
+
+        {/* List of Numbers */}
+        <div className="flex flex-wrap gap-2">
+          {customerData.sms_numbers?.map((num, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full text-xs"
+            >
+              <span>{num}</span>
+
+              <button
+                onClick={() => handleDeleteNumber(num)}
+                className="text-red-400 hover:text-red-600"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Add Number */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Enter phone number"
+            value={newNumber}
+            onChange={(e) => setNewNumber(e.target.value)}
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400"
+          />
+
+          <button
+            onClick={handleAddNumber}
+            className="px-4 py-2 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800"
+          >
+            Add
+          </button>
+        </div>
+
       </div>
     </div>
 
