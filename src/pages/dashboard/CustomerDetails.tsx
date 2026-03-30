@@ -1204,6 +1204,11 @@ const accountOptions = allAccounts.map(account => ({
         // customers={mockCustomers}
         isLoading={isLoading}
       />
+          {/* Add Account Modal */}
+      <TransferModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+      />
 
     </div>
   );

@@ -437,8 +437,7 @@ const fetchWithdrawals = useCallback(async (
       //   toast.error('Failed to add transaction', {id: toastId});
       //   throw new Error(`HTTP error! status: ${res.status}`);
       // }
-       console.log(`New transaction body: ${JSON.stringify(newTransaction)}`);
-      const json = await res.json();
+       const json = await res.json();
 
       if (json.status === 'success') {
         await Promise.all([
