@@ -719,12 +719,12 @@ const LoanManagement = () => {
                   >
                     <Eye size={15} /> Details
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => openRepayment(loan.id)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#4A635D] text-white rounded-xl text-sm font-bold hover:bg-[#3d524d] shadow-sm hover:shadow-md transition-all"
                   >
                     <Receipt size={15} /> Pay
-                  </button>
+                  </button> */}
                 </div>
               </div>
             );
