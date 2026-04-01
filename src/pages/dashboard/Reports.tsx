@@ -11,6 +11,7 @@ import { useCustomers } from '../../contexts/dashboard/Customers';
 import { companyId } from '../../constants/appConstants';
 import autoTable from 'jspdf-autotable';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
+import { useSearchParams } from 'react-router-dom';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -586,6 +587,13 @@ const Reports = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [exportStatus, setExportStatus] = useState<ExportStatus>({ type: null, message: '' });
+  const [searchParams, setSearchParams] = useSearchParams();
+    const tabFromUrl = searchParams.get('tab') || 'overview';
+      const [activeTab, setActiveTab] = useState('general');
+    
+    useEffect(() => {
+      setActiveTab(tabFromUrl)
+    }, [companyId, tabFromUrl]);
 
   console.log(reportData);
   const { stats } = useStats();

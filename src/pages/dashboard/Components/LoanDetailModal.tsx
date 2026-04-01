@@ -942,7 +942,7 @@ const LoanDetailModal = ({
               </button>
             )}
 
-            {isGroup && (
+            {/* {isGroup && (
               <button onClick={() => setShowPayModal(true)} style={{
                 padding: '10px 20px', background: '#0F6E56', color: '#fff', border: 'none',
                 borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer',
@@ -951,7 +951,7 @@ const LoanDetailModal = ({
               }}>
                 <Receipt size={16}/> Record Group Payment
               </button>
-            )}
+            )} */}
 
             {isP2P && (
               <>

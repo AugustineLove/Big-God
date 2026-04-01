@@ -52,6 +52,7 @@ import { SettingsProvider } from './contexts/dashboard/Settings';
 import ForcePasswordChange from './pages/dashboard/forcePasswordChange';
 import SusuQRTransfer from './pages/dashboard/SusuQrTransfer';
 import UpdatesPage from './pages/dashboard/UpdatesPage';
+import ReportsDashboard from './pages/dashboard/ReportsDashboard';
 
 function App() {
   return (
@@ -126,7 +127,7 @@ function App() {
             <Route path="expenses/budgets/:id" element={<BudgetDetails />} />
             <Route path="expenses/commissions/:date" element={<CommissionDay />} />
             <Route path="withdrawals" element={<Withdrawals />} />
-            <Route path="reports" element={<Reports />} />
+            <Route path="reports" element={<ReportsDashboard />} />
             <Route path="chat" element={<Chat />} />
             <Route path="updates" element={<UpdatesPage />} />
             <Route path="expenses" element={<FinancialDashboard />} />
