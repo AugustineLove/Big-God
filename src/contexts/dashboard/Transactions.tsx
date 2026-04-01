@@ -987,6 +987,7 @@ const transferBetweenAccounts = async (payload: {
         )
       );
     }
+    console.log(fromAccount?.customer?.phone_number);
 
     // ── 5. SMS to SENDER (debited account) ───────────────────────────────────
     if (payload.sms_sender && fromAccount?.customer?.phone_number) {

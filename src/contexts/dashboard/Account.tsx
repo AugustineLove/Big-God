@@ -47,7 +47,7 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   try {
 
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/loans/all/${companyId}`
+      `https://susu-pro-backend.onrender.com/api/loans/?company_id=${companyId}`
     );
 
     if (!res.ok) {

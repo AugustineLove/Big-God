@@ -76,6 +76,11 @@ export const getDisplayName = () => {
   return user.type === "company" ? user.companyName : user.staffName;
 };
 
+export const getUserType = () => {
+  if (!user) return null;
+  return user.type === "company" ? "company" : "staff";
+}
+
 export const getParentCompanyName = () => {
   if (!user) return null;
   return user.type === "staff" ? user.companyName : user.companyName;
@@ -119,6 +124,7 @@ export const companyId = getEffectiveCompanyId();
 export const companyName = getDisplayName();
 export const userRole = getUserRole();
 export const userStaffId = getStaffID();
+export const userType = getUserType();
 export const userPermissions = getUserPermissions();
 export const resetPassword = getChangePassword();
 export const userUUID = getUserUUID();
