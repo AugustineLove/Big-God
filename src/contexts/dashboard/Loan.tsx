@@ -226,7 +226,7 @@ interface LoansContextType {
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BASE_URL = "https://susu-pro-backend.onrender.com/api/loans";
+const BASE_URL = "http://localhost:5000/api/loans";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONTEXT
@@ -490,9 +490,11 @@ export const LoansProvider = ({ children }: { children: ReactNode }) => {
       note:          payload.note,
       company_id:    companyId,
       created_by:    userUUID,
+      loanId: payload.loanId,
     };
+    const effectiveID = id ? id : body.loanId;
     console.log(`Loggin body: ${JSON.stringify(body)} id: ${JSON.stringify(id)}`)
-    const { ok, message } = await apiFetch(`/${id}/repayment`, {
+    const { ok, message } = await apiFetch(`/${effectiveID}/repayment`, {
       method: "POST",
       body: JSON.stringify(body),
     });

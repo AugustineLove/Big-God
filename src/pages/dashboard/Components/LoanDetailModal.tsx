@@ -145,6 +145,7 @@ const PaymentModal = ({ open, onClose, onConfirm, maxAmount, recipientLabel, loa
 
   if (!open) return null;
 
+  console.log(`Amount paid ${amount_paid}`)
   const pct = maxAmount > 0 ? Math.min(100, (parseFloat(amount_paid || 0) / maxAmount) * 100) : 0;
 
   return (
@@ -792,7 +793,8 @@ const LoanDetailModal = ({
     try {
       console.log('log repayment')
       if (logRepayment) {
-        const ok = await logRepayment({ loanId: loan.id, amount_paid: data.amount, payment_date: data.date, note: data.note });
+        console.log({ loanId: loan.id, amount_paid: data.amount_paid, payment_date: data.date, note: data.note })
+        const ok = await logRepayment({ loanId: loan.id, amount_paid: data.amount_paid, payment_date: data.date, note: data.note });
         if (ok) showToast('Payment recorded successfully');
         else showToast('Payment failed', false);
       } else {
