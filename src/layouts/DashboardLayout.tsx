@@ -9,6 +9,7 @@ import {
   CreditCard, ChevronDown, ChevronRight, ChevronLeft,
   ChevronRight as ChevronRightIcon, Menu, User, Shield,
   Sparkles, Wallet, TrendingUp, DollarSign, PieChart, Layers,
+  Home,
 } from 'lucide-react';
 import {
   companyName, userPermissions, userRole, userStaffId,
@@ -74,6 +75,7 @@ const buildNavigation = () => [
     : []),
   ...(userPermissions?.MANAGE_STAFF    ? [{ name: 'Staffs',   href: '/dashboard/staffs',    icon: Users      }] : []),
   ...(userPermissions?.LOAN_PRIVILEGES ? [{ name: 'Loans',    href: '/dashboard/loans',     icon: CreditCard }] : []),
+    {name: 'Day End', href: '/dashboard/day-end', icon: Home},
   { name: 'Security', href: '/dashboard/security', icon: Shield   },
   { name: 'Updates',  href: '/dashboard/updates',  icon: Sparkles },
   { name: 'Chat',     href: '/dashboard/chat',     icon: Chat     },

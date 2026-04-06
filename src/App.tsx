@@ -53,6 +53,8 @@ import ForcePasswordChange from './pages/dashboard/forcePasswordChange';
 import SusuQRTransfer from './pages/dashboard/SusuQrTransfer';
 import UpdatesPage from './pages/dashboard/UpdatesPage';
 import ReportsDashboard from './pages/dashboard/ReportsDashboard';
+import DayEndPage from './pages/dashboard/Components/DayEndPage';
+import { DayEndProvider } from './contexts/dashboard/DayEnd';
 
 function App() {
   return (
@@ -84,7 +86,8 @@ function App() {
           {/* Protected Dashboard Routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
-              
+              <DayEndProvider>
+                  
                 
                         <StaffProvider>
                       
@@ -118,6 +121,7 @@ function App() {
                       </AccountsProvider>
               </StaffProvider>
                 
+              </DayEndProvider>
             </ProtectedRoute>
           }>
             <Route index element={<Overview />} />
@@ -136,6 +140,7 @@ function App() {
             <Route path="clients/customer-details/:id" element={<CustomerDetailsPage />} />
             <Route path="settings" element={<Settings />} />
             <Route path="security" element={<SecurityTab />} />
+            <Route path="day-end" element={<DayEndPage />} />
           </Route>
         </Routes>
       </Router>
