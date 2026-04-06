@@ -151,7 +151,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ isOpen, onClose }) =>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
               </svg>
             )
-            : <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />}
+            : <Search className="w-5 h-5 text-gray-400 flex-shrink-0 border-none" />}
 
           <input
             ref={inputRef}

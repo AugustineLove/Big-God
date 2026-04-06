@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
   Download, FileText, LayoutGrid, TrendingUp, User,
-  AlertCircle, AlertTriangle, RefreshCw, Zap, Monitor, Shield
+  AlertCircle, AlertTriangle, RefreshCw, Zap, Monitor, Shield,
+  Calendar
 } from 'lucide-react';
 
 const UPDATES = [
@@ -12,6 +13,11 @@ const UPDATES = [
         type: 'new', icon: FileText,
         title: 'Smart reports with date range filtering',
         desc: 'Reports now support full date range filtering — week, month, quarter, year, or custom. Every report type respects the selected range and the backend computes all aggregates server-side. PDF, Excel and CSV exports include the period label in the file header.',
+      },
+      {
+        type: 'new', icon: Calendar,
+        title: 'Day end page for daily reconciliations',
+        desc: 'System now gives a page to reconcile all overall daily activites before close of day.',
       },
       {
         type: 'new', icon: LayoutGrid,
