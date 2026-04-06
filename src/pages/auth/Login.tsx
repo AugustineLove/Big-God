@@ -17,9 +17,9 @@ import 'swiper/css/pagination';
 const STAFF_MEMBERS = [
   { id: 1, name: 'Austin Love Stephens', role: 'General Manager', image: '/manager.jpg', emoji: '🌟', themeColor: 'bg-[#2e1a11]' },
   { id: 2, name: 'Oscar Love Stephens', role: 'Accountant', image: '/accountant.png', emoji: '💫', themeColor: 'bg-[#393867]' },
-  { id: 3, name: 'Janet Ninson', role: 'Teller', image: '/teller.jpg', emoji: '🚀', themeColor: 'bg-[#1b1c21]' },
-  { id: 4, name: 'Isaac Kwamena Brace', role: 'Sales Manager', image: '/sales_manager-1.png', emoji: '🚀', themeColor: 'bg-[#2f333c]' },
-  { id: 5, name: 'Augustine Love Stephens', role: 'Systems Administrator', image: '/it-1.png', emoji: '🚀', themeColor: 'bg-[#2f605d]' },
+  { id: 3, name: 'Isaac Kwamena Brace', role: 'Sales Manager', image: '/sales_manager-1.png', emoji: '🚀', themeColor: 'bg-[#2f333c]' },
+  { id: 4, name: 'Augustine Love Stephens', role: 'Systems Administrator', image: '/it-1.png', emoji: '🚀', themeColor: 'bg-[#2f605d]' },
+  { id: 5, name: 'Janet Ninson', role: 'Teller', image: '/teller.jpg', emoji: '🚀', themeColor: 'bg-[#1b1c21]' },
 ];
 
 const Login: React.FC = () => {
