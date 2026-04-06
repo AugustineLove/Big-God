@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Eye, EyeOff, AlertCircle, LogIn, ArrowLeft, CheckCircle2, Shield } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, LogIn, ArrowLeft, Shield } from 'lucide-react';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { saveCompanyToken } from '../../constants/firebase';
@@ -13,21 +13,20 @@ import 'swiper/css';
 import 'swiper/css/effect-fade';
 import 'swiper/css/pagination';
 
-// Added 'themeColor' to each staff member to drive the left-side UI
 const STAFF_MEMBERS = [
-  { id: 1, name: 'Austin Love Stephens', role: 'General Manager', image: '/manager.jpg', emoji: '🌟', themeColor: 'bg-[#2e1a11]' },
-  { id: 2, name: 'Oscar Love Stephens', role: 'Accountant', image: '/accountant.png', emoji: '💫', themeColor: 'bg-[#393867]' },
-  { id: 3, name: 'Isaac Kwamena Brace', role: 'Sales Manager', image: '/sales_manager-1.png', emoji: '🚀', themeColor: 'bg-[#2f333c]' },
-  { id: 4, name: 'Augustine Love Stephens', role: 'Systems Administrator', image: '/it-1.png', emoji: '🚀', themeColor: 'bg-[#2f605d]' },
-  { id: 5, name: 'Janet Ninson', role: 'Teller', image: '/teller.jpg', emoji: '🚀', themeColor: 'bg-[#1b1c21]' },
+  { id: 1, name: 'Austin Love Stephens', role: 'General Manager', image: '/manager.jpg' },
+  { id: 2, name: 'Oscar Love Stephens', role: 'Accountant', image: '/accountant.png' },
+  { id: 3, name: 'Isaac Kwamena Brace', role: 'Sales Manager', image: '/sales_manager-1.png' },
+  { id: 4, name: 'Augustine Love Stephens', role: 'Systems Administrator', image: '/it-1.png' },
+  { id: 5, name: 'Janet Ninson', role: 'Teller', image: '/teller.jpg' },
 ];
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [activeIndex, setActiveIndex] = useState(0); // Track active slide
-  
+  const [activeIndex, setActiveIndex] = useState(0);
+
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -39,7 +38,6 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     try {
       const response = await login(formData.email, formData.password);
       const companyJSON = localStorage.getItem('susupro_company');
@@ -66,158 +64,193 @@ const Login: React.FC = () => {
       } else {
         setError('Invalid credentials.');
       }
-    } catch (err) {
+    } catch {
       setError('Something went wrong. Try again.');
     }
   };
 
-  // Get the current color based on the active slide index
-  const currentTheme = STAFF_MEMBERS[activeIndex]?.themeColor || 'bg-[#398078]';
-
   return (
-    <div className="h-screen w-screen bg-[#f3f4f1] flex items-center justify-center p-4 overflow-hidden">
-      
-      {/* Container: Background color transitions here */}
-      <div className={`w-full max-w-6xl ${currentTheme} transition-colors duration-1000 ease-in-out backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 h-full max-h-[90vh]`}>
+    <div className="min-h-screen w-screen bg-[#eeecea] flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-hidden relative">
 
-        {/* LEFT: LOGIN FORM */}
-        <div className="p-6 md:p-12 flex flex-col justify-center relative overflow-hidden group">
-          {/* Subtle background decoration to keep it "cute" */}
-          <div className="absolute top-0 left-0 w-32 h-32 bg-white/5 rounded-full -translate-x-16 -translate-y-16 blur-2xl" />
-          
-          <div className="relative z-10">
-            {/* Logo */}
-            <div className="flex items-center gap-3 mb-10 animate-fade-in">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl shadow-black/10 transform transition hover:scale-110">
-                <img src="/logo.png" className="w-7 h-7" alt="Logo" />
-              </div>
-              <div>
-                <h2 className="font-bold text-xl text-white tracking-tight">Big God</h2>
-                <p className="text-[10px] uppercase tracking-widest text-white/70 font-semibold">Susu Enterprise</p>
-              </div>
+      {/* ── Page-level logo watermark tiled across the whole background ── */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          backgroundImage: 'url(/logo.png)',
+          backgroundSize: '590px 590px',
+          backgroundRepeat: 'repeat',
+          opacity: 0.04,
+          filter: 'grayscale(100%)',
+        }}
+      />
+
+      {/* ── Main card ── */}
+      <div className="relative z-10 w-full max-w-5xl rounded-[28px] overflow-hidden shadow-2xl shadow-black/10 border border-white/80 grid grid-cols-1 lg:grid-cols-2 min-h-[580px] lg:h-[88vh] lg:max-h-[760px]">
+
+        {/* ══════════════════════════════
+            LEFT — FORM PANE
+        ══════════════════════════════ */}
+        <div className="relative bg-white flex flex-col justify-center px-7 py-10 sm:px-10 sm:py-12 md:px-14 overflow-hidden">
+
+          {/* Corner logo watermark (single large ghost) */}
+          <img
+            src="/logo.jpg"
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute -bottom-10 -right-10 w-64 h-64 object-contain opacity-[0.045] select-none"
+          />
+
+          {/* Brand */}
+          <div className="flex items-center gap-3 mb-9 relative z-10">
+            <div className="w-11 h-11 rounded-2xl bg-[#1a2e1a] flex items-center justify-center shadow-md shadow-black/10 shrink-0 overflow-hidden">
+              <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            </div>
+            <div>
+              <p className="font-bold text-[15px] text-[#111810] tracking-tight leading-none">Big God</p>
+              <p className="text-[9.5px] uppercase tracking-[0.15em] text-[#8a9490] font-semibold mt-0.5">Susu Enterprise</p>
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-7 relative z-10">
+            <h1 className="text-[2rem] sm:text-[2.4rem] font-extrabold text-[#111810] tracking-tight leading-[1.1] mb-2">
+              Welcome<br className="hidden sm:block" /> back.
+            </h1>
+            <p className="text-sm text-[#8a9490] font-medium">Sign in to manage your daily collections.</p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="flex gap-2.5 items-start bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl mb-5 text-sm animate-shake relative z-10">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-[#6b7b72] uppercase tracking-widest">Email Address</label>
+              <input
+                type="email"
+                name="email"
+                placeholder="name@gmail.com"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full h-12 px-4 rounded-xl bg-[#f6f6f4] border border-transparent focus:border-[#1a2e1a] focus:ring-2 focus:ring-[#1a2e1a]/10 outline-none transition-all text-[#111810] placeholder:text-[#c2c9c5] text-sm"
+              />
             </div>
 
-            {/* Heading */}
-            <div className="mb-8 animate-slide-up">
-              <h1 className="text-4xl font-extrabold mb-2 text-white tracking-tight">
-                Welcome back
-              </h1>
-              <p className="text-white/60 text-sm font-medium">Please sign in to manage your daily collections.</p>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="flex gap-2 bg-red-500/10 border border-red-500/20 text-red-100 p-4 rounded-2xl mb-6 text-sm animate-shake backdrop-blur-md">
-                <AlertCircle size={18} className="flex-shrink-0" />
-                <span>{error}</span>
+            {/* Password */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] font-bold text-[#6b7b72] uppercase tracking-widest">Password</label>
+                <button type="button" className="text-[10px] font-semibold text-[#8a9490] hover:text-[#1a2e1a] transition uppercase tracking-wider">
+                  Forgot?
+                </button>
               </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-white/80 ml-1 uppercase tracking-wider">Email Address</label>
+              <div className="relative">
                 <input
-                  type="email"
-                  name="email"
-                  placeholder="gmailname@gmail.com"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="••••••••"
                   required
-                  value={formData.email}
+                  value={formData.password}
                   onChange={handleChange}
-                  className="w-full p-4 rounded-2xl border-none focus:ring-4 focus:ring-white/20 outline-none transition-all bg-white/10 backdrop-blur-md text-white placeholder:text-white/40 shadow-inner"
+                  className="w-full h-12 px-4 pr-12 rounded-xl bg-[#f6f6f4] border border-transparent focus:border-[#1a2e1a] focus:ring-2 focus:ring-[#1a2e1a]/10 outline-none transition-all text-[#111810] placeholder:text-[#c2c9c5] text-sm"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#bcc6c0] hover:text-[#1a2e1a] transition"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-
-              <div className="space-y-1 relative">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-bold text-white/80 ml-1 uppercase tracking-wider">Password</label>
-                  <button type="button" className="text-[10px] font-bold text-white/50 hover:text-white transition uppercase">Forgot?</button>
-                </div>
-                <div className="relative group">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    placeholder="••••••••"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full p-4 rounded-2xl border-none focus:ring-4 focus:ring-white/20 outline-none transition-all bg-white/10 backdrop-blur-md text-white placeholder:text-white/40 shadow-inner"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-white text-[#2a3d25] py-4 rounded-2xl font-bold flex justify-center items-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-2xl mt-4"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-3 border-[#2a3d25] border-t-transparent rounded-full animate-spin" />
-                    <span>Processing...</span>
-                  </div>
-                ) : (
-                  <>Sign In <LogIn size={18} /></>
-                )}
-              </button>
-            </form>
-
-            {/* Footer */}
-            <div className="mt-8 flex flex-col items-center gap-4">
-              <Link to="/" className="text-xs text-white/60 flex items-center gap-2 hover:text-white transition group">
-                <ArrowLeft size={14} className="group-hover:-translate-x-1 transition" />
-                <span>Back to home</span>
-              </Link>
             </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-12 bg-[#1a2e1a] text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 mt-2 transition-all hover:bg-[#243d24] active:scale-[0.99] disabled:opacity-60 shadow-lg shadow-[#1a2e1a]/20"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <>Sign In <LogIn size={16} /></>
+              )}
+            </button>
+          </form>
+
+          {/* Back link */}
+          <div className="mt-7 relative z-10">
+            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-[#a0a8a4] hover:text-[#1a2e1a] transition group">
+              <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
+              Back to home
+            </Link>
           </div>
         </div>
 
-        {/* RIGHT: SLIDER */}
-        <div className="hidden lg:block relative h-full bg-black overflow-hidden">
+        {/* ══════════════════════════════
+            RIGHT — SLIDER PANE
+        ══════════════════════════════ */}
+        <div className="hidden lg:block relative bg-[#111810] overflow-hidden">
+
+          {/* Logo watermark centred behind the photo */}
+          <img
+            src="/logo.png"
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 m-auto w-[72%] h-[72%] object-contain opacity-[0.07] select-none z-10 mix-blend-screen"
+          />
+
+          {/* Swiper */}
           <Swiper
             modules={[Autoplay, EffectFade, Pagination]}
             effect="fade"
             autoplay={{ delay: 5000, disableOnInteraction: false }}
             pagination={{ clickable: true }}
-            loop={true}
+            loop
             onSlideChange={(swiper: SwiperType) => setActiveIndex(swiper.realIndex)}
             className="h-full w-full"
           >
             {STAFF_MEMBERS.map((staff) => (
               <SwiperSlide key={staff.id}>
-                <div className="relative h-full w-full group">
+                <div className="relative h-full w-full">
                   <img
-                    src={staff.image.replace('/public', '')} // Clean path if needed
+                    src={staff.image}
                     alt={staff.name}
-                    className="w-full h-full object-cover transition-transform duration-[5000ms] group-hover:scale-110"
+                    className="w-full h-full object-cover object-top"
                   />
-                  
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
-                  {/* Staff Info Overlay */}
-                  <div className="absolute bottom-12 left-10 right-10 text-white animate-fade-in-up">
-                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full mb-4 w-fit shadow-xl">
-                      <Shield size={14} className="text-green-400" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Verified {staff.role}</span>
-                      {/* <span className="text-lg ml-1">{staff.emoji}</span> */}
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/10" />
+
+                  {/* Staff info */}
+                  <div className="absolute bottom-10 left-9 right-9 text-white z-20">
+                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/15 px-3.5 py-1.5 rounded-full mb-4 shadow-lg">
+                      <Shield size={11} className="text-emerald-400 shrink-0" />
+                      <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/75">
+                        Verified {staff.role}
+                      </span>
                     </div>
+                    <h3 className="text-[2.1rem] font-black tracking-tight leading-none mb-1">{staff.name}</h3>
+                    <p className="text-white/50 text-base font-medium">{staff.role}</p>
 
-                    <h3 className="text-4xl font-black mb-1 tracking-tighter leading-none">{staff.name}</h3>
-                    <p className="text-white/60 text-lg font-medium">{staff.role}</p>
-                    
-                    <div className="mt-6 flex items-center gap-3">
-                        <div className="flex -space-x-2">
-                           {[1,2,3].map(i => <div key={i} className="w-6 h-6 rounded-full border-2 border-black bg-gray-400" />)}
-                        </div>
-                        <span className="text-[10px] text-white/40 uppercase font-bold tracking-tighter">Team member online</span>
+                    <div className="mt-5 flex items-center gap-2.5">
+                      <div className="flex -space-x-1.5">
+                        {[0, 1, 2].map(i => (
+                          <div key={i} className="w-6 h-6 rounded-full border-2 border-[#111810] bg-[#3a4a3a]" />
+                        ))}
+                      </div>
+                      <span className="text-[9px] text-white/35 uppercase font-bold tracking-wider">Team member online</span>
                     </div>
                   </div>
                 </div>
@@ -227,26 +260,34 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      <style>{`
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-        
-        .animate-fade-in { animation: fade-in 0.8s ease-out; }
-        .animate-slide-up { animation: slide-up 1s cubic-bezier(0.16, 1, 0.3, 1); }
-        .animate-fade-in-up { animation: slide-up 0.8s ease-out; }
-        .animate-shake { animation: shake 0.4s ease-in-out; }
+      {/* ── Mobile: show current staff name below card ── */}
+      {/* <div className="lg:hidden mt-4 text-center relative z-10">
+        <p className="text-xs text-[#8a9490] font-medium">
+          {STAFF_MEMBERS[activeIndex]?.name} · {STAFF_MEMBERS[activeIndex]?.role}
+        </p>
+      </div> */}
 
+      <style>{`
+        @keyframes shake {
+          0%,100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
+        }
+        .animate-shake { animation: shake 0.35s ease-in-out; }
+
+        .swiper-pagination {
+          bottom: 16px !important;
+        }
         .swiper-pagination-bullet {
           background: white !important;
           opacity: 0.3 !important;
-          width: 8px !important;
-          height: 8px !important;
+          width: 7px !important;
+          height: 7px !important;
           transition: all 0.3s ease !important;
         }
         .swiper-pagination-bullet-active {
           opacity: 1 !important;
-          width: 24px !important;
+          width: 22px !important;
           border-radius: 4px !important;
         }
       `}</style>
