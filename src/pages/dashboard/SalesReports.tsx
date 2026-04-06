@@ -1227,37 +1227,7 @@ const SalesManagerDashboard: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-20">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center shadow-sm">
-              <BarChart3 className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Sales Manager Dashboard</h1>
-              <p className="text-xs text-gray-500">Field Operations & Performance Analytics</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-xl transition-colors">
-              <Bell className="h-5 w-5" />
-            </button>
-            <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-xl transition-colors">
-              <HelpCircle className="h-5 w-5" />
-            </button>
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center">
-                <span className="text-white text-xs font-bold">SM</span>
-              </div>
-              <span className="text-sm font-medium text-gray-700 hidden sm:inline">Sales Manager</span>
-            </div>
-          </div>
-        </div>
-      </header>
-      
-      <main className="p-6">
+      <main className="p-3">
         <div className="max-w-[1600px] mx-auto">
           <FilterPanel />
           <TabNavigation />

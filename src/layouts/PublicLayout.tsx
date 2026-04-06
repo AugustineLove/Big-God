@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Menu, X, CreditCard } from 'lucide-react';
+import { Menu, X, CreditCard, MapPin, Phone, Mail, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 const PublicLayout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -124,44 +124,47 @@ const PublicLayout: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <footer className="bg-gray-900 text-gray-300 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center space-x-2 mb-4">
-               <Link to="/" className="flex items-center">
-                <img
-                  src="/logo.png"
-                  alt="SusuPro"
-                  className="h-20 w-auto"
-                />
-              </Link>
-
-                <span className="text-xl font-bold">Big God</span>
+            <div>
+              <h3 className="text-xl font-bold text-white mb-4">Big God Susu Enterprise</h3>
+              <p className="text-sm">Building financial security together since 2010.</p>
+              <div className="flex gap-3 mt-4">
+                <Facebook className="h-5 w-5 hover:text-teal-400 cursor-pointer" />
+                <Twitter className="h-5 w-5 hover:text-teal-400 cursor-pointer" />
+                <Instagram className="h-5 w-5 hover:text-teal-400 cursor-pointer" />
+                <Linkedin className="h-5 w-5 hover:text-teal-400 cursor-pointer" />
               </div>
-              <p className="text-gray-400 max-w-md">
-                Modernizing traditional susu contribution schemes with digital efficiency and transparency.
-              </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Company</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/how-it-works" className="hover:text-white transition-colors">How It Works</Link></li>
-                <li><Link to="/features" className="hover:text-white transition-colors">Features</Link></li>
-                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+              <h4 className="font-semibold text-white mb-3">Quick Links</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/about" className="hover:text-teal-400">About Us</Link></li>
+                <li><Link to="/services" className="hover:text-teal-400">Our Services</Link></li>
+                <li><Link to="/contact" className="hover:text-teal-400">Contact</Link></li>
+                <li><Link to="/faq" className="hover:text-teal-400">FAQ</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Support</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+              <h4 className="font-semibold text-white mb-3">Contact Info</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Agona-Nkwanta, Ghana</li>
+                <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> +233 54 238 4752</li>
+                <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> bigodsusuenterprise@gmail.com</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-3">Office Hours</h4>
+              <ul className="space-y-2 text-sm">
+                <li>Monday - Friday: 8am - 4pm</li>
+                <li>Saturday: Closed</li>
+                <li>Sunday: Closed</li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 SusuPro. All rights reserved.</p>
+          <div className="border-t border-gray-800 mt-8 pt-6 text-center text-sm">
+            <p>&copy; {new Date().getFullYear()} Big God Susu Enterprise. All rights reserved.</p>
           </div>
         </div>
       </footer>
