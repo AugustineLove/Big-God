@@ -18,7 +18,7 @@ const STAFF_MEMBERS = [
   { id: 2, name: 'Oscar Love Stephens', role: 'Accountant', image: '/accountant.png' },
   { id: 3, name: 'Isaac Kwamena Brace', role: 'Sales Manager', image: '/sales_manager-1.png' },
   { id: 4, name: 'Augustine Love Stephens', role: 'Systems Administrator', image: '/it-1.png' },
-  { id: 5, name: 'Janet Ninson', role: 'Teller', image: '/teller.jpg' },
+  { id: 5, name: 'Janet Ninson', role: 'Teller', image: '/teller-1.png' },
 ];
 
 const Login: React.FC = () => {
@@ -95,7 +95,7 @@ const Login: React.FC = () => {
 
           {/* Corner logo watermark (single large ghost) */}
           <img
-            src="/logo.jpg"
+            src="/logo.png"
             alt=""
             aria-hidden
             className="pointer-events-none absolute -bottom-10 -right-10 w-64 h-64 object-contain opacity-[0.045] select-none"
@@ -103,11 +103,11 @@ const Login: React.FC = () => {
 
           {/* Brand */}
           <div className="flex items-center gap-3 mb-9 relative z-10">
-            <div className="w-11 h-11 rounded-2xl bg-[#1a2e1a] flex items-center justify-center shadow-md shadow-black/10 shrink-0 overflow-hidden">
+            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-md shadow-black/10 shrink-0 overflow-hidden">
               <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
             </div>
             <div>
-              <p className="font-bold text-[15px] text-[#111810] tracking-tight leading-none">Big God</p>
+              <p className="font-bold text-[15px] text-[#111810] tracking-tight leading-none">BIG GOD</p>
               <p className="text-[9.5px] uppercase tracking-[0.15em] text-[#8a9490] font-semibold mt-0.5">Susu Enterprise</p>
             </div>
           </div>
@@ -148,9 +148,9 @@ const Login: React.FC = () => {
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <label className="text-[10px] font-bold text-[#6b7b72] uppercase tracking-widest">Password</label>
-                <button type="button" className="text-[10px] font-semibold text-[#8a9490] hover:text-[#1a2e1a] transition uppercase tracking-wider">
+                {/* <button type="button" className="text-[10px] font-semibold text-[#8a9490] hover:text-[#1a2e1a] transition uppercase tracking-wider">
                   Forgot?
-                </button>
+                </button> */}
               </div>
               <div className="relative">
                 <input
