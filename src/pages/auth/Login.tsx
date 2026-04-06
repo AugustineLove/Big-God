@@ -120,7 +120,7 @@ const Login: React.FC = () => {
                 <input
                   type="email"
                   name="email"
-                  placeholder="name@susupro.com"
+                  placeholder="gmailname@gmail.com"
                   required
                   value={formData.email}
                   onChange={handleChange}
