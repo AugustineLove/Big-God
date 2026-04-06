@@ -37,10 +37,10 @@ import {
 } from 'lucide-react';
 
 const heroImages = [
-  { src: '/public/manager.jpg', alt: 'Big God Susu Branch Office', label: 'Our Main Branch' },
-  { src: '/public/accountant.png', alt: 'Big God Susu Team', label: 'Dedicated Staff' },
-  { src: '/public/sales_manager.png', alt: 'Happy Clients', label: 'Serving Our Community' },
-  { src: '/public/it-1.png', alt: 'Daily Operations', label: 'Efficient Operations' },
+  { src: '/manager.jpg', alt: 'Big God Susu Branch Office', label: 'Our Main Branch' },
+  { src: '/accountant.png', alt: 'Big God Susu Team', label: 'Dedicated Staff' },
+  { src: '/sales_manager.png', alt: 'Happy Clients', label: 'Serving Our Community' },
+  { src: '/it-1.png', alt: 'Daily Operations', label: 'Efficient Operations' },
 ];
 
 const Home: React.FC = () => {
