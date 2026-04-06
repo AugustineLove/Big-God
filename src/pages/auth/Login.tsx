@@ -19,7 +19,7 @@ const STAFF_MEMBERS = [
   { id: 2, name: 'Oscar Love Stephens', role: 'Accountant', image: '/accountant.png', emoji: '💫', themeColor: 'bg-[#393867]' },
   { id: 3, name: 'Janet Ninson', role: 'Teller', image: '/teller.jpg', emoji: '🚀', themeColor: 'bg-[#1b1c21]' },
   { id: 4, name: 'Isaac Kwamena Brace', role: 'Sales Manager', image: '/sales_manager-1.png', emoji: '🚀', themeColor: 'bg-[#2f333c]' },
-  { id: 5, name: 'Augustine Love Stephens', role: 'Human Resource', image: '/it-1.png', emoji: '🚀', themeColor: 'bg-[#2f605d]' },
+  { id: 5, name: 'Augustine Love Stephens', role: 'Systems Administrator', image: '/it-1.png', emoji: '🚀', themeColor: 'bg-[#2f605d]' },
 ];
 
 const Login: React.FC = () => {
