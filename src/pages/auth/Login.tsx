@@ -204,12 +204,12 @@ const Login: React.FC = () => {
         <div className="hidden lg:block relative bg-[#111810] overflow-hidden">
 
           {/* Logo watermark centred behind the photo */}
-          <img
+          {/* <img
             src="/logo.png"
             alt=""
             aria-hidden
             className="pointer-events-none absolute inset-0 m-auto w-[72%] h-[72%] object-contain opacity-[0.07] select-none z-10 mix-blend-screen"
-          />
+          /> */}
 
           {/* Swiper */}
           <Swiper
