@@ -35,6 +35,7 @@ interface DayEndLog {
   disbursed_today: number;
   commissions_paid: number;
   floats_closed: number;
+  loan_repayments: number;
 }
 
 // ─── atoms ───────────────────────────────────────────────────────────────────
@@ -297,7 +298,7 @@ const DayEndLogsPage = () => {
                                   ["Floats Closed",    fmtN(log.floats_closed),            Lock,          "#344a2e"],
                                   ["Closed By",        log.closed_by_name || "—",          Users,         "#6b7280"],
                                   ["Closed At",        fmtDate(log.closed_at),             Activity,      "#6b7280"],
-                                  ["Log ID",           log.id,                             FileBarChart2, "#6b7280"],
+                                  ["Loan Repayments",           log.loan_repayments,                             FileBarChart2, "#6b7280"],
                                   ["Pending W/D",      hasPend ? `${fmtN(log.pending_withdrawals)} pending` : "None", AlertTriangle, hasPend ? "#b45309" : "#6b7280"],
                                 ].map(([label, value, Icon, accent]: any) => (
                                   <div key={label} className="bg-white rounded-xl border border-gray-100 px-3 py-2.5 flex items-start gap-2.5">
