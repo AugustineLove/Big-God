@@ -55,6 +55,7 @@ import UpdatesPage from './pages/dashboard/UpdatesPage';
 import ReportsDashboard from './pages/dashboard/ReportsDashboard';
 import DayEndPage from './pages/dashboard/Components/DayEndPage';
 import { DayEndProvider } from './contexts/dashboard/DayEnd';
+import DayEndDashboard from './pages/dashboard/DayEndDashboard';
 
 function App() {
   return (
@@ -140,7 +141,7 @@ function App() {
             <Route path="clients/customer-details/:id" element={<CustomerDetailsPage />} />
             <Route path="settings" element={<Settings />} />
             <Route path="security" element={<SecurityTab />} />
-            <Route path="day-end" element={<DayEndPage />} />
+            <Route path="day-end" element={<DayEndDashboard />} />
           </Route>
         </Routes>
       </Router>

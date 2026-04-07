@@ -12,6 +12,7 @@ import {
   Home, Bell, HelpCircle, Search, Globe, Building2,
   Receipt, Target, Briefcase, Clock, Calendar,
   Users2,
+  FileTextIcon,
 } from 'lucide-react';
 import {
   companyName, userPermissions, userRole, userStaffId,
@@ -80,7 +81,15 @@ const buildNavigation = () => [
     : []),
   ...(userPermissions?.MANAGE_STAFF    ? [{ name: 'Staff',   href: '/dashboard/staffs',    icon: Users,      badge: null }] : []),
   ...(userPermissions?.LOAN_PRIVILEGES ? [{ name: 'Loans',    href: '/dashboard/loans',     icon: CreditCard, badge: null }] : []),
-  { name: 'Day End', href: '/dashboard/day-end', icon: Calendar, badge: null },
+  { name: 'Day End', 
+    href: '/dashboard/day-end', 
+    icon: Calendar, 
+    badge: null,
+    children: [
+      {name: 'Summary', tab: 'dayend', icon: Calendar},
+      {name: 'Spool', tab: 'spool', icon: FileTextIcon}
+    ]
+   },
   { name: 'Security', href: '/dashboard/security', icon: Shield, badge: null },
   { name: 'Updates',  href: '/dashboard/updates',  icon: Sparkles, badge: 'v2.0' },
   { name: 'Chat',     href: '/dashboard/chat',     icon: Chat,     badge: null },
