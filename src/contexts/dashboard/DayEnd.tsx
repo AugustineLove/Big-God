@@ -5,7 +5,7 @@ import React, {
   useCallback,
   ReactNode,
 } from "react";
-import { companyId, userUUID, userRole, getDisplayName } from "../../constants/appConstants";
+import { companyId, userUUID, userRole, getDisplayName, companyName } from "../../constants/appConstants";
 import { toast } from "react-hot-toast";
 
 const BASE_URL = "https://susu-pro-backend.onrender.com/api/day-end";
@@ -397,7 +397,7 @@ export const DayEndProvider = ({ children }: { children: ReactNode }) => {
     setKey("close", true);
     const { ok, data, message } = await apiFetch<any>(`/${companyId}/close`, {
       method: "POST",
-      body: JSON.stringify({ closed_by: userUUID, closed_by_name: getDisplayName, date }),
+      body: JSON.stringify({ closed_by: userUUID, closed_by_name: companyName, date }),
     });
     setKey("close", false);
     if (!ok) { toast.error(message); return null; }
