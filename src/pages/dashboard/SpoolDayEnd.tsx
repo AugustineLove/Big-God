@@ -254,7 +254,7 @@ const DayEndLogsPage = () => {
                           onClick={() => setExpandedId(isOpen ? null : log.id)}
                         >
                           <TD>
-                            <span className="font-semibold text-gray-900">{formatDate(log.closed_at)}</span>
+                            <span className="font-semibold text-gray-900">{formatDate(log.report_date)}</span>
                           </TD>
                           <TD>
                             <div className="flex items-center gap-2">
