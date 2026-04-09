@@ -5,7 +5,7 @@ import {
   AlertTriangle, CheckCircle2, Banknote, CreditCard, BadgeCheck,
   ReceiptText, Users, Lock,
 } from "lucide-react";
-import { companyId } from "../../constants/appConstants";
+import { companyId, formatDate } from "../../constants/appConstants";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const fmt   = (n: any) => Number(n || 0).toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -254,7 +254,7 @@ const DayEndLogsPage = () => {
                           onClick={() => setExpandedId(isOpen ? null : log.id)}
                         >
                           <TD>
-                            <span className="font-semibold text-gray-900">{fmtDateMed(log.report_date)}</span>
+                            <span className="font-semibold text-gray-900">{formatDate(log.closed_at)}</span>
                           </TD>
                           <TD>
                             <div className="flex items-center gap-2">
