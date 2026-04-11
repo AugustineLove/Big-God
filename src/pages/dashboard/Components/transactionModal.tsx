@@ -3,6 +3,7 @@ import {
   CreditCard, Search, User, Calendar, FileText,
   UserCheck, CheckCircle, X, Wallet, Building2,
   ArrowUpCircle, ArrowDownCircle, DollarSign, AlertCircle,
+  Smartphone, Landmark, Coins,
 } from "lucide-react";
 import { useCustomers } from "../../../contexts/dashboard/Customers";
 import { useStaff } from "../../../contexts/dashboard/Staff";
@@ -60,6 +61,7 @@ interface Transaction {
   staked_by: string;
   company_id: string;
   status: string;
+  payment_method?: string;
 }
 
 interface TransactionModalProps {
@@ -127,6 +129,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
     amount: transaction?.amount?.toString() || "",
     transaction_type: (transaction?.transaction_type || "deposit") as "deposit" | "withdrawal",
     withdrawal_type: "",
+    payment_method: transaction?.payment_method || "cash",
     description: transaction?.description || "",
     transaction_date: transaction?.transaction_date
       ? new Date(transaction.transaction_date).toISOString().slice(0, 16)
@@ -461,6 +464,52 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                   {type.charAt(0).toUpperCase() + type.slice(1)}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Payment Method - New Section */}
+          <div>
+            <SectionTitle>Payment method</SectionTitle>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: "cash", label: "Cash", icon: Coins, desc: "Physical cash payment" },
+                { value: "momo", label: "Mobile Money", icon: Smartphone, desc: "MTN, Vodafone, AirtelTigo" },
+                { value: "bank", label: "Bank Transfer", icon: Landmark, desc: "Direct bank transfer" },
+              ].map((method) => {
+                const Icon = method.icon;
+                const isSelected = formData.payment_method === method.value;
+                return (
+                  <button
+                    key={method.value}
+                    onClick={() => {
+                      setFormData((p) => ({ ...p, payment_method: method.value }));
+                      if (errors.payment_method) setErrors((p) => ({ ...p, payment_method: "" }));
+                    }}
+                    className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-2xl border-2 transition-all
+                      ${isSelected
+                        ? formData.transaction_type === "deposit"
+                          ? "border-emerald-300 bg-emerald-50"
+                          : "border-red-300 bg-red-50"
+                        : "border-gray-100 bg-white hover:border-gray-200"}`}
+                  >
+                    <Icon className={`w-5 h-5 ${isSelected
+                      ? formData.transaction_type === "deposit"
+                        ? "text-emerald-600"
+                        : "text-red-600"
+                      : "text-gray-400"
+                    }`} />
+                    <p className={`text-[12px] font-semibold ${isSelected
+                      ? formData.transaction_type === "deposit"
+                        ? "text-emerald-600"
+                        : "text-red-600"
+                      : "text-gray-700"
+                    }`}>
+                      {method.label}
+                    </p>
+                    <p className="text-[9px] text-gray-400 text-center hidden sm:block">{method.desc}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

@@ -432,6 +432,7 @@ const verifyOtp = async () => {
                       <option value="loan_officer">Loan Officer</option>
                       <option value="sales_manager">Sales Manager</option>
                       <option value="hr">Human Resource</option>
+                      <option value="momo_agent">Momo Agent</option>
                     </select>
                   </div>
 
