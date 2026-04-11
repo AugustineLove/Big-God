@@ -32,6 +32,12 @@ export type TransactionType = {
   reversed_by_name?: string;
   is_deleted?: boolean;
   withdrawal_type?: string;
+  processing_status?: string;
+  processed_by?: string;
+  processed_at?: string;
+  payment_reference?: string;
+  agent_note?: string;
+  payment_method?: string;
 };
 
 export interface BulkTransactionPayload {
@@ -284,8 +290,6 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     if (json.status === "success" && Array.isArray(json.data)) {
       setTransactions(json.data);
-
-      // ⚠️ Important: totals now represent only current page
       setTotals(calculateTotals(json.data));
 
       setTotalPages(json.totalPages);

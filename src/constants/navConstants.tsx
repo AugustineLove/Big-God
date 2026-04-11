@@ -1,4 +1,4 @@
-import { ArrowUpDown, BarChart3, Building2, Calendar, CreditCard, DollarSign, FileText, FileTextIcon, LayoutDashboard, PieChart, PiggyBank, Receipt, Shield, Sparkles, TrendingUp, User2, Users, Wallet } from "lucide-react";
+import { ArrowUpDown, BarChart3, Building2, Calendar, CreditCard, DollarSign, FileText, FileTextIcon, LayoutDashboard, MessageCircle, PieChart, PiggyBank, Receipt, Shield, Sparkles, TrendingUp, User2, Users, Wallet } from "lucide-react";
 import Chat from "../pages/dashboard/ChatList";
 import { userPermissions, userRole } from "./appConstants";
 
@@ -54,7 +54,7 @@ export const buildNavigation = () => userRole !== 'Momo Agent' ? [
    },
   { name: 'Security', href: '/dashboard/security', icon: Shield, badge: null },
   { name: 'Updates',  href: '/dashboard/updates',  icon: Sparkles, badge: 'v2.0' },
-  { name: 'Chat',     href: '/dashboard/chat',     icon: Chat,     badge: null },
+  { name: 'Chat',     href: '/dashboard/chat',     icon: MessageCircle,     badge: null },
 ] : [
     { name: 'Withdrawals',   href: '/dashboard/momo-agent',       icon: Users,           badge: null },
   ];

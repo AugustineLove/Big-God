@@ -16,6 +16,10 @@ export interface MomoPendingWithdrawal {
   account_type: string;
   customer_name: string;
   customer_phone: string;
+  // Fields set after the agent processes the withdrawal
+  agent_note?: string | null;
+  processed_at?: string | null;
+  processed_by?: string | null;
 }
 
 type ProcessingStatus = 'sent' | 'failed';
@@ -46,17 +50,15 @@ const MomoAgentContext = createContext<MomoAgentContextType | undefined>(undefin
 
 export const MomoAgentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [withdrawals, setWithdrawals] = useState<MomoPendingWithdrawal[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loading,     setLoading]     = useState(false);
+  const [updatingId,  setUpdatingId]  = useState<string | null>(null);
+  const [error,       setError]       = useState<string | null>(null);
 
   const fetchPendingWithdrawals = useCallback(async (company_id: string) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${BASE_URL}/agent/withdrawals/pending?company_id=${company_id}`
-      );
+      const res = await fetch(`${BASE_URL}/agent/withdrawals/pending?company_id=${company_id}`);
       if (!res.ok) throw new Error('Failed to fetch pending withdrawals');
       const data = await res.json();
       setWithdrawals(data.data || []);
@@ -82,8 +84,22 @@ export const MomoAgentProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const data = await res.json();
         if (!res.ok) return { success: false, message: data.message || 'Update failed' };
 
-        // Optimistically remove from list if sent/failed — it's no longer "pending"
-        setWithdrawals(prev => prev.filter(w => w.transaction_id !== transactionId));
+        // Update the row in-place so processed_at and agent_note are visible in the table
+        setWithdrawals(prev =>
+          prev.map(w =>
+            w.transaction_id === transactionId
+              ? {
+                  ...w,
+                  processing_status: payload.processing_status,
+                  status:            payload.processing_status, // mirrors backend status
+                  agent_note:        payload.agent_note ?? null,
+                  processed_by:      payload.agent_id,
+                  processed_at:      new Date().toISOString(),
+                }
+              : w
+          )
+        );
+
         return { success: true, message: data.message };
       } catch (err: any) {
         return { success: false, message: err.message || 'Unknown error' };
@@ -97,9 +113,7 @@ export const MomoAgentProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const getWithdrawalById = useCallback(
     async (transactionId: string, company_id: string) => {
       try {
-        const res = await fetch(
-          `${BASE_URL}/agent/withdrawals/${transactionId}?company_id=${company_id}`
-        );
+        const res = await fetch(`${BASE_URL}/agent/withdrawals/${transactionId}?company_id=${company_id}`);
         if (!res.ok) return null;
         const data = await res.json();
         return data.data as MomoPendingWithdrawal;
@@ -112,15 +126,7 @@ export const MomoAgentProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   return (
     <MomoAgentContext.Provider
-      value={{
-        withdrawals,
-        loading,
-        updatingId,
-        error,
-        fetchPendingWithdrawals,
-        updateProcessingStatus,
-        getWithdrawalById,
-      }}
+      value={{ withdrawals, loading, updatingId, error, fetchPendingWithdrawals, updateProcessingStatus, getWithdrawalById }}
     >
       {children}
     </MomoAgentContext.Provider>
