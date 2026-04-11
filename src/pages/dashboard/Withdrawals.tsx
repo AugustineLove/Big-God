@@ -858,7 +858,7 @@ const Withdrawals: React.FC = () => {
                       {/* Actions */}
                       <td className="px-6 py-4">
                         {/* Pending - Show Approve/Reject */}
-                        {withdrawal.payment_method === "momo" || withdrawal.payment_method === "cash" && withdrawal.status === "pending" && withdrawal.processing_status === "sent" && (
+                        {withdrawal.status === "pending" && withdrawal.processing_status === "sent" && (
                           <div className="flex gap-2">
                             <button
                               disabled={isApproving}
