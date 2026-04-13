@@ -22,7 +22,7 @@ export interface MomoPendingWithdrawal {
   processed_by?: string | null;
 }
 
-type ProcessingStatus = 'sent' | 'failed';
+type ProcessingStatus = 'paid' | 'failed';
 
 interface UpdateStatusPayload {
   processing_status: ProcessingStatus;

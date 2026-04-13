@@ -832,19 +832,19 @@ const Withdrawals: React.FC = () => {
                           <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
                             withdrawal.processing_status === "pending"
                               ? "bg-yellow-100 text-yellow-700"
-                              : withdrawal.processing_status === "sent"
+                              : withdrawal.processing_status === "paid"
                               ? "bg-green-100 text-green-700"
                               : withdrawal.processing_status === "failed"
                               ? "bg-red-100 text-red-700"
                               : "bg-gray-100 text-gray-600"
                           }`}>
                             {withdrawal.processing_status === "pending" && <Clock className="h-3 w-3" />}
-                            {withdrawal.processing_status === "sent" && <Send className="h-3 w-3" />}
+                            {withdrawal.processing_status === "paid" && <Send className="h-3 w-3" />}
                             {withdrawal.processing_status || "N/A"}
                           </span>
-                          {withdrawal.payment_reference && (
+                          {withdrawal.agent_note && (
                             <span className="text-[10px] text-gray-400 font-mono">
-                              Ref: {withdrawal.payment_reference.slice(0, 8)}...
+                              Ref: {withdrawal.agent_note.slice(0, 25)}...
                             </span>
                           )}
                           {withdrawal.processed_at && (
@@ -858,7 +858,7 @@ const Withdrawals: React.FC = () => {
                       {/* Actions */}
                       <td className="px-6 py-4">
                         {/* Pending - Show Approve/Reject */}
-                        {withdrawal.status === "pending" && withdrawal.processing_status === "sent" && (
+                        {withdrawal.status === "pending" && withdrawal.processing_status === "paid" && (
                           <div className="flex gap-2">
                             <button
                               disabled={isApproving}
@@ -897,7 +897,7 @@ const Withdrawals: React.FC = () => {
                           <div className="flex flex-col gap-2">
                             <span className="inline-flex items-center gap-1 text-yellow-600 text-xs font-medium bg-yellow-50 px-2 py-1 rounded-full">
                               <Clock className="h-3 w-3" />
-                              Waiting for agent
+                              Pending confirmation
                             </span>
                             <button
                               disabled={isRejecting}
@@ -910,8 +910,8 @@ const Withdrawals: React.FC = () => {
                           </div>
                         )}
 
-                        {/* Approved & Sent - Show Finalize */}
-                        {/* {withdrawal.status === "approved" && withdrawal.processing_status === "sent" && (
+                        {/* Approved & paid - Show Finalize */}
+                        {/* {withdrawal.status === "approved" && withdrawal.processing_status === "paid" && (
                           <button
                             disabled={isFinalizing}
                             onClick={() => handleFinalize(withdrawal.transaction_id)}
@@ -934,7 +934,7 @@ const Withdrawals: React.FC = () => {
                         )}
 
                         {/* Rejected/Reversed - Show nothing or view details */}
-                        {withdrawal.status === "approved" && withdrawal.processing_status === "sent" && !userPermissions?.MANAGE_CASHACCOUNTS && (
+                        {withdrawal.status === "approved" && withdrawal.processing_status === "paid" && !userPermissions?.MANAGE_CASHACCOUNTS && (
                           <span className="text-xs text-gray-400">No actions available</span>
                         )}
                         {(withdrawal.status === "rejected" || withdrawal.status === "reversed") && (

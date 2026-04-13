@@ -10,8 +10,8 @@ import { companyId, userUUID } from '../../../constants/appConstants';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ProcessingStatus = 'sent' | 'failed';
-type FilterStatus     = 'all' | 'pending' | 'sent' | 'failed';
+type ProcessingStatus = 'paid' | 'failed';
+type FilterStatus     = 'all' | 'pending' | 'paid' | 'failed';
 interface ToastState  { message: string; type: 'success' | 'error' }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,10 +48,10 @@ const StatusBadge: React.FC<{ status: string; processing_status: string | null }
   status, processing_status,
 }) => {
   const s = processing_status || status;
-  if (s === 'sent')
+  if (s === 'paid')
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
-        <CheckCircle size={10} strokeWidth={2.5} /> Sent
+        <CheckCircle size={10} strokeWidth={2.5} /> Paid
       </span>
     );
   if (s === 'failed')
@@ -184,7 +184,7 @@ const ProcessModal: React.FC<ModalProps> = ({ tx, updatingId, onConfirm, onClose
               onChange={e => setNote(e.target.value)}
               rows={2}
               disabled={isUpdating}
-              placeholder="e.g. Sent via MTN MoMo, transaction ref: 789456…"
+              placeholder="e.g. paid via MTN MoMo, transaction ref: 789456…"
               className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-800 resize-none outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all placeholder:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
@@ -200,21 +200,21 @@ const ProcessModal: React.FC<ModalProps> = ({ tx, updatingId, onConfirm, onClose
           {/* Action buttons */}
           <div className="flex gap-2.5">
             <button
-              onClick={() => handleConfirm('sent')}
+              onClick={() => handleConfirm('paid')}
               disabled={isUpdating}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all
-                ${isUpdating && chosen === 'sent'
+                ${isUpdating && chosen === 'paid'
                   ? 'bg-green-100 border-green-200 text-green-700 cursor-not-allowed'
                   : isUpdating
                   ? 'opacity-40 cursor-not-allowed bg-green-50 border-green-200 text-green-700'
                   : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300 active:scale-[0.98] cursor-pointer'}`}
             >
-              {isUpdating && chosen === 'sent' ? (
+              {isUpdating && chosen === 'paid' ? (
                 <RefreshCw size={14} className="animate-spin" />
               ) : (
                 <CheckCircle size={15} strokeWidth={2.5} />
               )}
-              {isUpdating && chosen === 'sent' ? 'Saving…' : 'Mark as sent'}
+              {isUpdating && chosen === 'paid' ? 'Saving…' : 'Mark as paid'}
             </button>
 
             <button
@@ -323,10 +323,10 @@ const MomoAgentDashboard: React.FC = () => {
 
     if (result.success) {
       showToast(
-        status === 'sent'
-          ? `Marked as sent — ${selectedTx.customer_name}`
+        status === 'paid'
+          ? `Marked as paid — ${selectedTx.customer_name}`
           : `Marked as failed — ${selectedTx.customer_name}`,
-        status === 'sent' ? 'success' : 'error'
+        status === 'paid' ? 'success' : 'error'
       );
     } else {
       showToast(result.message || 'Update failed. Please try again.', 'error');
@@ -338,11 +338,11 @@ const MomoAgentDashboard: React.FC = () => {
   // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const pending      = withdrawals.filter(w => !w.processing_status && w.status === 'pending');
-    const sent         = withdrawals.filter(w => w.processing_status === 'sent');
+    const paid         = withdrawals.filter(w => w.processing_status === 'paid');
     const failed       = withdrawals.filter(w => w.processing_status === 'failed');
     const pendingValue = pending.reduce((s, w) => s + parseFloat(w.amount), 0);
-    const sentValue    = sent.reduce((s, w) => s + parseFloat(w.amount), 0);
-    return { pending: pending.length, sent: sent.length, failed: failed.length, pendingValue, sentValue };
+    const paidValue    = paid.reduce((s, w) => s + parseFloat(w.amount), 0);
+    return { pending: pending.length, paid: paid.length, failed: failed.length, pendingValue, paidValue };
   }, [withdrawals]);
 
   // ── Filtered list ──────────────────────────────────────────────────────────
@@ -363,7 +363,7 @@ const MomoAgentDashboard: React.FC = () => {
   const filterTabs: { label: string; value: FilterStatus; count: number }[] = [
     { label: 'All',     value: 'all',     count: withdrawals.length },
     { label: 'Pending', value: 'pending', count: stats.pending      },
-    { label: 'Sent',    value: 'sent',    count: stats.sent         },
+    { label: 'paid',    value: 'paid',    count: stats.paid         },
     { label: 'Failed',  value: 'failed',  count: stats.failed       },
   ];
 
@@ -378,9 +378,9 @@ const MomoAgentDashboard: React.FC = () => {
       icon:  <Clock size={22} className="text-amber-300" />,
     },
     {
-      label: 'Sent today',
-      value: stats.sent,
-      sub:   `${formatAmount(stats.sentValue.toFixed(2))} disbursed`,
+      label: 'Paid today',
+      value: stats.paid,
+      sub:   `${formatAmount(stats.paidValue.toFixed(2))} disbursed`,
       wrap:  'bg-green-50 border-green-200',
       num:   'text-green-800',
       sub_:  'text-green-500',
@@ -550,8 +550,8 @@ const MomoAgentDashboard: React.FC = () => {
                 ) : (
                   filtered.map(w => {
                     const palette   = avatarPalette(w.customer_name);
-                    const isPending = w.status === 'pending';
-                    const isSent    = w.processing_status === 'sent';
+                    const isPending = w.status === 'pending' && w.processing_status === 'pending';
+                    const ispaid    = w.processing_status === 'paid';
                     const isFailed  = w.processing_status === 'failed';
 
                     return (
@@ -559,7 +559,7 @@ const MomoAgentDashboard: React.FC = () => {
                         key={w.transaction_id}
                         className={`transition-colors group
                           ${isPending ? 'hover:bg-blue-50/30 cursor-default' : ''}
-                          ${isSent    ? 'bg-green-50/20' : ''}
+                          ${ispaid    ? 'bg-green-50/20' : ''}
                           ${isFailed  ? 'bg-rose-50/20'  : ''}`}
                       >
                         {/* Customer */}
@@ -662,7 +662,7 @@ const MomoAgentDashboard: React.FC = () => {
                 </span>
                 <span className="flex items-center gap-1 text-[11px] text-green-600 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
-                  {stats.sent} sent
+                  {stats.paid} paid
                 </span>
                 <span className="flex items-center gap-1 text-[11px] text-rose-500 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block" />
