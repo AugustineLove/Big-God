@@ -165,8 +165,14 @@ const Overview: React.FC = () => {
   };
 
   
-  if (!userPermissions) window.location.reload();
+  if (!userPermissions) {
+    window.location.reload()
+  };
 
+   if (userRole === 'Momo Agent'){
+      navigate('/dashboard/momo-agent')
+    }
+    
   return (
     
     <div className="space-y-6">

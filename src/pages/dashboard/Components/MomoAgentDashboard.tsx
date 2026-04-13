@@ -337,7 +337,7 @@ const MomoAgentDashboard: React.FC = () => {
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const pending      = withdrawals.filter(w => !w.processing_status && w.status === 'pending');
+    const pending      = withdrawals.filter(w => w.processing_status === 'pending' && w.status === 'pending');
     const paid         = withdrawals.filter(w => w.processing_status === 'paid');
     const failed       = withdrawals.filter(w => w.processing_status === 'failed');
     const pendingValue = pending.reduce((s, w) => s + parseFloat(w.amount), 0);
@@ -414,14 +414,14 @@ const MomoAgentDashboard: React.FC = () => {
       {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-sm shadow-blue-200 shrink-0">
               <Banknote size={17} className="text-white" strokeWidth={2} />
             </div>
             <div>
-              <h1 className="text-[16px] font-bold text-slate-900 leading-tight">MoMo agent portal</h1>
+              <h1 className="text-[16px] font-bold text-slate-900 leading-tight">Agent portal</h1>
               <p className="text-[11px] text-slate-400">
                 Big God Susu &middot; Refreshed {lastRefreshed.toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit' })}
               </p>

@@ -1,6 +1,7 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { userRole } from '../constants/appConstants';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,6 +9,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { company, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -19,6 +21,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (!company) {
     return <Navigate to="/login" replace />;
+  }
+  if(userRole === 'Momo Agent'){
+    navigate('/dashboard/momo-agent');
   }
 
   const signupDate = new Date(company.signupDate);

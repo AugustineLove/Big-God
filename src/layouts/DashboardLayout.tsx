@@ -90,7 +90,8 @@ const DashboardLayout: React.FC = () => {
 
   // Mock notifications
   const notifications = [
-    { id: 1, title: 'System update', message: 'New updates available', time: '1 day ago', read: true, type: 'system' },
+    {id:1, title: "", read:false, type: 'system'}
+    // { id: 1, title: 'System update', message: 'New updates available', time: '1 day ago', read: true, type: 'system' },
   ];
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -565,7 +566,7 @@ const DashboardLayout: React.FC = () => {
                 </button>
 
                 {isProfileOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-40">
                     <div className="px-4 py-3 bg-gradient-to-r from-primary-50 to-white border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-900">{companyName || 'Staff User'}</p>
                       <p className="text-[11px] text-gray-500 mt-0.5">{company?.email ?? company?.parentCompanyEmail}</p>
@@ -578,11 +579,11 @@ const DashboardLayout: React.FC = () => {
 
                     <div className="py-1">
                       <button
-                        onClick={() => { setIsProfileOpen(false); handleOpenTab('Settings', '/dashboard/settings', User); }}
+                        onClick={() => { setIsProfileOpen(false); handleOpenTab('Settings', '/dashboard/security', User); }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         <User className="h-4 w-4 text-gray-400" />
-                        Profile
+                        Security
                       </button>
                       {userPermissions?.SETTINGS_ACCESS && (
                         <button

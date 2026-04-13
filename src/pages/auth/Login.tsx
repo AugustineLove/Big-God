@@ -12,6 +12,7 @@ import type { Swiper as SwiperType } from 'swiper';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
 import 'swiper/css/pagination';
+import { userRole } from '../../constants/appConstants';
 
 const STAFF_MEMBERS = [
   { id: 1, name: 'Austin Love Stephens', role: 'General Manager', image: '/manager.jpg' },
@@ -43,6 +44,8 @@ const Login: React.FC = () => {
       const companyJSON = localStorage.getItem('susupro_company');
       const company = companyJSON ? JSON.parse(companyJSON) : null;
 
+      console.log(`Login response: ${JSON.stringify(response)}`)
+      console.log(`${userRole}`)
       if (response && company) {
         await setDoc(doc(db, 'companies', company.id), {
           name: company.companyName,
@@ -59,7 +62,11 @@ const Login: React.FC = () => {
             state: { currentPassword: formData.password, staff_id: company.id, companyId: company.companyId },
           });
         } else {
-          navigate('/dashboard');
+          if (userRole === 'Momo Agent'){
+            navigate('/dashboard/momo-agent')
+          } else {
+            navigate('/dashboard');
+          }
         }
       } else {
         setError('Invalid credentials.');
