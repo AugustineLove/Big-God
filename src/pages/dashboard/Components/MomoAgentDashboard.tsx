@@ -4,6 +4,7 @@ import {
   PhoneCall, CreditCard, Hash, CalendarDays, SlidersHorizontal,
   X, AlertCircle, ChevronRight, Banknote, ArrowUpRight,
   MessageSquare, Info,
+  Notebook,
 } from 'lucide-react';
 import { MomoPendingWithdrawal, useMomoAgent } from '../../../contexts/dashboard/MomoAgent';
 import { companyId, userUUID } from '../../../constants/appConstants';
@@ -508,7 +509,7 @@ const MomoAgentDashboard: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100">
-                  {(['Customer', 'Phone', 'Amount', 'Account', 'Type', 'Date', 'Status', 'Processed', ''] as const).map((h, i) => (
+                  {(['Customer', 'Description', 'Phone', 'Amount', 'Account', 'Type', 'Date', 'Status', 'Processed', ''] as const).map((h, i) => (
                     <th
                       key={i}
                       className={`px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap
@@ -572,6 +573,14 @@ const MomoAgentDashboard: React.FC = () => {
                               <p className="font-semibold text-slate-900 text-[13px] leading-tight">{w.customer_name}</p>
                               <p className="text-[11px] text-slate-400 font-mono mt-0.5">{w.unique_code ?? '—'}</p>
                             </div>
+                          </div>
+                        </td>
+
+                         {/* Description */}
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-1.5 text-slate-600 text-[13px]">
+                            <Notebook size={11} className="text-slate-300 shrink-0" />
+                            {w.description}
                           </div>
                         </td>
 

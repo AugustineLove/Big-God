@@ -20,6 +20,7 @@ export interface MomoPendingWithdrawal {
   agent_note?: string | null;
   processed_at?: string | null;
   processed_by?: string | null;
+  description?: string;
 }
 
 type ProcessingStatus = 'paid' | 'failed';
