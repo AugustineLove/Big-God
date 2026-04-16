@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Account, Customer } from '../../data/mockData';
+import { Account, AccountSummary, Customer } from '../../data/mockData';
 import { companyId, userUUID } from '../../constants/appConstants';
 import toast from 'react-hot-toast';
 
 interface AccountsContextType {
   selectedAgent: Customer;
   accounts: Account[];
+  accountSummary: AccountSummary;
   allAccounts: Account[];
   customerLoans: Account[];
   companyLoans: Account[];
@@ -32,6 +33,7 @@ export const useAccounts = () => {
 
 export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountSummary, setAccountSummary] = useState<AccountSummary>();
   const [allAccounts, setAllAccounts] = useState<Account[]>([]);
   const [customerLoans, setCustomerLoans] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
@@ -88,11 +90,15 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
       const data = await res.json();
+      console.log(`Accounts data: ${JSON.stringify(data.summary)}`)
         setAccounts(
       Array.isArray(data?.data)
         ? data.data
         : []
     );
+    setAccountSummary(
+      data?.summary
+    )
     
      setCustomerLoans(
           Array.isArray(data?.data.loans) ? data.data.loans : []
@@ -218,7 +224,7 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, []);
 
   return (
-    <AccountsContext.Provider value={{ accounts, selectedAgent, customerLoans, companyLoans, loading, loadingLoans, refreshAccounts: fetchAccounts, refreshAllCompanyAccounts: getAllCompanyAccounts, addAccount, setAccounts, fetchLoanAccounts: fetchAllCompanyLoans, toggleAccountStatus, allAccounts, fetchCustomerByAccountNumber }}>
+    <AccountsContext.Provider value={{ accounts, accountSummary, selectedAgent, customerLoans, companyLoans, loading, loadingLoans, refreshAccounts: fetchAccounts, refreshAllCompanyAccounts: getAllCompanyAccounts, addAccount, setAccounts, fetchLoanAccounts: fetchAllCompanyLoans, toggleAccountStatus, allAccounts, fetchCustomerByAccountNumber }}>
       {children}
     </AccountsContext.Provider>
   );

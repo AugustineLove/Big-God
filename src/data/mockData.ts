@@ -80,6 +80,14 @@ export interface Account {
   interestmethod?: string;
 }
 
+export interface AccountSummary{
+  totalDeposits?: number;
+  totalWithdrawals?: number;
+  totalBalance?: number;
+  totalCommissions?: number;
+  totalTransferIns?: number;
+  totalTransferOuts?: number;
+}
 export interface Customer {
   id?: string;
   name: string;
@@ -176,6 +184,11 @@ export interface Withdrawal {
   status: 'pending' | 'approved' | 'rejected' | 'completed';
   reason: string;
   approvedBy?: string;
+  processing_status?: string;
+  process_by?: string;
+  payment_reference?: string;
+  agent_note?: string;
+  payment_method?: string;
 }
 
 export interface StaffLite {

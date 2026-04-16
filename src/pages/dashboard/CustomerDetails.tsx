@@ -28,7 +28,8 @@ import {
   Trash2,
   EyeOff,
   Users,
-  X
+  X,
+  Undo2
 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useCustomers } from '../../contexts/dashboard/Customers';
@@ -42,6 +43,7 @@ import AddAccountModal, { AccountFormData } from '../../components/addAccountMod
 import Select from 'react-select';
 import AccountSettingsModal from './Components/accountSettingsModal';
 import TransferModal from './Components/TransferModal';
+import DeleteTransactionModal from '../../components/deleteTransactionModal';
 
 type CustomerDTO = {
   id?: string;
@@ -75,8 +77,9 @@ const CustomerDetailsPage = () => {
     const [editingClient, setEditingClient] = useState<Customer | null>(null);
     const { fetchCustomerById, addSmsNumber, deleteSmsNumber, 
       toggleSms, editCustomer, addCustomer, refreshCustomers, deleteCustomer, customer, customerLoading, customers } = useCustomers();
-  const { accounts, allAccounts, customerLoans, refreshAccounts, refreshAllCompanyAccounts, addAccount, toggleAccountStatus } = useAccounts();
-  const { fetchCustomerTransactions, customerTransactions } = useTransactions();
+  const { accounts, accountSummary, allAccounts, customerLoans, refreshAccounts, refreshAllCompanyAccounts, addAccount, toggleAccountStatus } = useAccounts();
+  const { fetchCustomerTransactions, customerTransactions, deleteTransaction } = useTransactions();
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -89,6 +92,9 @@ const [showSettingsModal, setShowSettingsModal] = useState(false);
 const [showCode, setShowCode] = useState(false)
 const { transferBetweenAccounts } = useTransactions();
 const [newNumber, setNewNumber] = useState("");
+
+  const [selectedTransaction, setSelectedTransaction] = useState('');
+  const [isDeleteTransactionModal, setIsDeleteTransactionModal] = useState(false);
 
  const { id } = useParams();
 
@@ -190,7 +196,6 @@ const accountOptions = allAccounts.map(account => ({
       .reduce((sum, txn) => sum + Number(txn.amount), 0),
       }
 
-    console.log(`Customer data: ${JSON.stringify(customerData)}`)
     const toCustomer = (dto: CustomerDTO): Customer => ({
     id: dto.id ?? crypto.randomUUID(),
     name: dto.fullName ?? "",
@@ -341,31 +346,59 @@ const accountOptions = allAccounts.map(account => ({
   }
 };
 
+  const handleDeleteClick = (transaction_id: string) => {
+    console.log(`Id: ${transaction_id}`)
+    setSelectedTransaction(transaction_id);
+    setIsDeleteTransactionModal(true);
+  };
+
+  const handleDeleteCancel = () => {
+      setSelectedTransaction('');
+      setIsDeleteTransactionModal(false);
+    };
+  
+    const handleDeleteConfirm = async (transactionId: string) => {
+      setIsDeleting(true);
+      const toastId = toast.loading('Deleting transaction…');
+      try {
+        const res = await deleteTransaction(transactionId);
+        if (res) {
+          setIsDeleteTransactionModal(false);
+          setSelectedTransaction('');
+          await refreshCustomers('1', 20);
+          toast.success('Transaction deleted successfully', { id: toastId });
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error('Failed to delete transaction', { id: toastId });
+      } finally {
+        setIsDeleting(false);
+      }
+    };
 
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto flex flex-col gap-3">
 
-  {/* Header Card */}
-  <div className="bg-white border border-gray-100 rounded-2xl px-6 py-5 flex items-center justify-between gap-4">
-    <div className="flex items-center gap-4">
+  {/* Customer Header */}
+<div className="bg-white border flex justify-between border-gray-100 rounded-2xl p-5 space-y-4">
 
-      {/* Avatar */}
-      <div className="w-14 h-14 rounded-2xl bg-[#548048] flex items-center justify-center text-white text-lg font-semibold tracking-wide flex-shrink-0">
+  {/* Top: Profile + Actions */}
+  <div className="flex items-center gap-4 flex-col">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-sm font-medium text-gray-700">
         {customerData.fullName?.substring(0, 2).toUpperCase()}
       </div>
-
-      {/* Info */}
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 leading-snug">
+        <h1 className="text-base font-medium text-gray-900 leading-tight">
           {customerData.fullName}
         </h1>
-        <p className="text-[12px] font-mono text-gray-300 mt-0.5 tracking-wide">
+        <p className="text-[11px] font-mono text-gray-400 mt-0.5">
           ID: {customerData.id}
         </p>
-        <div className="flex items-center gap-2 mt-2">
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold
+        <div className="flex items-center gap-2 mt-1.5">
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium
             ${customerData.status === 'Active'
               ? 'bg-emerald-50 text-emerald-700'
               : 'bg-red-50 text-red-600'}`}>
@@ -373,30 +406,105 @@ const accountOptions = allAccounts.map(account => ({
               ${customerData.status === 'Active' ? 'bg-emerald-400' : 'bg-red-400'}`} />
             {customerData.status}
           </span>
-          <span className="text-[12px] text-gray-400">
+          <span className="text-[11px] text-gray-400">
             Member since {formatDate(customerData.date_of_registration)}
           </span>
         </div>
       </div>
     </div>
 
-    {/* Actions */}
-    <div className="flex items-center gap-2 flex-shrink-0">
+    <div className="flex items-center gap-2">
       {userPermissions.CUSTOMER_CREATE && (
         <button
           onClick={() => setEditingClient(toCustomer(customerData))}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white text-[13px] font-medium rounded-xl transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-xs font-medium rounded-lg transition"
         >
-          <Edit3 className="w-4 h-4" />
-          Edit Customer
+          <Edit3 className="w-3.5 h-3.5" />
+          Edit
         </button>
       )}
-      <button className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-600 text-[13px] font-medium rounded-xl transition-colors">
-        <Download className="w-4 h-4" />
-        Export Data
+      <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 text-xs font-medium rounded-lg transition">
+        <Download className="w-3.5 h-3.5" />
+        Export
       </button>
     </div>
   </div>
+
+  {/* Divider */}
+  {/* <div className="border-t border-gray-100" /> */}
+
+  {/* Stats Grid — 3 cols */}
+  <div className="grid grid-cols-3 gap-2.5">
+
+    {/* Balance — hero card */}
+    <div className="col-span-1 bg-white border border-gray-200 rounded-xl p-3.5">
+      <p className="text-[11px] text-gray-400 font-medium">Current balance</p>
+      <p className="text-lg font-semibold text-gray-900 mt-0.5">
+        GHS {accountSummary?.totalBalance?.toLocaleString()}
+      </p>
+    </div>
+
+    <div className="bg-gray-50 rounded-xl p-3.5">
+      <p className="text-[11px] text-gray-400 font-medium">Total deposits</p>
+      <p className="text-sm font-semibold text-gray-700 mt-0.5">
+        GHS {accountSummary?.totalDeposits?.toLocaleString()}
+      </p>
+    </div>
+
+    <div className="bg-gray-50 rounded-xl p-3.5">
+      <p className="text-[11px] text-gray-400 font-medium">Total withdrawals</p>
+      <p className="text-sm font-semibold text-red-500 mt-0.5">
+        GHS {accountSummary?.totalWithdrawals?.toLocaleString()}
+      </p>
+    </div>
+
+    <div className="bg-gray-50 rounded-xl p-3.5">
+      <p className="text-[11px] text-gray-400 font-medium">Transfer in</p>
+      <p className="text-sm font-medium text-gray-600 mt-0.5">
+        GHS {accountSummary?.totalTransferIns?.toLocaleString()}
+      </p>
+    </div>
+
+    <div className="bg-gray-50 rounded-xl p-3.5">
+      <p className="text-[11px] text-gray-400 font-medium">Transfer out</p>
+      <p className="text-sm font-medium text-gray-600 mt-0.5">
+        GHS {accountSummary?.totalTransferOuts?.toLocaleString()}
+      </p>
+    </div>
+
+    <div className="bg-gray-50 rounded-xl p-3.5">
+      <p className="text-[11px] text-gray-400 font-medium">Commission</p>
+      <p className="text-sm font-medium text-gray-600 mt-0.5">
+        GHS {accountSummary?.totalCommissions?.toLocaleString()}
+      </p>
+    </div>
+  </div>
+
+  {/* Account Breakdown */}
+  <div className="border border-gray-100 rounded-xl overflow-hidden">
+    <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-100">
+      <p className="text-[11px] font-medium text-gray-500">
+        {accounts?.length || 0} accounts
+      </p>
+    </div>
+    <div className="divide-y divide-gray-100">
+      {accounts?.map((acc, index) => (
+        <div key={index} className="flex items-center justify-between px-3.5 py-2.5">
+          <div>
+            <p className="text-sm text-gray-800">{acc.account_type}</p>
+            <p className="text-[11px] font-mono text-gray-400 mt-0.5">
+              {acc.account_number}
+            </p>
+          </div>
+          <p className="text-sm font-medium text-gray-700">
+            GHS {acc.balance?.toLocaleString()}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+
+</div>
 
   {/* Tab Nav */}
   <div className="bg-white border border-gray-100 rounded-2xl p-1.5 inline-flex gap-1 self-start">
@@ -869,116 +977,144 @@ const accountOptions = allAccounts.map(account => ({
     </div>
 
     {/* Table */}
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="bg-gray-50 border-b border-gray-100">
-            {['Date', 'Account', 'Type', 'Amount', 'Status', 'Description'].map((h, i) => (
-              <th
-                key={h}
-                className={`py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400 
-                  ${i === 0 ? 'pl-6 text-left' : i === 3 ? 'text-right' : i === 4 ? 'text-center' : 'text-left'}
-                  ${i === 5 ? 'pr-6' : ''}`}
-              >
-                {h}
-              </th>
-            ))}
+<div className="overflow-x-auto">
+  <table className="w-full">
+    <thead>
+      <tr className="border-b border-gray-100">
+        <th className="py-2.5 pl-5 pr-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50">Date</th>
+        <th className="py-2.5 px-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50">Account</th>
+        <th className="py-2.5 px-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50">Type</th>
+        <th className="py-2.5 px-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50">Method</th>
+        <th className="py-2.5 px-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50">Description</th>
+        <th className="py-2.5 px-3 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50">Amount</th>
+        <th className="py-2.5 px-3 text-center text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50">Status</th>
+        <th className="py-2.5 pl-3 pr-5 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50"></th>
+      </tr>
+    </thead>
+
+    <tbody className="divide-y divide-gray-50">
+      {filteredTransactions.map((transaction) => {
+        const isReversed = transaction.status === 'reversed';
+        const isDeleted  = transaction.is_deleted;
+        const isInflow   = transaction.type === 'deposit' || transaction.type === 'transfer_in';
+
+        const typeBadge: Record<string, string> = {
+          deposit:      'bg-emerald-50 text-emerald-700',
+          withdrawal:   'bg-red-50 text-red-600',
+          transfer_in:  'bg-gray-100 text-gray-500',
+          transfer_out: 'bg-gray-100 text-gray-500',
+          payment:      'bg-amber-50 text-amber-700',
+        };
+
+        const statusStyles: Record<string, { pill: string; dot: string }> = {
+          completed: { pill: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-400' },
+          approved:  { pill: 'bg-blue-50 text-blue-700',       dot: 'bg-blue-400'    },
+          pending:   { pill: 'bg-amber-50 text-amber-700',     dot: 'bg-amber-400'   },
+          reversed:  { pill: 'bg-gray-100 text-gray-400',      dot: 'bg-gray-300'    },
+          rejected:  { pill: 'bg-red-50 text-red-600',         dot: 'bg-red-400'     },
+        };
+
+        const ss = statusStyles[transaction.status] ?? { pill: 'bg-gray-100 text-gray-500', dot: 'bg-gray-300' };
+
+        return (
+          <tr
+            key={transaction.id}
+            className={`group transition-colors last:border-0
+              ${isReversed || isDeleted ? 'opacity-40' : 'hover:bg-gray-50/70'}`}
+          >
+
+            {/* Date */}
+            <td className="py-3 pl-5 pr-3 whitespace-nowrap">
+              <span className={`text-xs font-medium ${isReversed ? 'text-gray-400' : 'text-gray-700'}`}>
+                {formatDate(transaction.transaction_date)}
+              </span>
+            </td>
+
+            {/* Account */}
+            <td className="py-3 px-3 whitespace-nowrap">
+              <span className="inline-flex items-center gap-1 bg-gray-100 rounded-md px-2 py-0.5 text-[11px] font-medium text-gray-500">
+                {transaction.account_type}
+              </span>
+            </td>
+
+            {/* Type */}
+            <td className="py-3 px-3 whitespace-nowrap">
+              <span className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-medium capitalize
+                ${isReversed ? 'bg-gray-100 text-gray-400' : (typeBadge[transaction.type] ?? 'bg-gray-100 text-gray-500')}`}>
+                {transaction.type.replace('_', ' ')}
+              </span>
+            </td>
+
+            {/* Method */}
+            <td className="py-3 px-3 whitespace-nowrap">
+              <span className="inline-block rounded-md px-2 py-0.5 text-[11px] font-medium capitalize bg-gray-100 text-gray-500">
+                {transaction.payment_method ?? 'Cash'}
+              </span>
+            </td>
+
+            {/* Description */}
+            <td className="py-3 px-3 max-w-[180px]">
+              <p className={`text-xs truncate ${isReversed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                {transaction.description || <span className="text-gray-300">—</span>}
+              </p>
+              {isReversed && transaction.reversed_by_name ? (
+                <p className="text-[11px] text-red-400 mt-0.5">
+                  Reversed by {transaction.reversed_by_name}
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  by {transaction.recorded_staff_name}
+                </p>
+              )}
+            </td>
+
+            {/* Amount */}
+            <td className="py-3 px-3 text-right whitespace-nowrap">
+              <span className={`text-sm font-semibold tabular-nums
+                ${isReversed ? 'text-gray-400' : isInflow ? 'text-emerald-600' : 'text-red-500'}`}>
+                {isInflow ? '+' : '−'}{formatCurrency(transaction.amount)}
+              </span>
+            </td>
+
+            {/* Status */}
+            <td className="py-3 px-3 text-center whitespace-nowrap">
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${ss.pill}`}>
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ss.dot}`} />
+                {transaction.status}
+              </span>
+            </td>
+
+            {/* Actions */}
+            <td className="py-3 pl-3 pr-5 text-right whitespace-nowrap">
+              {userPermissions.REVERSE_TRANSACTIONS && !isReversed && (
+                <button
+                  disabled={isDeleted}
+                  onClick={() => { if (!isDeleted) handleDeleteClick(transaction.id); }}
+                  className={`inline-flex items-center gap-1 text-[11px] font-medium rounded-md px-2 py-1 transition-all
+                    ${isDeleted
+                      ? 'text-gray-300 cursor-not-allowed'
+                      : 'text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 cursor-pointer'
+                    }`}
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                  Reverse
+                </button>
+              )}
+            </td>
+
           </tr>
-        </thead>
-        <tbody>
-          {filteredTransactions.map((transaction) => {
-            const isReversed = transaction.status === 'reversed';
-            const isInflow = transaction.type === 'deposit' || transaction.type === 'transfer_in';
+        );
+      })}
+    </tbody>
+  </table>
 
-            const typeBadge: Record<string, string> = {
-              deposit:    'bg-emerald-50 text-emerald-700',
-              withdrawal: 'bg-red-50 text-red-600',
-              transfer_in:'bg-indigo-50 text-indigo-700',
-              transfer_out:'bg-indigo-50 text-indigo-700',
-              payment:    'bg-amber-50 text-amber-700',
-            };
-
-            const statusPill: Record<string, string> = {
-              completed: 'bg-emerald-50 text-emerald-700',
-              approved:  'bg-indigo-50 text-indigo-700',
-              pending:   'bg-amber-50 text-amber-700',
-              reversed:  'bg-gray-100 text-gray-400',
-              rejected:  'bg-red-50 text-red-600',
-            };
-
-            const statusDot: Record<string, string> = {
-              completed: 'bg-emerald-400',
-              approved:  'bg-indigo-400',
-              pending:   'bg-amber-400',
-              reversed:  'bg-gray-300',
-              rejected:  'bg-red-400',
-            };
-
-            return (
-              <tr
-                key={transaction.id}
-                className={`border-b border-gray-50 transition-colors last:border-0
-                  ${isReversed ? 'opacity-50' : 'hover:bg-gray-50/60'}`}
-              >
-                {/* Date */}
-                <td className="py-4 pl-6 pr-4">
-                  <div className={`text-sm font-medium ${isReversed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                    {formatDate(transaction.transaction_date)}
-                  </div>
-                </td>
-
-                {/* Account */}
-                <td className="py-4 px-4">
-                  <span className="inline-flex items-center gap-1.5 bg-gray-100 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-500">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
-                    {transaction.account_type}
-                  </span>
-                </td>
-
-                {/* Type */}
-                <td className="py-4 px-4">
-                  <span className={`inline-block rounded-lg px-2.5 py-1 text-xs font-medium capitalize
-                    ${isReversed ? 'bg-gray-100 text-gray-400' : (typeBadge[transaction.type] || 'bg-gray-100 text-gray-500')}`}>
-                    {transaction.type.replace('_', ' ')}
-                  </span>
-                </td>
-
-                {/* Amount */}
-                <td className="py-4 px-4 text-right">
-                  <span className={`text-sm font-semibold tabular-nums
-                    ${isReversed ? 'text-gray-400' : isInflow ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {isInflow ? '+' : '-'}{formatCurrency(transaction.amount)}
-                  </span>
-                </td>
-
-                {/* Status */}
-                <td className="py-4 px-4 text-center">
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold
-                    ${statusPill[transaction.status] || 'bg-gray-100 text-gray-500'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDot[transaction.status] || 'bg-gray-300'}`} />
-                    {transaction.status}
-                  </span>
-                </td>
-
-                {/* Description */}
-                <td className="py-4 pl-4 pr-6">
-                  <div className={`text-sm font-medium ${isReversed ? 'line-through italic text-red-400' : 'text-gray-800'}`}>
-                    {transaction.description || '—'}{isReversed ? ` (Reversed) by ${transaction.reversed_by_name}` : ''}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    Recorded by {transaction.recorded_staff_name}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {filteredTransactions.length === 0 && (
-        <div className="py-16 text-center text-gray-400 text-sm">No transactions found</div>
-      )}
+  {filteredTransactions.length === 0 && (
+    <div className="py-14 text-center">
+      <p className="text-sm text-gray-400">No transactions found</p>
+      <p className="text-xs text-gray-300 mt-1">Try adjusting your filters</p>
     </div>
+  )}
+</div>
   </div>
 )}
 
@@ -1209,6 +1345,15 @@ const accountOptions = allAccounts.map(account => ({
         isOpen={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
       />
+      {isDeleteTransactionModal && (
+              <DeleteTransactionModal
+                transaction_id={selectedTransaction}
+                isOpen={isDeleteTransactionModal}
+                onClose={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+                isLoading={isDeleting}
+              />
+            )}
 
     </div>
   );
