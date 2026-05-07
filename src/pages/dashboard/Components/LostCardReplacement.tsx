@@ -182,7 +182,7 @@ const CardReplacementManager = () => {
     setLoading(true);
     
     try {
-      const response = await fetch(`5000https://susu-pro-backend.onrender.com/api/accounts/${formData.account_id}/card/replace-with-record`, {
+      const response = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/${formData.account_id}/card/replace-with-record`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('susupro_token')}`,
