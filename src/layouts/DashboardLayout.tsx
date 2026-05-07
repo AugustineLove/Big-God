@@ -281,14 +281,15 @@ const DashboardLayout: React.FC = () => {
             }`}
           >
             <div className="flex items-center gap-3">
-              <Icon className={`h-5 w-5 shrink-0 transition-colors ${
-                isParentActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-primary-500'
-              }`} />
-              <span>{item.name}</span>
-            </div>
-            <div className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+               <div className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
               <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
             </div>
+             
+              <span>{item.name}</span>
+            </div>
+            <Icon className={`h-5 w-5 shrink-0 transition-colors ${
+                isParentActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-primary-500'
+              }`} />
           </button>
 
           <div
@@ -373,12 +374,12 @@ const DashboardLayout: React.FC = () => {
     <TabContext.Provider value={tabCtxValue}>
       <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
 
-        {/* Spotlight */}
+        {/* Spotlight
         {
           userRole !== 'Momo Agent' && (
             <SpotlightSearch isOpen={spotlight.isOpen} onClose={spotlight.close} />
           )
-        }
+        } */}
 
         {/* Mobile overlay */}
         {isMobileSidebarOpen && (
@@ -479,7 +480,7 @@ const DashboardLayout: React.FC = () => {
                 <Menu className="h-5 w-5" />
               </button>
 
-              {/* Search */}
+              {/* Search
               {
                 userRole !== 'Momo Agent' && (
                   <div className="hidden md:flex items-center flex-1 max-w-md">
@@ -496,7 +497,7 @@ const DashboardLayout: React.FC = () => {
                 </div>
               </div>
                 )
-              }
+              } */}
 
               <div className="flex-1 md:flex-none" />
 

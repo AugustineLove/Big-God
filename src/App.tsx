@@ -59,6 +59,7 @@ import DayEndDashboard from './pages/dashboard/DayEndDashboard';
 import { MomoAgentProvider } from './contexts/dashboard/MomoAgent';
 import MomoAgentDashboard from './pages/dashboard/Components/MomoAgentDashboard';
 import AgentHistory from './pages/dashboard/MomoAgentHistrory';
+import CustomerDashboard from './pages/dashboard/CustomerDashboard';
 
 function App() {
   return (
@@ -131,7 +132,7 @@ function App() {
             </ProtectedRoute>
           }>
             <Route index element={<Overview />} />
-            <Route path="clients" element={<Clients />} />
+            <Route path="clients" element={<CustomerDashboard />} />
             <Route path="momo-agent" element={<MomoAgentDashboard />} />
             <Route path="momo-agent/history" element={<AgentHistory/>} />
             <Route path="contributions" element={<Contributions />} />
