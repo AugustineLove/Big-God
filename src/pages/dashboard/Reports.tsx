@@ -617,7 +617,7 @@ const Reports = () => {
       }
 
       const res = await fetch(
-        `http://localhost:5000/api/reports/dashboard/${companyId}?${params}`
+        `https://susu-pro-backend.onrender.com/api/reports/dashboard/${companyId}?${params}`
       );
       if (!res.ok) throw new Error('Request failed');
       const json = await res.json();

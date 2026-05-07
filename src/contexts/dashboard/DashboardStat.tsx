@@ -38,7 +38,7 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setLoading(true);
     try {
       const token = localStorage.getItem('susupro_token');
-      const res = await fetch('http://localhost:5000/api/companies/dashboard/stats', {
+      const res = await fetch('https://susu-pro-backend.onrender.com/api/companies/dashboard/stats', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
