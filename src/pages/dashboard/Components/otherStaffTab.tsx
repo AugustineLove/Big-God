@@ -78,7 +78,7 @@ const OtherStaffTab = () => {
 
     try {
       // API call to update staff
-      const response = await fetch(`/api/staff/${selectedStaff.id}`, {
+      const response = await fetch(`https://susu-pro-backend.onrender.com/api/staff/${selectedStaff.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

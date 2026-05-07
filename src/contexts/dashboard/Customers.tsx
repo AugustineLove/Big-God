@@ -64,49 +64,61 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
 const fetchCustomers = async (page: string, limit = 20, filters?: {
-  search?: string;
-  location?: string;
+  // Identity
+  name?: string;
+  phone_number?: string;
+  email?: string;
+  account_number?: string;
+  id_card?: string;
+  momo_number?: string;
+  // Demographics
+  gender?: string;
   status?: string;
-  staff?: string;
-  dateRange?: string;
-  startDate?: string;
-  endDate?: string;
+  location?: string;
+  city?: string;
+  // Registration
+  registered_by_name?: string;
+  date_from?: string;
+  date_to?: string;
+  date_of_birth?: string;
+  // Financial
+  daily_rate_min?: string;
+  daily_rate_max?: string;
+  balance_min?: string;
+  balance_max?: string;
 }) => {
   setCustomerloading(true);
   try {
     if (!companyId) return;
-    console.log(filters?.startDate, filters?.endDate)
 
-    // Build query string
     const params = new URLSearchParams({ page, limit: String(limit) });
-    if (filters?.search)   params.append('search', filters.search);
-    if (filters?.location) params.append('location', filters.location);
-    if (filters?.status)   params.append('status', filters.status);
-    if (filters?.staff)    params.append('staff', filters.staff);
-    if (filters?.dateRange) params.append('dateRange', filters.dateRange);
-    if (filters?.dateRange === 'custom') {
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate)   params.append('endDate', filters.endDate);
+
+    // Append only non-empty filters
+    if (filters) {
+      (Object.entries(filters) as [string, string | undefined][]).forEach(([key, val]) => {
+        if (val !== undefined && val !== '') params.append(key, val);
+      });
     }
+
     const res = await fetch(
       `https://susu-pro-backend.onrender.com/api/customers/company/${companyId}?${params.toString()}`
     );
 
     if (res.ok) {
       const data = await res.json();
+      console.log(`Customer data: ${JSON.stringify(data)}`)
       setCustomers(data.data);
-      setPaginationMeta({            
+      setPaginationMeta({
         total: data.total,
         totalPages: data.totalPages,
         currentPage: data.page,
-        isSearching: data.isSearching,
+        isSearching: false,   // no longer used — always paginated
       });
       return {
-        total: data.total,
-        totalPages: data.totalPages,
-        currentPage: data.page,
-        isSearching: data.isSearching
-      }
+        total:       data.total,
+        totalPages:  data.totalPages,
+        page:        data.page,
+      };
     }
   } catch (err) {
     console.error('Error fetching customers:', err);
