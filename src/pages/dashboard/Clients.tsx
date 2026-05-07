@@ -126,6 +126,7 @@ const Clients: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { customers, customerLoading, findCustomers, addCustomer, editCustomer, refreshCustomers, deleteCustomer } = useCustomers();
+  console.log(`Customer loading: ${customerLoading}`)
   const { stats } = useStats();
   const navigate = useNavigate();
   const { openInNewTab } = useTabContext();

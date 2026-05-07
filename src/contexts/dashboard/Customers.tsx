@@ -55,7 +55,7 @@ export const useCustomers = () => {
 
 export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customerLoading, setCustomerloading] = useState(true);
+  const [customerLoading, setCustomerloading] = useState(false);
   const [customer, setCustomer] = useState<Customer>();
   const [accounts, setAccounts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -435,9 +435,9 @@ const toggleSms = async (customerId: string) => {
   }
 };
 
-  useEffect(() => {
-    // fetchCustomers("1", 20);
-  }, []);
+  // useEffect(() => {
+  //   // fetchCustomers("1", 20);
+  // }, []);
 
   return (
     <CustomersContext.Provider value={{ customers, customer, accounts, transactions, loading, customerLoading, contextPaginationMeta,
