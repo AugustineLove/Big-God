@@ -125,7 +125,7 @@ const Clients: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { customers, customerLoading, addCustomer, editCustomer, refreshCustomers, deleteCustomer } = useCustomers();
+  const { customers, customerLoading, findCustomers, addCustomer, editCustomer, refreshCustomers, deleteCustomer } = useCustomers();
   const { stats } = useStats();
   const navigate = useNavigate();
   const { openInNewTab } = useTabContext();
@@ -140,11 +140,11 @@ const Clients: React.FC = () => {
     const filters = Object.fromEntries(
       Object.entries(params).filter(([, v]) => v !== '')
     );
-    const meta = await refreshCustomers(String(page), 20, filters);
+    const meta = await findCustomers(String(page), 20, filters);
     if (meta) {
       setPaginationMeta({ total: meta.total, totalPages: meta.totalPages, currentPage: meta.page });
     }
-  }, [refreshCustomers]);
+  }, [refreshCustomers, findCustomers]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSearch = async (e?: React.FormEvent) => {
@@ -229,7 +229,7 @@ const Clients: React.FC = () => {
   const handleDeleteConfirm = async () => {
     setIsDeleting(true);
     try {
-      await deleteCustomer(selectedCustomer?.customer_id);
+      await deleteCustomer(selectedCustomer?.id);
       setIsDeleteModalOpen(false); setSelectedCustomer(null);
       if (submittedParams) doFetch(currentPage, submittedParams);
     } catch (e) { console.error(e); }
@@ -364,7 +364,7 @@ const Clients: React.FC = () => {
           </div>
         </div>
 
-        {/* Financial */}
+        {/* Financial
         <div>
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Financial</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -382,7 +382,7 @@ const Clients: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
@@ -471,21 +471,20 @@ const Clients: React.FC = () => {
                     <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p className="text-lg font-medium text-gray-500 mb-1">No clients found</p>
                     <p className="text-sm text-gray-400">
-                      {hasActiveFilters ? 'Try adjusting your filters or search terms' : 'Get started by adding your first client'}
+                      {'Try adjusting your filters or search terms'}
                     </p>
-                    {hasActiveFilters && (
-                      <button onClick={clearFilters}
+                    <button onClick={handleClear}
                         className="mt-4 text-sm text-indigo-600 hover:text-indigo-800 underline">
                         Clear all filters
                       </button>
-                    )}
+                    
                   </td>
                 </tr>
               ) : (
                 sortedCustomers.map((customer) => (
                   <tr
-                    key={customer.customer_id}
-                    onClick={() => openInNewTab(customer.name, `clients/customer-details/${customer.customer_id}`, Users)}
+                    key={customer.id}
+                    onClick={() => openInNewTab(customer.name, `clients/customer-details/${customer.id}`, Users)}
                     className="group hover:bg-blue-50/50 transition-all duration-200 cursor-pointer border-b border-gray-100 last:border-0"
                   >
                     {/* ── Client Info ───────────────────────────────────── */}
@@ -503,7 +502,7 @@ const Clients: React.FC = () => {
                             <span className="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
                               {customer.name}
                             </span>
-                            {parseFloat(customer.total_balance_across_all_accounts || '0') > 2000 && (
+                            {parseFloat(customer.total_balance_across_all_accounts || '0') > 3000 && (
                               <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full flex-shrink-0">
                                 VIP
                               </span>
@@ -622,7 +621,7 @@ const Clients: React.FC = () => {
                           </button>
                         )}
                         <button
-                          onClick={e => { e.stopPropagation(); navigate(`customer-details/${customer.customer_id}`); }}
+                          onClick={e => { e.stopPropagation(); navigate(`customer-details/${customer.id}`); }}
                           title="View details"
                           className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200"
                         >

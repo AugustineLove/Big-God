@@ -9,7 +9,7 @@ import {
 import autoTable from 'jspdf-autotable';
 import { companyId } from '../../constants/appConstants';
 
-const BASE_URL = 'https://susu-pro-backend.onrender.com';
+const BASE_URL = 'http://localhost:5000';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

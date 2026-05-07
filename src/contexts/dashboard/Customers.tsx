@@ -26,6 +26,15 @@ interface CustomersContextType {
   startDate?: string;
   endDate?: string;
 }) => Promise<void>;
+  findCustomers: (page: string, limit?: number, filters?: {
+  search?: string;
+  location?: string;
+  status?: string;
+  staff?: string;
+  dateRange?: string;
+  startDate?: string;
+  endDate?: string;
+}) => Promise<void>;
   setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
    addCustomer: (newCustomer: Omit<Customer, 'id' | 'created_at'>, account: string, account_number: string) => Promise<void>;
    deleteCustomer: (customer_id: string) => Promise<void>;
@@ -101,12 +110,11 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     }
 
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/customers/company/${companyId}?${params.toString()}`
+      `http://localhost:5000/api/customers/company/${companyId}?${params.toString()}`
     );
 
     if (res.ok) {
       const data = await res.json();
-      console.log(`Customer data: ${JSON.stringify(data)}`)
       setCustomers(data.data);
       setPaginationMeta({
         total: data.total,
@@ -130,7 +138,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
   const fetchCustomerById = async (customerId?: string) => {
     setCustomerloading(true);
     try{
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/customers/${customerId}`);
+      const res = await fetch(`http://localhost:5000/api/customers/${customerId}`);
       if (res.ok){
         const data = await res.json();
         setCustomer(data.data);
@@ -143,11 +151,48 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     }
   }
 
+  // contexts/dashboard/Customers.tsx
+
+const findCustomers = async (
+  page = '1',
+  limit = 20,
+  filters: any = {}
+) => {
+  try {
+    setCustomerloading(true);
+
+    const params = new URLSearchParams();
+
+    params.append('page', page);
+    params.append('limit', String(limit));
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== '' && value !== undefined && value !== null) {
+        params.append(key, String(value));
+      }
+    });
+
+    const response = await fetch(
+      `http://localhost:5000/api/customers/${companyId}/find?${params.toString()}`
+    );
+
+    if(response.ok){
+      const data = await response.json();
+      setCustomers(data.data);
+      return data.data;
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setCustomerloading(false);
+  }
+};
+
 
   const addAccount = async(newAccount: Omit<Account, 'id' | 'created_at'>)=>{
     try {
       console.log('Adding account for customer');
-      const res = await fetch('https://susu-pro-backend.onrender.com/api/accounts/create', {
+      const res = await fetch('http://localhost:5000/api/accounts/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
         body: JSON.stringify(newAccount),
@@ -168,7 +213,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
   setCustomerloading(true);
   try {
     const toastId = toast.loading('Editing customer...')
-    const res = await fetch(`https://susu-pro-backend.onrender.com/api/customers/customer`, {
+    const res = await fetch(`http://localhost:5000/api/customers/customer`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -195,7 +240,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     const token = localStorage.getItem('susupro_token');
     console.log('Company ID in addCustomer: ', companyId);
     try {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/customers/create`, {
+      const res = await fetch(`http://localhost:5000/api/customers/create`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',  
@@ -236,7 +281,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     setLoading(true);
 
     const res = await fetch(
-      "https://susu-pro-backend.onrender.com/api/customers/login",
+      "http://localhost:5000/api/customers/login",
       {
         method: "POST",
         headers: {
@@ -272,7 +317,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
   const deleteCustomer = async (customerId: string) => {
     try {
       console.log('Deleting customer: ', customerId);
-      const res = await fetch('https://susu-pro-backend.onrender.com/api/customers/delete', {
+      const res = await fetch('http://localhost:5000/api/customers/delete', {
         method: 'DELETE',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
@@ -298,7 +343,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
 
   try {
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/customers/${customerId}/sms-numbers`,
+      `http://localhost:5000/api/customers/${customerId}/sms-numbers`,
       {
         method: 'POST',
         headers: {
@@ -331,7 +376,7 @@ const deleteSmsNumber = async (customerId: string, phoneNumber: string) => {
 
   try {
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/customers/${customerId}/sms-numbers`,
+      `http://localhost:5000/api/customers/${customerId}/sms-numbers`,
       {
         method: 'DELETE',
         headers: {
@@ -364,7 +409,7 @@ const toggleSms = async (customerId: string) => {
 
   try {
     const res = await fetch(
-      `https://susu-pro-backend.onrender.com/api/customers/${customerId}/toggle-sms`,
+      `http://localhost:5000/api/customers/${customerId}/toggle-sms`,
       {
         method: 'PATCH',
         headers: {
@@ -391,12 +436,12 @@ const toggleSms = async (customerId: string) => {
 };
 
   useEffect(() => {
-    fetchCustomers("1", 20);
+    // fetchCustomers("1", 20);
   }, []);
 
   return (
     <CustomersContext.Provider value={{ customers, customer, accounts, transactions, loading, customerLoading, contextPaginationMeta,
-     refreshCustomers: fetchCustomers, editCustomer, fetchCustomerById, setCustomers, addCustomer, deleteCustomer,
+     refreshCustomers: fetchCustomers, findCustomers, editCustomer, fetchCustomerById, setCustomers, addCustomer, deleteCustomer,
       addSmsNumber, deleteSmsNumber, toggleSms, login  }}>
       {children}
     </CustomersContext.Provider>

@@ -34,50 +34,175 @@ export interface Commission {
 }
 
 export interface Account {
+  // ─────────────────────────────────────
+  // Core Account Info
+  // ─────────────────────────────────────
   id?: string;
   created_at?: string;
-  customer_id: string;
-  account_type: string;
-  balance?: Number;
-  company_id: string;
-  created_by: string;
-  account_number?: string;
+  updated_at?: string;
 
-  // Susu specific
-  susuAmount?: number;
-  frequency?: 'daily' | 'weekly' | 'monthly';
-  susuDuration?: number; // in months
-  startDate?: string;
-  daily_rate?: number;
-  // Savings specific
-  initial_deposit?: number;
-  minimumBalance?: number;
-  interestRate?: number;
-  // Loan specific
-  interestrateloan?: number;
-  loanterm?: number; // in months
-  collateral?: string;
-  guarantor?: string;
-  guarantorPhone?: string;
+  customer_id: string;
+  company_id: string;
+
+  created_by: string;
   created_by_type: string;
-  loantype?: string;
-  loanamount?: string;
-  duration?: string;
-  purpose?: string;
-  disbursedamount?: string;
-  disbursementDate?: string;
-  maturityDate?: string;
-  daysOverdue?: number;
-  status?: string;
-  monthlypayment?: string;
-  amountpaid?: string;
-  outstandingbalance?: string;
-  nextPaymentDate?: string;
-  totalpayable?:string;
+
+  account_number?: string;
+  account_type: string;
+
+  balance?: number;
+  available_balance?: number;
+
+  status?: 'Active' | 'Inactive' | 'Frozen' | 'Closed' | 'Dormant';
+
   customer_name?: string;
   customer_phone?: string;
+
   mobile_banker?: string;
+
+  // ─────────────────────────────────────
+  // Savings / Susu Settings
+  // ─────────────────────────────────────
+  susuAmount?: number;
+  frequency?: 'daily' | 'weekly' | 'monthly';
+  susuDuration?: number;
+  startDate?: string;
+
+  daily_rate?: number;
+
+  initial_deposit?: number;
+
+  minimumBalance?: number;
+  minimum_balance?: number;
+
+  interestRate?: number;
+  interest_rate?: number;
+
+  maintenanceFee?: number;
+  maintenance_fee?: number;
+
+  // ─────────────────────────────────────
+  // Balance & Protection Controls
+  // ─────────────────────────────────────
+  allowNegativeBalance?: boolean;
+  allow_negative_balance?: boolean;
+
+  overdraftLimit?: number;
+  overdraft_limit?: number;
+
+  lowBalanceThreshold?: number;
+  low_balance_threshold?: number;
+
+  notifyOnLowBalance?: boolean;
+  notify_on_low_balance?: boolean;
+
+  sms_notifications_enabled?: boolean;
+  email_notifications_enabled?: boolean;
+
+  sms_number?: string;
+  sms_numbers?: string[];
+
+  // ─────────────────────────────────────
+  // Card Management
+  // ─────────────────────────────────────
+  card_number?: string;
+
+  card_status?: 'Active' | 'Blocked' | 'Expired' | 'Lost' | 'Damaged';
+
+  card_issued_date?: string;
+  card_expiry_date?: string;
+
+  card_replacement_count?: number;
+  last_card_replaced_at?: string;
+
+  replacement_reason?: string;
+
+  physical_card_issued?: boolean;
+
+  pin_last_changed_at?: string;
+
+  // ─────────────────────────────────────
+  // Loan Specific
+  // ─────────────────────────────────────
+  interestrateloan?: number;
+
+  loanterm?: number;
+
+  collateral?: string;
+
+  guarantor?: string;
+  guarantorPhone?: string;
+
+  loantype?: string;
+
+  loanamount?: string;
+
+  duration?: string;
+
+  purpose?: string;
+
+  disbursedamount?: string;
+
+  disbursementDate?: string;
+
+  maturityDate?: string;
+
+  daysOverdue?: number;
+
+  monthlypayment?: string;
+
+  amountpaid?: string;
+
+  outstandingbalance?: string;
+
+  nextPaymentDate?: string;
+
+  totalpayable?: string;
+
   interestmethod?: string;
+
+  // ─────────────────────────────────────
+  // Security & Compliance
+  // ─────────────────────────────────────
+  is_verified?: boolean;
+
+  verified_at?: string;
+
+  last_transaction_at?: string;
+
+  inactive_at?: string;
+
+  freeze_reason?: string;
+
+  closed_at?: string;
+
+  closed_reason?: string;
+
+  // ─────────────────────────────────────
+  // Audit / Tracking
+  // ─────────────────────────────────────
+  created_by_name?: string;
+
+  updated_by?: string;
+
+  updated_by_name?: string;
+
+  deleted_at?: string;
+
+  is_deleted?: boolean;
+
+  // ─────────────────────────────────────
+  // Extra Metadata
+  // ─────────────────────────────────────
+  notes?: string;
+
+  description?: string;
+
+  tags?: string[];
+
+  currency?: string;
+
+  branch?: string;
 }
 
 export interface AccountSummary{
