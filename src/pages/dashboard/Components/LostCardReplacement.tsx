@@ -208,7 +208,7 @@ const CardReplacementManager = () => {
         setFormData({
           replacement_reason: '',
           delivery_address: '',
-          fee_charged: 0,
+          fee_charged: 0,             
           notes: '',
           account_id: ''
         });
