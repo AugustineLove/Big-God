@@ -42,7 +42,7 @@ import { LoansProvider } from './contexts/dashboard/Loan';
 import BudgetDetails from './pages/dashboard/BudgetDetails';
 import { FloatActivityProvider } from './contexts/dashboard/FloatActivity';
 import { AccountNumberProvider } from './contexts/dashboard/NextAccountNumber';
-import { userUUID } from './constants/appConstants';
+import { companyId, userUUID } from './constants/appConstants';
 import { AccountNumberProviders } from './contexts/dashboard/NextAccNumbers';
 import { CommissionDay } from './pages/dashboard/DailyCommissions';
 import { CommissionStatsProvider } from './contexts/dashboard/Commissions';
@@ -60,6 +60,7 @@ import { MomoAgentProvider } from './contexts/dashboard/MomoAgent';
 import MomoAgentDashboard from './pages/dashboard/Components/MomoAgentDashboard';
 import AgentHistory from './pages/dashboard/MomoAgentHistrory';
 import CustomerDashboard from './pages/dashboard/CustomerDashboard';
+import AccountingModule from './pages/dashboard/Components/AccountingModule';
 
 function App() {
   return (
@@ -138,6 +139,7 @@ function App() {
             <Route path="contributions" element={<Contributions />} />
             <Route path="all-transactions" element={<AllTransactions />} />
             <Route path="expenses/budgets/:id" element={<BudgetDetails />} />
+            <Route path='accounting' element={<AccountingModule companyId={companyId} />} />
             <Route path="expenses/commissions/:date" element={<CommissionDay />} />
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="reports" element={<ReportsDashboard />} />
