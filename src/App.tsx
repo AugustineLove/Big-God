@@ -138,14 +138,14 @@ function App() {
             <Route path="momo-agent/history" element={<AgentHistory/>} />
             <Route path="contributions" element={<Contributions />} />
             <Route path="all-transactions" element={<AllTransactions />} />
-            <Route path="expenses/budgets/:id" element={<BudgetDetails />} />
+            <Route path="finance/budgets/:id" element={<BudgetDetails />} />
             <Route path='accounting' element={<AccountingModule companyId={companyId} />} />
-            <Route path="expenses/commissions/:date" element={<CommissionDay />} />
+            <Route path="finance/commissions/:date" element={<CommissionDay />} />
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="reports" element={<ReportsDashboard />} />
             <Route path="chat" element={<Chat />} />
             <Route path="updates" element={<UpdatesPage />} />
-            <Route path="expenses" element={<FinancialDashboard />} />
+            <Route path="finance" element={<FinancialDashboard />} />
             <Route path="staffs" element={<StaffManagement />} />
             <Route path="loans" element={<LoanManagement/>} />
             <Route path="clients/customer-details/:id" element={<CustomerDetailsPage />} />
