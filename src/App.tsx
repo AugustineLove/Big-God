@@ -61,6 +61,7 @@ import MomoAgentDashboard from './pages/dashboard/Components/MomoAgentDashboard'
 import AgentHistory from './pages/dashboard/MomoAgentHistrory';
 import CustomerDashboard from './pages/dashboard/CustomerDashboard';
 import AccountingModule from './pages/dashboard/Components/AccountingModule';
+import BalanceTracer from './pages/dashboard/Components/BalanceTracer';
 
 function App() {
   return (
@@ -152,6 +153,7 @@ function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="security" element={<SecurityTab />} />
             <Route path="day-end" element={<DayEndDashboard />} />
+            <Route path='balance-tracer' element={<BalanceTracer />} />
           </Route>
         </Routes>
       </Router>

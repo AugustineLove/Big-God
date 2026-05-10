@@ -1421,7 +1421,19 @@ function BalanceSheet({ companyId }) {
                   ))}
                   <tr className="subtotal">
                     <td colSpan={3}>Total assets</td>
-                    <td className="right">{fmt(assets.reduce((s, r) => s + Number(r.amount), 0))}</td>
+                    <td className="right">
+                    {fmt(
+                      assets.reduce((sum, acc) => {
+                        const amount = Number(acc.amount);
+
+                        return sum + (
+                          acc.normal_balance === "credit"
+                            ? -amount
+                            : amount
+                        );
+                      }, 0)
+                    )}
+                  </td>
                   </tr>
                 </tbody>
               </table>
