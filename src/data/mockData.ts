@@ -286,6 +286,7 @@ export interface Transaction {
   company_id: string;
   status: string;
   unique_code: string;
+  send_sms?: string;
 }
 
 export interface Contribution {

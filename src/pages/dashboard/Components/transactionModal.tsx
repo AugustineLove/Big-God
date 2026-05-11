@@ -113,7 +113,7 @@ const daysSince = (d?: string) => {
 };
 
 const ACCOUNT_TYPE_ICONS: Record<string, string> = {
-  savings: "💳", susu: "🪙", current: "💳", default: "🏦",
+  savings: "", susu: "", current: "", default: "",
 };
 
 const getAccountEmoji = (type: string) =>
@@ -521,7 +521,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
       status,
       send_sms: sendSms,
     };
-    const ok = await addTransaction(payload, selectedAccount, selectedCustomer, formData.amount);
+     const ok = await addTransaction(payload, selectedAccount, selectedCustomer, formData.amount);
     if (ok === true) {
       toast.success("Transaction added successfully", { id: toastId });
       onClose();
@@ -727,12 +727,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                               : "border-gray-100 hover:border-gray-200 bg-white"}`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg
+                            {/* <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg
                               ${selected
                                 ? isDeposit ? "bg-emerald-100" : "bg-red-100"
                                 : "bg-gray-100"}`}>
                               {getAccountEmoji(account.account_type)}
-                            </div>
+                            </div> */}
                             <div>
                               <p className="text-[13px] font-semibold text-gray-900 capitalize">
                                 {account.account_type} account
@@ -887,7 +887,6 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-bold text-gray-400">¢</span>
                 <input
-                  type="number"
                   name="amount"
                   value={formData.amount}
                   onChange={handleChange}
@@ -931,36 +930,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
             <FieldError msg={errors.description} />
           </div>
 
-          {/* ── Mobile banker ── */}
-          <div>
-            <Label required>Recorded by (mobile banker)</Label>
-            <select
-              name="staked_by"
-              value={formData.staked_by}
-              onChange={handleChange}
-              disabled={staffLoading}
-              className={`w-full px-4 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none transition-all appearance-none
-                ${errors.staked_by
-                  ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
-                  : "border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"}`}
-            >
-              <option value="">Select mobile banker…</option>
-              {selectedCustomer?.registered_by && (
-                <option value={selectedCustomer.registered_by}>
-                  {selectedCustomer.registered_by_name} (assigned)
-                </option>
-              )}
-              {mobileBankers
-                .filter((b) => b.id !== selectedCustomer?.registered_by)
-                .map((b) => (
-                  <option key={b.staff_id} value={b.id}>
-                    {b.full_name} · {b.staff_id}
-                  </option>
-                ))}
-            </select>
-            <FieldError msg={errors.staked_by} />
-          </div>
-
+         
           {/* ── SMS toggle ── */}
           <SmsToggle
             enabled={sendSms}

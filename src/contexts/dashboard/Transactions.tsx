@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { Account, Commission, Customer, Transaction } from '../../data/mockData';
 import { useCustomers } from './Customers';
 import { useStats } from './DashboardStat';
-import { companyId, makeSuSuProName, parentCompanyName, userUUID } from '../../constants/appConstants';
+import { companyId, companyName, getDisplayName, makeSuSuProName, parentCompanyName, userUUID } from '../../constants/appConstants';
 import toast from 'react-hot-toast';
 import { useCommissionStats } from './Commissions';
 import { useAccounts } from './Account';
@@ -425,23 +425,70 @@ const fetchWithdrawals = useCallback(async (
     }
   }, []);
 
-  const addTransaction = useCallback(async (newTransaction: Omit<Transaction, 'id' | 'created_at'>, account: Account, customer: Customer, amount: string): Promise<boolean> => {
+  const addTransaction = useCallback(
+  async (
+    newTransaction: Omit<Transaction, 'id' | 'created_at'>,
+    account: Account,
+    customer: Customer,
+    amount: string
+  ): Promise<boolean> => {
     try {
+      // Build professional transaction description
+    const transactionType =
+      newTransaction.transaction_type?.toLowerCase();
+
+    const formattedAmount = Number(amount).toFixed(2);
+
+    const userProvidedDescription = newTransaction.description?.trim().toUpperCase();
+
+    let generatedDescription = '';
+
+    if (transactionType === 'deposit') {
+      generatedDescription =
+        `CASH DEPOSIT OF GHS ${formattedAmount} INTO ` +
+        `${account.account_type.toUpperCase()} ACCOUNT (${account.account_number})`;
+    }
+
+    if (transactionType === 'withdrawal') {
+      generatedDescription =
+        `CASH WITHDRAWAL OF GHS ${formattedAmount} FROM ` +
+        `${account.account_type.toUpperCase()} ACCOUNT (${account.account_number})`;
+    }
+
+    // Add staff name if available
+    if (companyName?.trim()) {
+      generatedDescription += ` PROCESSED BY ${companyName.toUpperCase()}`;
+    }
+
+    // Append user's original description professionally
+    if (userProvidedDescription) {
+      generatedDescription += `. REMARKS: ${userProvidedDescription}`;
+    }
+
+    // Final punctuation
+    generatedDescription += '.';
+
+    // Override payload description
+    const updatedTransactionPayload = {
+      ...newTransaction,
+      description: generatedDescription,
+    };
+
       setLoading(true);
       setError(null);
-     const res = await fetch(`https://susu-pro-backend.onrender.com/api/transactions/stake`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newTransaction),
-      });
 
-      // if (!res.ok) {
-      //   toast.error('Failed to add transaction', {id: toastId});
-      //   throw new Error(`HTTP error! status: ${res.status}`);
-      // }
-       const json = await res.json();
+      const res = await fetch(
+        `https://susu-pro-backend.onrender.com/api/transactions/stake`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatedTransactionPayload),
+        }
+      );
+
+      const json = await res.json();
 
       if (json.status === 'success') {
         await Promise.all([
@@ -450,53 +497,129 @@ const fetchWithdrawals = useCallback(async (
           refreshStats(),
         ]);
 
-        
-        const updatedAccounts = await refreshAccounts(customer.customer_id);
-        const newAccountBalance = updatedAccounts.find(a => a.id === account.id)?.balance;
-        
-      const shouldSendSms = customer?.send_sms;
-        const numbers = [...new Set(
-          (customer?.sms_numbers?.length
-            ? customer.sms_numbers
-            : customer?.phone_number
-              ? [customer.phone_number]
-              : []
-          ).filter(Boolean)
-        )];
+        // Refresh latest account data
+        const updatedAccounts = await refreshAccounts(
+          customer.customer_id
+        );
 
-        const isDeposit =
-          newTransaction.transaction_type?.toLowerCase() === 'deposit';
+        const updatedAccount = updatedAccounts.find(
+          (a) => a.id === account.id
+        );
 
-        if (shouldSendSms && numbers.length > 0 && isDeposit) {
-          const messageData = {
-            messageTo: numbers,
-            message: `You have successfully credited your ${account?.account_type} account with GHS${amount}.00. Your new balance is GHS${newAccountBalance}`,
-            messageFrom: makeSuSuProName(parentCompanyName)
-          };
+        const newAccountBalance =
+          updatedAccount?.balance ?? account.balance;
 
-          sendMessage(messageData).catch(err =>
-            console.warn(`Message sending failed but transaction was successful:`, err)
-          );
+        // --------------------------------------------------
+        // SMS LOGIC
+        // --------------------------------------------------
+
+        /**
+         * Payload send_sms OVERRIDES account default
+         *
+         * Rules:
+         * payload true  => SEND
+         * payload false => DON'T SEND
+         * payload undefined => fallback to account.sms_enabled
+         */
+
+        const shouldSendSms =
+          typeof newTransaction.send_sms === 'boolean'
+            ? newTransaction.send_sms
+            : account?.sms_enabled;
+
+        // Use ACCOUNT sms_numbers instead of customer
+        const numbers = [
+          ...new Set(
+            (
+              Array.isArray(updatedAccount?.sms_numbers)
+                ? updatedAccount.sms_numbers
+                : []
+            )
+              .filter(
+                (num): num is string =>
+                  typeof num === 'string' &&
+                  num.trim() !== '' &&
+                  /^[0-9+\-\s]{8,20}$/.test(num.trim())
+              )
+              .map((num) => num.trim())
+          ),
+        ];
+
+        const transactionType =
+          newTransaction.transaction_type?.toLowerCase();
+
+        const isDeposit = transactionType === 'deposit';
+        const isWithdrawal = transactionType === 'withdrawal';
+
+        // --------------------------------------------------
+        // SEND SMS
+        // --------------------------------------------------
+
+        if (shouldSendSms && numbers.length > 0) {
+          let message = '';
+
+          if (isDeposit) {
+            message = `You have successfully credited your ${account?.account_type} account with GHS${amount}. Your new balance is GHS${newAccountBalance}.`;
+          }
+
+          if (isWithdrawal) {
+            message = `You have successfully withdrawn GHS${amount} from your ${account?.account_type} account. Your new balance is GHS${newAccountBalance}.`;
+          }
+
+          if (message) {
+            const messageData = {
+              messageTo: numbers,
+              message,
+              messageFrom: makeSuSuProName(parentCompanyName),
+            };
+
+            sendMessage(messageData).catch((err) =>
+              console.warn(
+                `Message sending failed but transaction succeeded:`,
+                err
+              )
+            );
+          }
         }
+
         return true;
-      } else if (json.status === 'insufficient_balance') {
-        // setError('Insufficient balance for this transaction');
-        return false;
-      } else if (json.status === 'minimum_balance') {
-        return false;
-      } 
-       else {
-        throw new Error(json.message || 'Failed to add transaction');
       }
+
+      if (json.status === 'insufficient_balance') {
+        return false;
+      }
+
+      if (json.status === 'minimum_balance') {
+        return false;
+      }
+
+      throw new Error(
+        json.message || 'Failed to add transaction'
+      );
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('Error adding transaction:', errorMessage);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Unknown error occurred';
+
+      console.error(
+        'Error adding transaction:',
+        errorMessage
+      );
+
       setError(errorMessage);
+
       return false;
     } finally {
       setLoading(false);
     }
-  }, [fetchTransactions, refreshCustomers, refreshStats]);
+  },
+  [
+    fetchTransactions,
+    refreshCustomers,
+    refreshStats,
+  ]
+);
 
   const addBulkTransactions = useCallback(
   async (
