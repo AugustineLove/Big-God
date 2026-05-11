@@ -1261,7 +1261,7 @@ const accountOptions = allAccounts.map(account => ({
     </div>
 
     {/* ================= SMS MANAGEMENT ================= */}
-    <div className="lg:col-span-2 bg-white border border-gray-100 rounded-2xl overflow-hidden">
+    {/* <div className="lg:col-span-2 bg-white border border-gray-100 rounded-2xl overflow-hidden">
 
       <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
         <div>
@@ -1269,7 +1269,7 @@ const accountOptions = allAccounts.map(account => ({
           <p className="text-xs text-gray-400">Manage notification numbers</p>
         </div>
 
-        {/* Toggle */}
+
         <button
           onClick={toggleSmsStatus}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition
@@ -1283,7 +1283,7 @@ const accountOptions = allAccounts.map(account => ({
 
       <div className="p-4 space-y-3">
 
-        {/* List of Numbers */}
+
         <div className="flex flex-wrap gap-2">
           {customerData.sms_numbers?.map((num, index) => (
             <div
@@ -1302,7 +1302,7 @@ const accountOptions = allAccounts.map(account => ({
           ))}
         </div>
 
-        {/* Add Number */}
+
         <div className="flex gap-2">
           <input
             type="text"
@@ -1321,7 +1321,7 @@ const accountOptions = allAccounts.map(account => ({
         </div>
 
       </div>
-    </div>
+    </div> */}
 
   </div>
 )}
