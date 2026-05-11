@@ -523,7 +523,13 @@ const SelectEl: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { err?:
 const IndividualPanel: React.FC<{ availableCustomers: Customer[] }> = ({ availableCustomers }) => {
   const { createIndividualLoan, loading } = useLoans();
   const today = new Date().toISOString().split("T")[0];
-
+  const [loanCustomerSearch, setLoanCustomerSearch] = useState("");
+  const [loanSearchResults, setLoanSearchResults] = useState([]);
+  const [loanSearchLoading, setLoanSearchLoading] = useState(false);
+  const [showLoanDropdown, setShowLoanDropdown] = useState(false);
+  const [selectedLoanCustomer, setSelectedLoanCustomer] = useState(null);
+  const [newCustomerId, setNewCustomerId] = useState("");
+  console.log(`Loan search customer result: ${JSON.stringify(loanSearchResults)}`)
   const [form, setForm] = useState<IndividualForm>({
     customerId: "", customerName: "", customerPhone: "",
     category: "", amount: "", interestRate: "", duration: "",
@@ -561,8 +567,46 @@ const IndividualPanel: React.FC<{ availableCustomers: Customer[] }> = ({ availab
     return d.toISOString().split("T")[0];
   };
 
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedLoanCustomer(customer);
+    setForm(prev => ({
+      ...prev,
+      customerId: customer.id,
+      customerName: customer.name,
+      customerPhone: customer.phone_number
+    }));
+    setLoanCustomerSearch(customer.name);
+    setShowLoanDropdown(false);
+  };
+  
+   useEffect(() => {
+  if (!loanCustomerSearch.trim()) {
+    setLoanSearchResults([]);
+    return;
+  }
+
+  const t = setTimeout(async () => {
+    setLoanSearchLoading(true);
+    try {
+      const res = await fetch(
+        `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${loanCustomerSearch}`
+      );
+      const data = await res.json();
+      console.log(`${JSON.stringify(data)}`)
+      setLoanSearchResults(data.data || []);
+    } catch {
+      // silent
+    } finally {
+      setLoanSearchLoading(false);
+    }
+  }, 380);
+
+  return () => clearTimeout(t);
+}, [loanCustomerSearch]);
+
   const validate = () => {
     const e: Partial<Record<keyof IndividualForm, string>> = {};
+    console.log(form.customerName)
     if (!form.customerName && !form.customerId) e.customerName = "Required";
     if (!form.category) e.category = "Required";
     if (!form.amount || parseFloat(form.amount) <= 0) e.amount = "Must be > 0";
@@ -578,7 +622,7 @@ const IndividualPanel: React.FC<{ availableCustomers: Customer[] }> = ({ availab
 
   const submit = async () => {
     if (!validate()) return;
-
+    console.log(`Vaildated`)
     // Resolve customer_id: use selected registered customer, or leave undefined
     // so the backend falls back to created_by.
     const payload: CreateIndividualLoanPayload = {
@@ -631,20 +675,60 @@ const IndividualPanel: React.FC<{ availableCustomers: Customer[] }> = ({ availab
       <div style={S.card}>
         <div style={S.cardHead}>Borrower</div>
         <div style={S.g2}>
-          {availableCustomers.length > 0 ? (
-            <Field label="Select customer" required error={errors.customerId}>
-              <SelectEl value={form.customerId} onChange={set("customerId")} err={!!errors.customerId}>
-                <option value="">Choose…</option>
-                {availableCustomers.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name} — {c.phone_number}</option>
-                ))}
-              </SelectEl>
-            </Field>
-          ) : (
-            <Field label="Customer name" required error={errors.customerName}>
-              <Input value={form.customerName} onChange={set("customerName")} placeholder="Full name" err={!!errors.customerName} />
-            </Field>
-          )}
+           <Field label="Loan Member" required error={errors.customerName}>
+            <div style={{ position: 'relative' }}>
+              <Input
+                value={loanCustomerSearch}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setLoanCustomerSearch(e.target.value);
+                  setShowLoanDropdown(true);
+                }}
+                placeholder="Search customer..."
+              />
+              {showLoanDropdown && loanCustomerSearch && (
+                <div style={{
+                  position: 'absolute',
+                  zIndex: 20,
+                  width: '100%',
+                  marginTop: 6,
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: 12,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  maxHeight: 220,
+                  overflowY: 'auto'
+                }}>
+                  {loanSearchLoading ? (
+                    <div style={{ padding: 16, textAlign: 'center', fontSize: 13, color: '#999' }}>
+                      Searching…
+                    </div>
+                  ) : loanSearchResults.length > 0 ? (
+                    loanSearchResults.map((customer) => (
+                      <div
+                        key={customer.id}
+                        onClick={() => handleSelectCustomer(customer)}
+                        style={{
+                          padding: '12px 16px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f0f0f0',
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9f9f9'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                      >
+                        <div style={{ fontSize: 13, fontWeight: 500 }}>{customer.name}</div>
+                        <div style={{ fontSize: 11, color: '#999' }}>{customer.phone_number}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: 16, textAlign: 'center', fontSize: 13, color: '#999' }}>
+                      No customers found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </Field>
           <Field label="Phone">
             <Input value={form.customerPhone} onChange={set("customerPhone")} placeholder="+233 XX XXX XXXX" type="tel" />
           </Field>

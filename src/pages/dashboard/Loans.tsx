@@ -630,7 +630,7 @@ const LoanManagement = () => {
             const total    = loan.totalpayable ?? 1;
             const progress = Math.min((paid / total) * 100, 100);
             const isGroup  = loan.loantype === 'group';
-            const name     = loan.group_name ?? loan.recipient_name ?? '—';
+            const name     = loan.group_name ?? loan.customer_name ?? loan.recipient_name ?? '—';
             const phone    = loan.customer_phone ?? loan.recipient_phone ?? '';
             const daysLeft = loan.duedate
               ? Math.ceil((new Date(loan.duedate).getTime() - Date.now()) / 86400000)
