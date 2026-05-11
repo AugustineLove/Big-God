@@ -998,13 +998,13 @@ const calculateOperationalMetrics = () => {
           <h2 className="text-xl font-semibold text-gray-900">Revenue Management</h2>
           <p className="text-sm text-gray-600 mt-1">Track and analyze company revenue streams</p>
         </div>
-        <button 
+        {/* <button 
           onClick={handleAddRevenue}
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>Add Revenue</span>
-        </button>
+        </button> */}
       </div>
 
       {/* Revenue Summary Cards */}
@@ -1216,7 +1216,7 @@ const CommissionTab = ({
           </p>
         </div>
 
-        {userPermissions?.ALTER_FINANCE && (
+        {/* {userPermissions?.ALTER_FINANCE && (
           <button
             // onClick={() => setShowCommissionModal(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
@@ -1224,7 +1224,7 @@ const CommissionTab = ({
             <Plus className="w-4 h-4" />
             <span>Record Commission</span>
           </button>
-        )}
+        )} */}
       </div>
 
       {/* Summary Cards */}
@@ -1311,13 +1311,13 @@ const CommissionTab = ({
           <h2 className="text-xl font-semibold text-gray-900">Expense Management</h2>
           <p className="text-sm text-gray-600 mt-1">Track and manage company expenses</p>
         </div>
-        <button 
+        {/* <button 
           onClick={() => setShowExpenseModal(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>Add Expense</span>
-        </button>
+        </button> */}
       </div>
 
       {/* Filters */}
@@ -1432,13 +1432,13 @@ const AssetsTab = () => {
           <h2 className="text-xl font-semibold text-gray-900">Asset Management</h2>
           <p className="text-sm text-gray-600 mt-1">Monitor and track company assets</p>
         </div>
-        <button
+        {/* <button
           onClick={() => setShowAssetModal(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>Add Asset</span>
-        </button>
+        </button> */}
       </div>
 
       {/* Asset Summary Cards */}

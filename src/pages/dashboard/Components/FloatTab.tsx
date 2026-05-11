@@ -255,7 +255,7 @@ const FloatTab = ({ budgets, setShowBudgetModal }: FloatTabProps) => {
           <h2 className="text-[18px] font-semibold text-gray-900">Float planning</h2>
           <p className="text-[13px] text-gray-400 mt-0.5">Plan and monitor floats by teller</p>
         </div>
-        {userPermissions?.ALTER_FINANCE && (
+        {/* {userPermissions?.ALTER_FINANCE && (
           <button
             onClick={() => setShowBudgetModal(true)}
             className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2.5 rounded-2xl text-[13px] font-medium transition-colors flex-shrink-0"
@@ -263,7 +263,7 @@ const FloatTab = ({ budgets, setShowBudgetModal }: FloatTabProps) => {
             <Plus className="w-4 h-4" />
             Create float
           </button>
-        )}
+        )} */}
       </div>
 
       {/* Summary strip */}

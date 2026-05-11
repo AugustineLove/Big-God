@@ -2,383 +2,37 @@ import { useState, useEffect, useCallback } from "react";
 import { companyId } from "../../../constants/appConstants";
 
 // ─── CONFIG ───────────────────────────────────────────────────
-// Change this to your actual company ID and API base
 const COMPANY_ID = companyId;
-const API_BASE   = "https://susu-pro-backend.onrender.com/api/accounting";
-const API        = `${API_BASE}/${COMPANY_ID}`;
+const API_BASE = "https://susu-pro-backend.onrender.com/api/accounting";
+const API = `${API_BASE}/${COMPANY_ID}`;
 
 // ─── HELPERS ─────────────────────────────────────────────────
-const fmt = (n) =>
+const fmt = (n: number) =>
   new Intl.NumberFormat("en-GH", {
-    style: "currency", currency: "GHS", minimumFractionDigits: 2,
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
   }).format(Number(n) || 0);
 
-const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
-  }) : "—";
+const fmtDate = (d: string) =>
+  d
+    ? new Date(d).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
 
-const abs = (n) => Math.abs(Number(n) || 0);
-
-// ─── STYLES ──────────────────────────────────────────────────
-const S = `
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Lato:wght@300;400;700&display=swap');
-
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --bg:#080a0f;
-  --bg2:#0e1117;
-  --bg3:#141820;
-  --bg4:#1a2030;
-  --border:#1e2535;
-  --border2:#252d40;
-  --text:#dde3f0;
-  --text2:#7a8aaa;
-  --text3:#404860;
-  --gold:#e8b84b;
-  --gold2:#f5d280;
-  --gold-dim:#3a2e10;
-  --green:#34d98b;
-  --green-dim:#0d2e1e;
-  --red:#f06060;
-  --red-dim:#2e0f0f;
-  --blue:#5b9cf6;
-  --blue-dim:#0d1e38;
-  --purple:#a87ef8;
-  --purple-dim:#1a0f38;
-  --teal:#38e8d8;
-  --teal-dim:#0a2828;
-  --r:10px;
-  --r2:16px;
-}
-body{background:var(--bg);color:var(--text);font-family:'Lato',sans-serif;min-height:100vh;}
-
-/* topbar */
-.topbar{
-  padding:20px 28px 16px;
-  border-bottom:1px solid var(--border);
-  background:var(--bg2);
-  display:flex;align-items:center;gap:16px;
-  position:sticky;top:0;z-index:100;
-}
-.logo{
-  font-family:'Syne',sans-serif;
-  font-size:18px;font-weight:800;
-  color:var(--gold);letter-spacing:-0.5px;
-}
-.topbar-title{font-size:13px;color:var(--text2);font-weight:300;}
-.topbar-sep{flex:1;}
-.company-badge{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:10px;padding:4px 12px;border-radius:99px;
-  background:var(--gold-dim);color:var(--gold);
-  border:1px solid #4a3a18;letter-spacing:.3px;
-}
-
-/* layout */
-.layout{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 61px);}
-.sidebar{
-  background:var(--bg2);
-  border-right:1px solid var(--border);
-  overflow-y:auto;
-  max-height:calc(100vh - 61px);
-  position:sticky;top:61px;
-}
-.main{padding:28px;overflow-y:auto;}
-
-/* sidebar */
-.sidebar-header{
-  padding:16px 20px 12px;
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.sidebar-title{
-  font-family:'Syne',sans-serif;
-  font-size:13px;font-weight:700;
-  color:var(--text2);letter-spacing:.5px;
-  text-transform:uppercase;
-}
-.refresh-btn{
-  background:none;border:1px solid var(--border2);
-  color:var(--text2);font-size:11px;
-  padding:4px 10px;border-radius:6px;cursor:pointer;
-  font-family:'Lato',sans-serif;
-  transition:all .15s;
-}
-.refresh-btn:hover{border-color:var(--gold);color:var(--gold);}
-
-.type-group{border-bottom:1px solid var(--border);}
-.type-label{
-  padding:10px 20px 8px;
-  font-size:10px;font-weight:700;
-  letter-spacing:1px;text-transform:uppercase;
-  color:var(--text3);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.acct-row{
-  display:flex;align-items:center;gap:0;
-  padding:10px 20px;cursor:pointer;
-  border-left:3px solid transparent;
-  transition:all .15s;
-  gap:10px;
-}
-.acct-row:hover{background:var(--bg3);}
-.acct-row.active{
-  background:var(--bg4);
-  border-left-color:var(--gold);
-}
-.acct-row.sub{padding-left:32px;}
-.acct-code{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:10px;color:var(--text3);
-  width:52px;flex-shrink:0;
-}
-.acct-row.active .acct-code{color:var(--gold);}
-.acct-name{font-size:12.5px;flex:1;color:var(--text2);font-weight:400;}
-.acct-row.active .acct-name{color:var(--text);font-weight:700;}
-.acct-bal{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:11.5px;font-weight:600;
-  text-align:right;
-}
-
-/* main area */
-.main-empty{
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  height:60vh;gap:12px;
-  color:var(--text3);
-}
-.main-empty-icon{font-size:40px;opacity:.3;}
-.main-empty-text{font-size:14px;}
-
-/* account detail header */
-.acct-detail-header{margin-bottom:24px;}
-.acct-detail-top{
-  display:flex;align-items:flex-start;
-  justify-content:space-between;gap:16px;
-  margin-bottom:20px;flex-wrap:wrap;
-}
-.acct-detail-name{
-  font-family:'Syne',sans-serif;
-  font-size:26px;font-weight:800;
-  line-height:1.1;
-}
-.acct-detail-meta{
-  display:flex;gap:8px;align-items:center;
-  margin-top:6px;flex-wrap:wrap;
-}
-.pill{
-  font-size:10.5px;font-weight:700;
-  padding:3px 10px;border-radius:99px;
-  font-family:'IBM Plex Mono',monospace;
-  letter-spacing:.3px;
-}
-.pill.asset    {background:var(--blue-dim);  color:var(--blue);  border:1px solid #1a3060;}
-.pill.liability{background:var(--red-dim);   color:var(--red);   border:1px solid #3a1818;}
-.pill.equity   {background:var(--purple-dim);color:var(--purple);border:1px solid #2a1860;}
-.pill.income   {background:var(--green-dim); color:var(--green); border:1px solid #153820;}
-.pill.expense  {background:var(--gold-dim);  color:var(--gold);  border:1px solid #3a2810;}
-.pill.normal-dr{background:var(--blue-dim);  color:var(--blue);  border:1px solid #1a3060;}
-.pill.normal-cr{background:var(--green-dim); color:var(--green); border:1px solid #153820;}
-
-/* balance breakdown cards */
-.bal-cards{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:14px;
-  margin-bottom:28px;
-}
-.bal-card{
-  background:var(--bg3);
-  border:1px solid var(--border);
-  border-radius:var(--r);
-  padding:16px 18px;
-}
-.bal-card-label{
-  font-size:10px;font-weight:700;
-  letter-spacing:.8px;text-transform:uppercase;
-  color:var(--text3);margin-bottom:8px;
-}
-.bal-card-value{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:18px;font-weight:600;
-}
-.bal-card-sub{font-size:11px;color:var(--text3);margin-top:4px;}
-
-/* formula row */
-.formula-row{
-  background:var(--bg4);
-  border:1px solid var(--border2);
-  border-radius:var(--r);
-  padding:14px 18px;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:12.5px;
-  color:var(--text2);
-  margin-bottom:24px;
-  display:flex;align-items:center;gap:8px;
-  flex-wrap:wrap;
-}
-.formula-val{color:var(--text);font-weight:600;}
-.formula-op{color:var(--text3);}
-.formula-result{color:var(--gold);font-weight:700;}
-
-/* ledger table */
-.ledger-wrap{overflow-x:auto;}
-.ledger-table{width:100%;border-collapse:collapse;font-size:12.5px;}
-.ledger-table th{
-  padding:9px 14px;
-  font-size:10px;font-weight:700;
-  letter-spacing:.6px;text-transform:uppercase;
-  color:var(--text3);
-  border-bottom:1px solid var(--border);
-  background:var(--bg3);
-  white-space:nowrap;
-  text-align:left;
-}
-.ledger-table th.right,.ledger-table td.right{text-align:right;}
-.ledger-table td{
-  padding:10px 14px;
-  border-bottom:1px solid var(--border);
-  vertical-align:middle;
-}
-.ledger-table tr:last-child td{border-bottom:none;}
-.ledger-table tr:hover td{background:#ffffff03;}
-
-.mono{font-family:'IBM Plex Mono',monospace;}
-.muted{color:var(--text2);}
-.ref{color:var(--gold);font-size:11px;}
-
-.dc-badge{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:42px;height:20px;border-radius:4px;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:9.5px;font-weight:700;letter-spacing:.5px;
-}
-.dc-badge.dr{background:var(--blue-dim); color:var(--blue);}
-.dc-badge.cr{background:var(--green-dim);color:var(--green);}
-
-.running-pos{color:var(--green);}
-.running-neg{color:var(--red);}
-.running-zero{color:var(--text3);}
-
-.source-chip{
-  display:inline-block;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:9.5px;padding:2px 7px;border-radius:4px;
-  background:var(--bg4);color:var(--text2);
-  border:1px solid var(--border2);
-  white-space:nowrap;
-}
-
-/* what built this balance */
-.builder-section{
-  background:var(--bg3);
-  border:1px solid var(--border);
-  border-radius:var(--r2);
-  overflow:hidden;
-  margin-bottom:24px;
-}
-.builder-header{
-  padding:14px 20px;
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.builder-title{
-  font-family:'Syne',sans-serif;
-  font-size:15px;font-weight:700;
-}
-.builder-sub{font-size:12px;color:var(--text2);}
-
-.contrib-row{
-  display:grid;
-  grid-template-columns:1fr 1fr 140px 140px;
-  padding:11px 20px;
-  border-bottom:1px solid var(--border);
-  font-size:12.5px;align-items:center;gap:12px;
-}
-.contrib-row:last-child{border-bottom:none;}
-.contrib-row:hover{background:var(--bg4);}
-.contrib-row.header{
-  background:var(--bg4);
-  font-size:10px;font-weight:700;
-  letter-spacing:.6px;text-transform:uppercase;
-  color:var(--text3);
-}
-.contrib-source{display:flex;flex-direction:column;gap:3px;}
-
-/* loading / error */
-.spin{
-  display:inline-block;width:16px;height:16px;
-  border:2px solid var(--border2);
-  border-top-color:var(--gold);
-  border-radius:50%;
-  animation:spin .6s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loader{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;padding:40px;}
-.err{color:var(--red);font-size:13px;padding:20px;}
-
-/* filters */
-.filters{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
-.inp{
-  background:var(--bg3);
-  border:1px solid var(--border2);
-  border-radius:var(--r);
-  color:var(--text);
-  font-family:'Lato',sans-serif;
-  font-size:12.5px;
-  padding:7px 12px;outline:none;
-  transition:border-color .15s;
-}
-.inp:focus{border-color:var(--gold);}
-.inp::placeholder{color:var(--text3);}
-.inp.wide{flex:1;min-width:160px;}
-select.inp{cursor:pointer;}
-
-/* summary by source */
-.source-summary{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-  gap:12px;
-  margin-bottom:24px;
-}
-.source-card{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:var(--r);padding:14px 16px;
-  display:flex;flex-direction:column;gap:6px;
-}
-.source-card-label{font-size:11px;color:var(--text3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
-.source-card-net{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;}
-.source-card-detail{font-size:11px;color:var(--text2);}
-
-/* pagination */
-.pager{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 0;font-size:12px;color:var(--text2);
-}
-.pager-btns{display:flex;gap:8px;}
-.pager-btn{
-  background:var(--bg3);border:1px solid var(--border2);
-  color:var(--text2);font-size:12px;
-  padding:6px 14px;border-radius:var(--r);cursor:pointer;
-  font-family:'Lato',sans-serif;
-  transition:all .15s;
-}
-.pager-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
-.pager-btn:disabled{opacity:.3;cursor:default;}
-`;
-
-// ─── ACCOUNT TYPE COLORS ─────────────────────────────────────
-const typeColor = {
-  asset:     "var(--blue)",
-  liability: "var(--red)",
-  equity:    "var(--purple)",
-  income:    "var(--green)",
-  expense:   "var(--gold)",
+// ─── ACCOUNT TYPE CONFIGURATION ─────────────────────────────────
+const TYPE_CONFIG: Record<string, { label: string; bgLight: string; textDark: string; borderLight: string }> = {
+  asset: { label: "Asset", bgLight: "bg-blue-50", textDark: "text-blue-800", borderLight: "border-blue-200" },
+  liability: { label: "Liability", bgLight: "bg-red-50", textDark: "text-red-800", borderLight: "border-red-200" },
+  equity: { label: "Equity", bgLight: "bg-purple-50", textDark: "text-purple-800", borderLight: "border-purple-200" },
+  income: { label: "Income", bgLight: "bg-emerald-50", textDark: "text-emerald-800", borderLight: "border-emerald-200" },
+  expense: { label: "Expense", bgLight: "bg-amber-50", textDark: "text-amber-800", borderLight: "border-amber-200" },
 };
 
-const TYPE_ORDER = ["asset","liability","equity","income","expense"];
+const TYPE_ORDER = ["asset", "liability", "equity", "income", "expense"];
 
 // ─── API CALLS ───────────────────────────────────────────────
 async function fetchCOA() {
@@ -387,183 +41,217 @@ async function fetchCOA() {
   return j.data || [];
 }
 
-async function fetchLedger(coaId, page=1, limit=50, startDate="", endDate="") {
-  const p = new URLSearchParams({ coa_id: coaId, page, limit });
+async function fetchLedger(coaId: string, page = 1, limit = 100, startDate = "", endDate = "") {
+  const p = new URLSearchParams({ coa_id: coaId, page: String(page), limit: String(limit) });
   if (startDate) p.set("startDate", startDate);
-  if (endDate)   p.set("endDate",   endDate);
+  if (endDate) p.set("endDate", endDate);
   const r = await fetch(`${API}/ledger?${p}`);
   const j = await r.json();
   return j;
 }
 
-// ─── COMPONENTS ──────────────────────────────────────────────
-function Loader() {
-  return <div className="loader"><div className="spin"/> Loading…</div>;
+// ─── TYPES ───────────────────────────────────────────────────
+interface Account {
+  id: string;
+  code: string;
+  name: string;
+  account_type: string;
+  normal_balance: "debit" | "credit";
+  opening_balance: number;
+  current_balance: number;
+  category?: string;
+  is_sub_account?: boolean;
 }
 
-// Summarise ledger lines by source
-function buildSourceSummary(lines, normalBalance) {
-  const map = {};
+interface LedgerLine {
+  line_id: string;
+  entry_date: string;
+  reference_no: string;
+  source: string;
+  entry_description: string;
+  line_description?: string;
+  customer_name?: string;
+  debit_credit: "debit" | "credit";
+  amount: number;
+  running_balance: number;
+}
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+// ─── SOURCE SUMMARY ─────────────────────────────────────────
+function buildSourceSummary(lines: LedgerLine[], normalBalance: string) {
+  const map: Record<string, { count: number; debit: number; credit: number }> = {};
   for (const line of lines) {
     const key = line.source || "unknown";
-    if (!map[key]) map[key] = { count:0, debit:0, credit:0 };
+    if (!map[key]) map[key] = { count: 0, debit: 0, credit: 0 };
     map[key].count++;
-    map[key].debit  += Number(line.debit_credit === "debit"  ? line.amount : 0);
+    map[key].debit += Number(line.debit_credit === "debit" ? line.amount : 0);
     map[key].credit += Number(line.debit_credit === "credit" ? line.amount : 0);
   }
   return Object.entries(map).map(([source, v]) => ({
     source,
     ...v,
-    net: normalBalance === "debit"
-      ? v.debit - v.credit
-      : v.credit - v.debit,
-  })).sort((a,b) => Math.abs(b.net) - Math.abs(a.net));
+    net: normalBalance === "debit" ? v.debit - v.credit : v.credit - v.debit,
+  }));
 }
 
-// ─── LEDGER DETAIL ───────────────────────────────────────────
-function LedgerDetail({ account }) {
-  const [rows, setRows]     = useState([]);
-  const [pagination, setPag]= useState(null);
-  const [loading, setLoad]  = useState(true);
-  const [err, setErr]       = useState(null);
-  const [page, setPage]     = useState(1);
-  const [startDate, setSD]  = useState("");
-  const [endDate,   setED]  = useState("");
+// ─── LEDGER DETAIL COMPONENT ─────────────────────────────────
+function LedgerDetail({ account }: { account: Account }) {
+  const [rows, setRows] = useState<LedgerLine[]>([]);
+  const [pagination, setPag] = useState<Pagination | null>(null);
+  const [loading, setLoad] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [startDate, setSD] = useState("");
+  const [endDate, setED] = useState("");
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
-    setLoad(true); setErr(null);
+    setLoad(true);
+    setErr(null);
     try {
       const j = await fetchLedger(account.id, page, 100, startDate, endDate);
       setRows(j.data || []);
       setPag(j.pagination);
-    } catch(e) {
+    } catch (e: any) {
       setErr(e.message);
     } finally {
       setLoad(false);
     }
   }, [account.id, page, startDate, endDate]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  // compute balance from rows
-  const totalDr  = rows.reduce((s,r) => s + (r.debit_credit==="debit"  ? Number(r.amount) : 0), 0);
-  const totalCr  = rows.reduce((s,r) => s + (r.debit_credit==="credit" ? Number(r.amount) : 0), 0);
-  const nb       = account.normal_balance;
-  const netBal   = nb === "debit" ? totalDr - totalCr : totalCr - totalDr;
-  const openBal  = Number(account.opening_balance) || 0;
+  const totalDr = rows.reduce((s, r) => s + (r.debit_credit === "debit" ? Number(r.amount) : 0), 0);
+  const totalCr = rows.reduce((s, r) => s + (r.debit_credit === "credit" ? Number(r.amount) : 0), 0);
+  const nb = account.normal_balance;
+  const netBal = nb === "debit" ? totalDr - totalCr : totalCr - totalDr;
+  const openBal = Number(account.opening_balance) || 0;
   const finalBal = openBal + netBal;
 
   const sourceSummary = buildSourceSummary(rows, nb);
 
-  // filter rows by search
-  const filtered = rows.filter(r => {
+  const filtered = rows.filter((r) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (r.reference_no||"").toLowerCase().includes(q)
-      || (r.entry_description||"").toLowerCase().includes(q)
-      || (r.source||"").toLowerCase().includes(q)
-      || (r.customer_name||"").toLowerCase().includes(q);
+    return (
+      (r.reference_no || "").toLowerCase().includes(q) ||
+      (r.entry_description || "").toLowerCase().includes(q) ||
+      (r.source || "").toLowerCase().includes(q) ||
+      (r.customer_name || "").toLowerCase().includes(q)
+    );
   });
 
-  const color = typeColor[account.account_type] || "var(--text)";
+  const typeConfig = TYPE_CONFIG[account.account_type] || { textDark: "text-gray-800", bgLight: "bg-gray-50" };
 
   return (
     <div>
-      {/* ── Header ── */}
-      <div className="acct-detail-header">
-        <div className="acct-detail-top">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
           <div>
-            <div className="acct-detail-name" style={{ color }}>
-              {account.name}
-            </div>
-            <div className="acct-detail-meta">
-              <span className="mono" style={{ fontSize:12, color:"var(--text3)" }}>{account.code}</span>
-              <span className={`pill ${account.account_type}`}>{account.account_type}</span>
-              <span className={`pill normal-${nb}`}>normal {nb}</span>
-              <span className="pill" style={{background:"var(--bg4)",color:"var(--text2)",border:"1px solid var(--border2)"}}>
-                {account.category?.replace(/_/g," ")}
+            <h1 className={`text-3xl font-bold tracking-tight ${typeConfig.textDark}`}>{account.name}</h1>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">{account.code}</code>
+              <span className={`text-xs px-2 py-1 rounded-full ${typeConfig.bgLight} ${typeConfig.textDark} font-medium`}>
+                {account.account_type}
+              </span>
+              <span className={`text-xs px-2 py-1 rounded-full font-mono ${nb === "debit" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"}`}>
+                normal {nb}
+              </span>
+              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                {account.category?.replace(/_/g, " ") || "—"}
               </span>
             </div>
           </div>
-          <div style={{ textAlign:"right" }}>
-            <div style={{ fontFamily:"IBM Plex Mono,monospace", fontSize:26, fontWeight:700, color }}>
-              {fmt(finalBal)}
-            </div>
-            <div style={{ fontSize:11, color:"var(--text3)", marginTop:4 }}>current balance</div>
+          <div className="text-right">
+            <div className={`text-3xl font-bold font-mono tracking-tight ${typeConfig.textDark}`}>{fmt(finalBal)}</div>
+            <div className="text-xs text-gray-500 mt-1">current balance</div>
           </div>
         </div>
 
-        {/* ── Balance formula ── */}
-        <div className="formula-row">
-          <span style={{ color:"var(--text3)" }}>Opening</span>
-          <span className="formula-val">{fmt(openBal)}</span>
-          <span className="formula-op">+</span>
-          <span style={{ color:"var(--text3)" }}>Total Dr</span>
-          <span className="formula-val" style={{ color:"var(--blue)" }}>{fmt(totalDr)}</span>
-          <span className="formula-op">−</span>
-          <span style={{ color:"var(--text3)" }}>Total Cr</span>
-          <span className="formula-val" style={{ color:"var(--green)" }}>{fmt(totalCr)}</span>
-          <span className="formula-op">=</span>
-          <span style={{ color:"var(--text3)" }}>Net movement</span>
-          <span className="formula-val" style={{ color: netBal < 0 ? "var(--red)" : "var(--green)" }}>{fmt(netBal)}</span>
-          <span className="formula-op">=</span>
-          <span style={{ color:"var(--text3)" }}>Balance</span>
-          <span className="formula-result">{fmt(finalBal)}</span>
+        {/* Balance Formula Card */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm font-mono">
+            <span className="text-gray-500">Opening</span>
+            <span className="font-semibold text-gray-800">{fmt(openBal)}</span>
+            <span className="text-gray-400">+</span>
+            <span className="text-gray-500">Total Dr</span>
+            <span className="font-semibold text-blue-600">{fmt(totalDr)}</span>
+            <span className="text-gray-400">−</span>
+            <span className="text-gray-500">Total Cr</span>
+            <span className="font-semibold text-emerald-600">{fmt(totalCr)}</span>
+            <span className="text-gray-400">=</span>
+            <span className="text-gray-500">Net movement</span>
+            <span className={`font-semibold ${netBal < 0 ? "text-red-600" : "text-emerald-600"}`}>{fmt(netBal)}</span>
+            <span className="text-gray-400">=</span>
+            <span className="text-gray-500">Balance</span>
+            <span className="font-bold text-amber-600">{fmt(finalBal)}</span>
+          </div>
         </div>
 
-        {/* ── Balance cards ── */}
-        <div className="bal-cards">
-          <div className="bal-card">
-            <div className="bal-card-label">Opening balance</div>
-            <div className="bal-card-value mono">{fmt(openBal)}</div>
-            <div className="bal-card-sub">Before any posted entries</div>
+        {/* Balance Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Opening balance</div>
+            <div className="text-xl font-bold font-mono mt-1">{fmt(openBal)}</div>
+            <div className="text-xs text-gray-500 mt-1">Before any entries</div>
           </div>
-          <div className="bal-card">
-            <div className="bal-card-label">Total debits</div>
-            <div className="bal-card-value mono" style={{ color:"var(--blue)" }}>{fmt(totalDr)}</div>
-            <div className="bal-card-sub">{rows.filter(r=>r.debit_credit==="debit").length} lines</div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Total debits</div>
+            <div className="text-xl font-bold font-mono mt-1 text-blue-600">{fmt(totalDr)}</div>
+            <div className="text-xs text-gray-500 mt-1">{rows.filter((r) => r.debit_credit === "debit").length} lines</div>
           </div>
-          <div className="bal-card">
-            <div className="bal-card-label">Total credits</div>
-            <div className="bal-card-value mono" style={{ color:"var(--green)" }}>{fmt(totalCr)}</div>
-            <div className="bal-card-sub">{rows.filter(r=>r.debit_credit==="credit").length} lines</div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Total credits</div>
+            <div className="text-xl font-bold font-mono mt-1 text-emerald-600">{fmt(totalCr)}</div>
+            <div className="text-xs text-gray-500 mt-1">{rows.filter((r) => r.debit_credit === "credit").length} lines</div>
           </div>
-          <div className="bal-card">
-            <div className="bal-card-label">Net movement</div>
-            <div className="bal-card-value mono" style={{ color: netBal < 0 ? "var(--red)" : "var(--green)" }}>
-              {netBal >= 0 ? "+" : ""}{fmt(netBal)}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Net movement</div>
+            <div className={`text-xl font-bold font-mono mt-1 ${netBal < 0 ? "text-red-600" : "text-emerald-600"}`}>
+              {netBal >= 0 ? "+" : ""}
+              {fmt(netBal)}
             </div>
-            <div className="bal-card-sub">In normal direction ({nb})</div>
+            <div className="text-xs text-gray-500 mt-1">In normal direction ({nb})</div>
           </div>
-          <div className="bal-card" style={{ borderColor: color, background:"var(--bg4)" }}>
-            <div className="bal-card-label">Current balance</div>
-            <div className="bal-card-value mono" style={{ color, fontSize:22 }}>{fmt(finalBal)}</div>
-            <div className="bal-card-sub">{rows.length} total journal lines</div>
+          <div className={`rounded-xl border-2 p-4 shadow-sm ${typeConfig.borderLight} ${typeConfig.bgLight}`}>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Current balance</div>
+            <div className={`text-2xl font-bold font-mono mt-1 ${typeConfig.textDark}`}>{fmt(finalBal)}</div>
+            <div className="text-xs text-gray-500 mt-1">{rows.length} total lines</div>
           </div>
         </div>
       </div>
 
-      {/* ── What built this balance: by source ── */}
+      {/* Source Summary Section */}
       {sourceSummary.length > 0 && (
-        <div className="builder-section" style={{ marginBottom:24 }}>
-          <div className="builder-header">
-            <div>
-              <div className="builder-title">What built this balance</div>
-              <div className="builder-sub">Every source type that contributed to this account, with its net impact</div>
-            </div>
+        <div className="bg-white rounded-xl border border-gray-200 mb-6 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-bold text-gray-800">What built this balance</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Sources that contributed to this account</p>
           </div>
-          <div className="source-summary" style={{ padding:16 }}>
-            {sourceSummary.map(s => (
-              <div className="source-card" key={s.source}
-                style={{ borderColor: s.net >= 0 ? "#1e3520" : "#351e1e" }}>
-                <div className="source-card-label">{s.source.replace(/_/g," ")}</div>
-                <div className="source-card-net mono"
-                  style={{ color: s.net >= 0 ? "var(--green)" : "var(--red)" }}>
-                  {s.net >= 0 ? "+" : ""}{fmt(s.net)}
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {sourceSummary.map((s) => (
+              <div
+                key={s.source}
+                className={`rounded-lg border p-3 ${s.net >= 0 ? "border-emerald-200 bg-emerald-50/30" : "border-red-200 bg-red-50/30"}`}
+              >
+                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  {s.source.replace(/_/g, " ")}
                 </div>
-                <div className="source-card-detail">
-                  {s.count} line{s.count!==1?"s":""} · Dr {fmt(s.debit)} · Cr {fmt(s.credit)}
+                <div className={`text-lg font-bold font-mono ${s.net >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                  {s.net >= 0 ? "+" : ""}
+                  {fmt(s.net)}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {s.count} line{s.count !== 1 ? "s" : ""} · Dr {fmt(s.debit)} · Cr {fmt(s.credit)}
                 </div>
               </div>
             ))}
@@ -571,103 +259,170 @@ function LedgerDetail({ account }) {
         </div>
       )}
 
-      {/* ── Filters ── */}
-      <div className="filters">
-        <input className="inp wide" placeholder="Search reference, description, customer…"
-          value={search} onChange={e=>setSearch(e.target.value)} />
-        <input className="inp" type="date" value={startDate}
-          onChange={e=>{ setSD(e.target.value); setPage(1); }} />
-        <input className="inp" type="date" value={endDate}
-          onChange={e=>{ setED(e.target.value); setPage(1); }} />
-        <button className="pager-btn" onClick={load}>↻ Refresh</button>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <input
+          type="text"
+          placeholder="Search reference, description, customer…"
+          className="flex-1 min-w-[180px] px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <input
+          type="date"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+          value={startDate}
+          onChange={(e) => {
+            setSD(e.target.value);
+            setPage(1);
+          }}
+        />
+        <input
+          type="date"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+          value={endDate}
+          onChange={(e) => {
+            setED(e.target.value);
+            setPage(1);
+          }}
+        />
+        <button
+          onClick={load}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          ⟳ Refresh
+        </button>
       </div>
 
-      {/* ── Ledger lines table ── */}
-      {loading ? <Loader /> : err ? <div className="err">⚠ {err}</div> : (
+      {/* Ledger Table */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-amber-500 border-t-transparent"></div>
+          <span className="ml-3 text-gray-500">Loading entries...</span>
+        </div>
+      ) : err ? (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">⚠ {err}</div>
+      ) : (
         <>
-          <div className="ledger-wrap">
-            <table className="ledger-table">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <table className="min-w-full text-sm">
               <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Date</th>
-                  <th>Reference</th>
-                  <th>Source</th>
-                  <th>Description</th>
-                  <th>Customer</th>
-                  <th>D/C</th>
-                  <th className="right">Amount</th>
-                  <th className="right">Running balance</th>
-                  <th className="right">Impact</th>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Reference</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Source</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Customer</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">D/C</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Amount</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Running Balance</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Impact</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {filtered.length === 0 && (
-                  <tr><td colSpan={10} style={{ textAlign:"center", padding:40, color:"var(--text3)" }}>
-                    No journal lines found
-                  </td></tr>
+                  <tr>
+                    <td colSpan={10} className="text-center py-12 text-gray-400">
+                      No journal lines found
+                    </td>
+                  </tr>
                 )}
                 {filtered.map((r, i) => {
                   const running = Number(r.running_balance);
-                  const amount  = Number(r.amount);
-                  // how much this line moved the balance in normal direction
-                  const impact = nb === "debit"
-                    ? (r.debit_credit === "debit"  ?  amount : -amount)
-                    : (r.debit_credit === "credit" ?  amount : -amount);
-                  const runClass = running > 0 ? "running-pos" : running < 0 ? "running-neg" : "running-zero";
+                  const amount = Number(r.amount);
+                  const impact =
+                    nb === "debit"
+                      ? r.debit_credit === "debit"
+                        ? amount
+                        : -amount
+                      : r.debit_credit === "credit"
+                      ? amount
+                      : -amount;
 
                   return (
-                    <tr key={r.line_id}>
-                      <td className="muted mono" style={{ fontSize:10 }}>{i+1}</td>
-                      <td className="muted" style={{ fontSize:12, whiteSpace:"nowrap" }}>{fmtDate(r.entry_date)}</td>
-                      <td><span className="ref mono">{r.reference_no}</span></td>
-                      <td><span className="source-chip">{(r.source||"—").replace(/_/g," ")}</span></td>
-                      <td className="muted" style={{ fontSize:12, maxWidth:200 }}>
+                    <tr key={r.line_id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-4 py-3 text-gray-400 font-mono text-xs">{i + 1}</td>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{fmtDate(r.entry_date)}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-amber-600">{r.reference_no}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                          {(r.source || "—").replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">
                         {r.line_description || r.entry_description || "—"}
                       </td>
-                      <td className="muted" style={{ fontSize:11 }}>
-                        {r.customer_name || "—"}
+                      <td className="px-4 py-3 text-gray-500 text-xs">{r.customer_name || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`text-xs font-mono font-semibold px-2 py-0.5 rounded ${
+                            r.debit_credit === "debit" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
+                          }`}
+                        >
+                          {r.debit_credit.toUpperCase()}
+                        </span>
                       </td>
-                      <td><span className={`dc-badge ${r.debit_credit}`}>{r.debit_credit.toUpperCase()}</span></td>
-                      <td className="right mono" style={{ fontWeight:600 }}>{fmt(amount)}</td>
-                      <td className={`right mono ${runClass}`} style={{ fontWeight:600 }}>
+                      <td className="px-4 py-3 text-right font-mono font-medium">{fmt(amount)}</td>
+                      <td
+                        className={`px-4 py-3 text-right font-mono font-semibold ${
+                          running > 0 ? "text-emerald-600" : running < 0 ? "text-red-600" : "text-gray-400"
+                        }`}
+                      >
                         {fmt(running)}
                       </td>
-                      <td className="right mono" style={{ fontSize:12,
-                        color: impact >= 0 ? "var(--green)" : "var(--red)", fontWeight:600 }}>
-                        {impact >= 0 ? "+" : ""}{fmt(impact)}
+                      <td
+                        className={`px-4 py-3 text-right font-mono text-xs font-semibold ${
+                          impact >= 0 ? "text-emerald-600" : "text-red-600"
+                        }`}
+                      >
+                        {impact >= 0 ? "+" : ""}
+                        {fmt(impact)}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
-              <tfoot>
-                <tr style={{ background:"var(--bg4)", borderTop:"2px solid var(--border2)" }}>
-                  <td colSpan={7} style={{ padding:"10px 14px", fontSize:12, color:"var(--text2)", fontWeight:700 }}>
+              <tfoot className="bg-gray-50 border-t border-gray-200">
+                <tr>
+                  <td colSpan={7} className="px-4 py-3 text-xs font-semibold text-gray-600">
                     Totals ({filtered.length} lines shown)
                   </td>
-                  <td className="right mono" style={{ padding:"10px 14px", fontWeight:700, fontSize:12 }}>
-                    <div style={{ color:"var(--blue)" }}>Dr {fmt(filtered.reduce((s,r)=>s+(r.debit_credit==="debit"?Number(r.amount):0),0))}</div>
-                    <div style={{ color:"var(--green)" }}>Cr {fmt(filtered.reduce((s,r)=>s+(r.debit_credit==="credit"?Number(r.amount):0),0))}</div>
+                  <td className="px-4 py-3 text-right font-mono text-xs">
+                    <div className="text-blue-600">Dr {fmt(filtered.reduce((s, r) => s + (r.debit_credit === "debit" ? Number(r.amount) : 0), 0))}</div>
+                    <div className="text-emerald-600">Cr {fmt(filtered.reduce((s, r) => s + (r.debit_credit === "credit" ? Number(r.amount) : 0), 0))}</div>
                   </td>
-                  <td className="right mono" style={{ padding:"10px 14px", fontWeight:700, color }}>
-                    {fmt(finalBal)}
-                  </td>
-                  <td className="right mono" style={{ padding:"10px 14px", fontWeight:700,
-                    color: netBal >= 0 ? "var(--green)" : "var(--red)" }}>
-                    {netBal >= 0 ? "+" : ""}{fmt(netBal)}
+                  <td className="px-4 py-3 text-right font-mono font-bold text-gray-800">{fmt(finalBal)}</td>
+                  <td className={`px-4 py-3 text-right font-mono font-bold ${netBal >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {netBal >= 0 ? "+" : ""}
+                    {fmt(netBal)}
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
+          {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="pager">
-              <span>Page {page} of {pagination.totalPages} · {pagination.total} total lines</span>
-              <div className="pager-btns">
-                <button className="pager-btn" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>← Prev</button>
-                <button className="pager-btn" disabled={page>=pagination.totalPages} onClick={()=>setPage(p=>p+1)}>Next →</button>
+            <div className="flex items-center justify-between mt-5 text-sm text-gray-500">
+              <span>
+                Page {page} of {pagination.totalPages} · {pagination.total} total lines
+              </span>
+              <div className="flex gap-2">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  ← Prev
+                </button>
+                <button
+                  disabled={page >= pagination.totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  Next →
+                </button>
               </div>
             </div>
           )}
@@ -677,105 +432,129 @@ function LedgerDetail({ account }) {
   );
 }
 
-// ─── SIDEBAR ─────────────────────────────────────────────────
-function Sidebar({ accounts, selected, onSelect, loading, onRefresh }) {
-  const grouped = TYPE_ORDER.map(type => ({
+// ─── SIDEBAR COMPONENT ───────────────────────────────────────
+function Sidebar({
+  accounts,
+  selected,
+  onSelect,
+  loading,
+  onRefresh,
+}: {
+  accounts: Account[];
+  selected: Account | null;
+  onSelect: (acc: Account) => void;
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  const grouped = TYPE_ORDER.map((type) => ({
     type,
-    rows: accounts.filter(a => a.account_type === type),
-  })).filter(g => g.rows.length > 0);
+    rows: accounts.filter((a) => a.account_type === type),
+    config: TYPE_CONFIG[type],
+  })).filter((g) => g.rows.length > 0);
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-header">
-        <span className="sidebar-title">Accounts</span>
-        <button className="refresh-btn" onClick={onRefresh}>↻</button>
+    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400">Accounts</h2>
+        <button
+          onClick={onRefresh}
+          className="text-xs px-3 py-1.5 text-gray-500 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+        >
+          ⟳ Refresh
+        </button>
       </div>
-      {loading && <div className="loader" style={{ padding:20 }}><div className="spin"/></div>}
-      {grouped.map(g => (
-        <div className="type-group" key={g.type}>
-          <div className="type-label">
-            <span>{g.type}</span>
-            <span style={{ fontVariantNumeric:"tabular-nums" }}>{g.rows.length}</span>
+
+      <div className="flex-1 overflow-y-auto">
+        {loading && (
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-amber-500 border-t-transparent"></div>
           </div>
-          {g.rows.map(a => {
-            const bal = Number(a.current_balance) || 0;
-            const color = typeColor[a.account_type];
-            return (
-              <div key={a.id}
-                className={`acct-row${a.is_sub_account?" sub":""} ${selected?.id===a.id?" active":""}`}
-                onClick={() => onSelect(a)}>
-                <span className="acct-code">{a.code}</span>
-                <span className="acct-name">{a.name}</span>
-                <span className="acct-bal mono"
-                  style={{ color: bal < 0 ? "var(--red)" : selected?.id===a.id ? color : "var(--text2)" }}>
-                  {fmt(bal)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      ))}
+        )}
+
+        {grouped.map((g) => (
+          <div key={g.type} className="border-b border-gray-100">
+            <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 flex justify-between">
+              <span>{g.type}</span>
+              <span>{g.rows.length}</span>
+            </div>
+            {g.rows.map((a) => {
+              const bal = Number(a.current_balance) || 0;
+              const isActive = selected?.id === a.id;
+              const textColor = bal < 0 ? "text-red-600" : isActive ? TYPE_CONFIG[a.account_type]?.textDark : "text-gray-600";
+
+              return (
+                <div
+                  key={a.id}
+                  onClick={() => onSelect(a)}
+                  className={`group px-4 py-2 flex items-center gap-2 cursor-pointer transition-all ${
+                    a.is_sub_account ? "pl-8" : ""
+                  } ${isActive ? "bg-amber-50 border-l-4 border-amber-400" : "hover:bg-gray-50 border-l-4 border-transparent"}`}
+                >
+                  <code className="text-[11px] font-mono text-gray-400 w-12 flex-shrink-0">{a.code}</code>
+                  <span className={`flex-1 text-sm ${isActive ? "font-semibold text-gray-800" : "text-gray-600"}`}>{a.name}</span>
+                  <span className={`text-xs font-mono font-medium ${textColor}`}>{fmt(bal)}</span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-// ─── ROOT ────────────────────────────────────────────────────
+// ─── ROOT COMPONENT ──────────────────────────────────────────
 export default function BalanceTracer() {
-  const [accounts, setAccounts] = useState([]);
-  const [loadingCOA, setLoadCOA]= useState(true);
-  const [selected, setSelected] = useState(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loadingCOA, setLoadCOA] = useState(true);
+  const [selected, setSelected] = useState<Account | null>(null);
 
   const loadCOA = useCallback(async () => {
     setLoadCOA(true);
     try {
       const data = await fetchCOA();
       setAccounts(data);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
     } finally {
       setLoadCOA(false);
     }
   }, []);
 
-  useEffect(() => { loadCOA(); }, [loadCOA]);
+  useEffect(() => {
+    loadCOA();
+  }, [loadCOA]);
 
   return (
-    <>
-      <style>{S}</style>
-      <div>
-        <div className="topbar">
-          <span className="logo">LedgerTrace</span>
-          <span className="topbar-title">Account Balance Explorer</span>
-          <span className="topbar-sep"/>
-          <span className="company-badge">
-            {COMPANY_ID === "YOUR_COMPANY_ID_HERE" ? "⚠ Set COMPANY_ID" : `Company: ${COMPANY_ID.slice(0,8)}…`}
-          </span>
-        </div>
-
-        <div className="layout">
-          <Sidebar
-            accounts={accounts}
-            selected={selected}
-            onSelect={setSelected}
-            loading={loadingCOA}
-            onRefresh={loadCOA}
-          />
-
-          <div className="main">
-            {!selected ? (
-              <div className="main-empty">
-                <div className="main-empty-icon">📒</div>
-                <div className="main-empty-text">Select an account from the left to trace its balance</div>
-                <div style={{ fontSize:12, color:"var(--text3)", maxWidth:360, textAlign:"center", lineHeight:1.6, marginTop:8 }}>
-                  Every account shows you the exact journal lines that built its balance, grouped by source type, with a running balance column so you can see exactly when and why a value went negative.
-                </div>
-              </div>
-            ) : (
-              <LedgerDetail key={selected.id} account={selected} />
-            )}
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Bar */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="px-6 py-4 flex items-center gap-4">
+          <span className="text-xl font-bold tracking-tight text-amber-600">LedgerTrace</span>
+          <span className="text-sm text-gray-400">Account Balance Explorer</span>
+          <div className="flex-1" />
+          
         </div>
       </div>
-    </>
+
+      {/* Layout */}
+      <div className="flex">
+        <Sidebar accounts={accounts} selected={selected} onSelect={setSelected} loading={loadingCOA} onRefresh={loadCOA} />
+
+        <main className="flex-1 p-6">
+          {!selected ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="text-5xl mb-4">📒</div>
+              <h3 className="text-lg font-medium text-gray-700">Select an account</h3>
+              <p className="text-sm text-gray-400 mt-1 max-w-md">
+                Choose an account from the sidebar to see its complete transaction history and balance breakdown.
+              </p>
+            </div>
+          ) : (
+            <LedgerDetail key={selected.id} account={selected} />
+          )}
+        </main>
+      </div>
+    </div>
   );
 }
