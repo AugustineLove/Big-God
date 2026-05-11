@@ -627,7 +627,17 @@ function ChartOfAccounts({ companyId }) {
                     ))}
                     <tr className="subtotal">
                       <td colSpan={4} style={{ paddingLeft: 16 }}>Subtotal — {group.type}</td>
-                      <td className="right">{fmt(group.rows.reduce((s, a) => s + Number(a.current_balance || 0), 0))}</td>
+                      <td className="right"> {fmt(
+                      group.rows.reduce((sum, acc) => {
+                        const amount = Number(acc.amount);
+
+                        return sum + (
+                          acc.normal_balance === "credit"
+                            ? -amount
+                            : amount
+                        );
+                      }, 0)
+                    )}</td>
                       <td colSpan={2}></td>
                     </tr>
                   </>
