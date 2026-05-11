@@ -548,14 +548,14 @@ function ChartOfAccounts({ companyId }) {
         {["asset","liability","equity","income","expense"].map(type => {
           const rows  = accounts.filter(a => a.account_type === type);
           const total = rows.reduce((sum, acc) => {
-          const amount = Number(acc.current_balance || 0);
+            const amount = Number(acc.current_balance || 0);
 
-          return sum + (
-            acc.normal_balance === "credit"
-              ? -amount
-              : amount
-          );
-        }, 0);
+            const isContraAsset =
+              acc.account_type === "asset" &&
+              acc.normal_balance === "credit";
+
+            return sum + (isContraAsset ? -amount : amount);
+          }, 0);
           return (
             <div className="acc-stat" key={type}>
               <div className="acc-stat-label">{type}</div>
