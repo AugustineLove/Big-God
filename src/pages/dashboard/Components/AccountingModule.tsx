@@ -547,7 +547,15 @@ function ChartOfAccounts({ companyId }) {
       <div className="acc-stats">
         {["asset","liability","equity","income","expense"].map(type => {
           const rows  = accounts.filter(a => a.account_type === type);
-          const total = rows.reduce((s, a) => s + Number(a.current_balance || 0), 0);
+          const total = rows.reduce((sum, acc) => {
+          const amount = Number(acc.current_balance || 0);
+
+          return sum + (
+            acc.normal_balance === "credit"
+              ? -amount
+              : amount
+          );
+        }, 0);
           return (
             <div className="acc-stat" key={type}>
               <div className="acc-stat-label">{type}</div>
@@ -629,7 +637,7 @@ function ChartOfAccounts({ companyId }) {
                       <td colSpan={4} style={{ paddingLeft: 16 }}>Subtotal — {group.type}</td>
                       <td className="right"> {fmt(
                       group.rows.reduce((sum, acc) => {
-                        const amount = Number(acc.amount);
+                        const amount = Number(acc.current_balance);
 
                         return sum + (
                           acc.normal_balance === "credit"
