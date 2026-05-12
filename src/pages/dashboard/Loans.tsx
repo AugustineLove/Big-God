@@ -6,11 +6,12 @@ import {
   Briefcase, Car, GraduationCap, ChevronRight, ChevronDown, X, RefreshCw,
   TrendingUp, TrendingDown, BarChart2, PieChart, ArrowUpRight, ArrowDownRight,
   Layers, Activity, CheckSquare, Sliders, SortAsc, SortDesc, MoreVertical,
-  Printer, Share2, Bell, Info, ArrowLeft, Loader2
+  Printer, Share2, Bell, Info, ArrowLeft, Loader2,
+  Send
 } from 'lucide-react';
 
 import { useAccounts } from '../../contexts/dashboard/Account';
-import { companyId, userRole, userUUID } from '../../constants/appConstants';
+import { companyId, userPermissions, userRole, userUUID } from '../../constants/appConstants';
 import { Account } from '../../data/mockData';
 import {
   ApprovePayload, useActiveLoans, useGroupLoans,
@@ -20,6 +21,7 @@ import { useCustomers } from '../../contexts/dashboard/Customers';
 import NewLoanModal from './Components/NewLoanModal';
 import GroupLoanBreakdownModal from './Components/GroupLoanBreakDownModal';
 import LoanDetailModal from './Components/LoanDetailModal';
+import LoanApprovalModal from './Components/LoanApprovalModal';
 
 /* ─────────────── TYPES ─────────────── */
 interface ApprovalForm {
@@ -89,39 +91,72 @@ const Avatar = ({ name, size = 'md' }: { name?: string; size?: 'sm' | 'md' | 'lg
 };
 
 const MetricCard = ({
-  label, value, sub, icon, trend, color = 'blue',
+  label,
+  value,
+  sub,
+  icon,
+  trend,
+  color = 'blue',
 }: {
-  label: string; value: string | number; sub?: string; icon: React.ReactNode;
-  trend?: { value: number; up: boolean }; color?: string;
+  label: string;
+  value: string | number;
+  sub?: string;
+  icon: React.ReactNode;
+  trend?: { value: number; up: boolean };
+  color?: string;
 }) => {
-  const colors: Record<string, string> = {
-    blue:   'from-[#1d4ed8] to-[#2563eb]',
-    green:  'from-[#059669] to-[#10b981]',
-    red:    'from-[#dc2626] to-[#ef4444]',
-    purple: 'from-[#7c3aed] to-[#8b5cf6]',
-    teal:   'from-[#0d9488] to-[#14b8a6]',
-    amber:  'from-[#d97706] to-[#f59e0b]',
+  const styles: Record<string, string> = {
+    blue: 'border-blue-100 text-blue-600 bg-blue-50',
+    green: 'border-emerald-100 text-emerald-600 bg-emerald-50',
+    red: 'border-red-100 text-red-600 bg-red-50',
+    purple: 'border-violet-100 text-violet-600 bg-violet-50',
+    teal: 'border-teal-100 text-teal-600 bg-teal-50',
+    amber: 'border-amber-100 text-amber-600 bg-amber-50',
   };
+
   return (
-    <div className={`bg-gradient-to-br ${colors[color]} rounded-2xl p-5 text-white shadow-lg`}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+      <div className="flex items-start justify-between mb-5">
+        
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center border ${styles[color]}`}>
           {icon}
         </div>
+
         {trend && (
-          <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${trend.up ? 'bg-white/20' : 'bg-white/20'}`}>
-            {trend.up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+          <div
+            className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
+              trend.up
+                ? 'bg-emerald-50 text-emerald-600'
+                : 'bg-red-50 text-red-600'
+            }`}
+          >
+            {trend.up ? (
+              <ArrowUpRight size={12} />
+            ) : (
+              <ArrowDownRight size={12} />
+            )}
+
             {Math.abs(trend.value)}%
           </div>
         )}
       </div>
-      <div className="text-2xl font-black tracking-tight">{value}</div>
-      <div className="text-sm font-semibold opacity-80 mt-0.5">{label}</div>
-      {sub && <div className="text-xs opacity-60 mt-1">{sub}</div>}
+
+      <div className="text-2xl font-black tracking-tight text-slate-800">
+        {value}
+      </div>
+
+      <div className="text-sm font-semibold text-slate-500 mt-1">
+        {label}
+      </div>
+
+      {sub && (
+        <div className="text-xs text-slate-400 mt-1">
+          {sub}
+        </div>
+      )}
     </div>
   );
 };
-
 /* ─────────────── SEARCH & FILTER BAR ─────────────── */
 const SearchFilterBar = ({
   search, setSearch, statusFilter, setStatusFilter,
@@ -736,151 +771,377 @@ const LoanManagement = () => {
 
   /* ════════════ APPLICATIONS TAB ════════════ */
   const ApplicationsTab = () => {
-    const apps = useLoanApplications();
-    const { approveLoan: approve, rejectLoan: reject, loading: appLoading } = useLoans();
-    const [appSearch, setAppSearch] = useState('');
-    const [groupModal, setGroupModal] = useState<string | null>(null);
-    const [actionId, setActionId] = useState<string | null>(null);
+  const apps = useLoanApplications();
 
-    const filtered = useMemo(() => {
-      const q = appSearch.toLowerCase();
-      return apps.filter(a =>
+  const {
+    approveLoan: approve,
+    rejectLoan: reject,
+    loading: appLoading,
+  } = useLoans();
+
+  const [appSearch, setAppSearch] = useState('');
+  const [selectedLoan, setSelectedLoan] = useState<any | null>(null);
+  const [actionId, setActionId] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    const q = appSearch.toLowerCase();
+
+    return apps.filter((a) => {
+      const loanType = (a.loantype || '').toLowerCase();
+
+      return (
         !q ||
         a.group_name?.toLowerCase().includes(q) ||
         a.customer_name?.toLowerCase().includes(q) ||
+        a.recipient_name?.toLowerCase().includes(q) ||
         a.id?.toLowerCase().includes(q) ||
-        a.purpose?.toLowerCase().includes(q)
+        a.purpose?.toLowerCase().includes(q) ||
+        loanType.includes(q)
       );
-    }, [apps, appSearch]);
+    });
+  }, [apps, appSearch]);
 
-    return (
+  const getLoanType = (loan: any) => {
+    const type = (loan?.loantype || '').toLowerCase();
+
+    if (type === 'group') return 'group';
+    if (type === 'p2p') return 'p2p';
+
+    return 'individual';
+  };
+
+  const typeConfig = {
+    group: {
+      label: 'Group Loan',
+      color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      icon: <Users size={13} />,
+      button: 'View Group Breakdown',
+    },
+
+    individual: {
+      label: 'Individual Loan',
+      color: 'bg-violet-50 text-violet-700 border-violet-200',
+      icon: <User size={13} />,
+      button: 'View Loan Details',
+    },
+
+    p2p: {
+      label: 'P2P Loan',
+      color: 'bg-amber-50 text-amber-700 border-amber-200',
+      icon: <Send size={13} />,
+      button: 'View P2P Details',
+    },
+  };
+
+  return (
+    <>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Loan Applications</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {apps.length} pending application{apps.length !== 1 ? 's' : ''} awaiting review
+            <h2 className="text-xl font-black text-gray-900">
+              Loan Applications
+            </h2>
+
+            <p className="text-sm text-gray-500 mt-1">
+              {apps.length} pending application
+              {apps.length !== 1 ? 's' : ''} awaiting review
             </p>
           </div>
+
           {apps.length > 0 && (
             <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl">
               <Bell size={15} className="text-amber-600" />
-              <span className="text-sm font-semibold text-amber-700">{apps.length} requiring action</span>
+
+              <span className="text-sm font-semibold text-amber-700">
+                {apps.length} requiring action
+              </span>
             </div>
           )}
         </div>
 
         {/* Search */}
         <div className="relative max-w-md">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search
+            size={15}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+
           <input
             value={appSearch}
-            onChange={e => setAppSearch(e.target.value)}
-            placeholder="Search applications…"
+            onChange={(e) => setAppSearch(e.target.value)}
+            placeholder="Search applications..."
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A635D]/30 focus:border-[#4A635D]"
           />
         </div>
 
+        {/* Empty state */}
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-            <FileText size={40} className="text-gray-300 mb-3" />
-            <p className="text-gray-500 font-semibold">No applications found</p>
+            <FileText size={42} className="text-gray-300 mb-3" />
+
+            <p className="text-gray-500 font-semibold">
+              No applications found
+            </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filtered.map((app) => (
-              <div key={app.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
-                {/* Header */}
-                <div className="p-5 pb-0 flex flex-col sm:flex-row justify-between items-start gap-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={app.group_name ?? app.customer_name} size="lg" />
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-black text-gray-900 text-lg">{app.group_name ?? app.customer_name}</h3>
-                        <StatusBadge status={app.status} />
+          <div className="space-y-5">
+            {filtered.map((app) => {
+              const loanType = getLoanType(app);
+              const config = typeConfig[loanType];
+
+              const displayName =
+                loanType === 'group'
+                  ? app.group_name
+                  : loanType === 'p2p'
+                  ? app.recipient_name || app.customer_name
+                  : app.customer_name;
+
+              return (
+                <div
+                  key={app.id}
+                  className="bg-white border border-gray-100 rounded-3xl shadow-sm hover:shadow-md transition-all overflow-hidden"
+                >
+                  {/* TOP */}
+                  <div className="p-5">
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                      {/* LEFT */}
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                        <Avatar
+                          name={displayName}
+                          size="lg"
+                        />
+
+                        <div className="min-w-0 flex-1">
+                          {/* title */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg font-black text-gray-900 truncate">
+                              {displayName}
+                            </h3>
+
+                            <StatusBadge status={app.status} />
+
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${config.color}`}
+                            >
+                              {config.icon}
+                              {config.label}
+                            </span>
+                          </div>
+
+                          {/* meta */}
+                          <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-400">
+                            <span className="font-mono">
+                              #{app.id?.slice(0, 8)}
+                            </span>
+
+                            <span>•</span>
+
+                            <span className="flex items-center gap-1">
+                              <Calendar size={11} />
+
+                              {app.created_at
+                                ? new Date(
+                                    app.created_at
+                                  ).toLocaleDateString('en-GH', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })
+                                : '—'}
+                            </span>
+
+                            {(app.customer_phone ||
+                              app.recipient_phone) && (
+                              <>
+                                <span>•</span>
+
+                                <span className="flex items-center gap-1">
+                                  <Phone size={11} />
+
+                                  {app.customer_phone ||
+                                    app.recipient_phone}
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          {/* purpose */}
+                          {app.purpose && (
+                            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-xl text-xs text-gray-600">
+                              <Briefcase size={13} />
+
+                              <span className="italic">
+                                {app.purpose}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                        <span className="font-mono">#{app.id?.slice(0, 8)}</span>
-                        <span>·</span>
-                        <span className="flex items-center gap-1">
-                          <Calendar size={11} />
-                          {app.created_at ? new Date(app.created_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                        </span>
-                        {app.customer_phone && (
-                          <>
-                            <span>·</span>
-                            <span className="flex items-center gap-1"><Phone size={11} />{app.customer_phone}</span>
-                          </>
-                        )}
+
+                      {/* ACTIONS */}
+                      {
+                        userPermissions.APPROVE_LOANS && (
+                        <>
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto shrink-0">
+                        <button
+                          onClick={async () => {
+                            setActionId(app.id);
+
+                            await reject({
+                              loanId: app.id,
+                            });
+
+                            setActionId(null);
+                          }}
+                          disabled={
+                            appLoading && actionId === app.id
+                          }
+                          className="px-5 py-2.5 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 rounded-xl transition-all disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+
+                        <button
+                          onClick={async () => {
+                            setActionId(app.id);
+
+                            await approve({
+                              loanId: app.id,
+                            });
+
+                            setActionId(null);
+                          }}
+                          disabled={
+                            appLoading && actionId === app.id
+                          }
+                          className="flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#4A635D] hover:bg-[#3d524d] rounded-xl transition-all disabled:opacity-50"
+                        >
+                          {appLoading &&
+                          actionId === app.id ? (
+                            <Loader2
+                              size={14}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <CheckCircle size={14} />
+                          )}
+
+                          Approve
+                        </button>
                       </div>
+                        </>
+                        )
+                      }
+                    </div>
+
+                    {/* STATS */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
+                      <div className="bg-gray-50 rounded-2xl p-4">
+                        <div className="flex items-center gap-1 text-gray-400 mb-1">
+                          <Banknote size={13} />
+
+                          <span className="text-[10px] font-bold uppercase tracking-wider">
+                            Loan Amount
+                          </span>
+                        </div>
+
+                        <p className="text-sm font-black text-gray-900">
+                          {fmtFull(app.loanamount ?? 0)}
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-2xl p-4">
+                        <div className="flex items-center gap-1 text-gray-400 mb-1">
+                          <Clock size={13} />
+
+                          <span className="text-[10px] font-bold uppercase tracking-wider">
+                            Duration
+                          </span>
+                        </div>
+
+                        <p className="text-sm font-black text-gray-900">
+                          {app.loanterm} Months
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-2xl p-4">
+                        <div className="flex items-center gap-1 text-gray-400 mb-1">
+                          <Percent size={13} />
+
+                          <span className="text-[10px] font-bold uppercase tracking-wider">
+                            Interest
+                          </span>
+                        </div>
+
+                        <p className="text-sm font-black text-gray-900">
+                          {app.interestrateloan}%
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-2xl p-4">
+                        <div className="flex items-center gap-1 text-gray-400 mb-1">
+                          {loanType === 'group' ? (
+                            <Users size={13} />
+                          ) : loanType === 'p2p' ? (
+                            <Send size={13} />
+                          ) : (
+                            <User size={13} />
+                          )}
+
+                          <span className="text-[10px] font-bold uppercase tracking-wider">
+                            {loanType === 'group'
+                              ? 'Members'
+                              : loanType === 'p2p'
+                              ? 'Type'
+                              : 'Borrower'}
+                          </span>
+                        </div>
+
+                        <p className="text-sm font-black text-gray-900">
+                          {loanType === 'group'
+                            ? `${app.member_count ?? 1} people`
+                            : loanType === 'p2p'
+                            ? 'Peer Lending'
+                            : 'Single User'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* FOOTER */}
+                    <div className="mt-5 flex items-center justify-end">
+                      <button
+                        onClick={() => setSelectedLoan(app)}
+                        className="inline-flex items-center gap-1 text-[#4A635D] text-sm font-bold hover:underline"
+                      >
+                        {config.button}
+
+                        <ChevronRight size={15} />
+                      </button>
                     </div>
                   </div>
-
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                    <button
-                      onClick={async () => { setActionId(app.id); await reject({ loanId: app.id }); setActionId(null); }}
-                      disabled={appLoading && actionId === app.id}
-                      className="flex-1 sm:flex-none px-5 py-2.5 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 rounded-xl transition-all disabled:opacity-50"
-                    >
-                      Reject
-                    </button>
-                    <button
-                      onClick={async () => { setActionId(app.id); await approve({ loanId: app.id }); setActionId(null); }}
-                      disabled={appLoading && actionId === app.id}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#4A635D] hover:bg-[#3d524d] rounded-xl shadow-sm transition-all disabled:opacity-50"
-                    >
-                      {appLoading && actionId === app.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                      Approve
-                    </button>
-                  </div>
                 </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 border-y border-gray-50 mx-5 my-4">
-                  {[
-                    { label: 'Loan Amount',  value: fmtFull(app.loanamount ?? 0),        icon: <Banknote size={14} /> },
-                    { label: 'Duration',     value: `${app.loanterm} Months`,             icon: <Clock size={14} /> },
-                    { label: 'Interest Rate',value: `${app.interestrateloan}%`,           icon: <Percent size={14} /> },
-                    { label: 'Members',      value: `${app.member_count ?? 1} people`,    icon: <Users size={14} /> },
-                  ].map(({ label, value, icon }) => (
-                    <div key={label} className="py-4 px-3 border-r last:border-r-0 border-gray-50">
-                      <div className="flex items-center gap-1.5 text-gray-400 mb-1">{icon}<span className="text-[10px] font-bold uppercase tracking-wider">{label}</span></div>
-                      <p className="text-sm font-black text-gray-900">{value}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Footer */}
-                <div className="px-5 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  {app.purpose && (
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Briefcase size={13} />
-                      <span className="italic">Purpose: {app.purpose}</span>
-                    </div>
-                  )}
-                  <button
-                    onClick={() => setGroupModal(app.id)}
-                    className="ml-auto text-[#4A635D] text-xs font-bold flex items-center gap-1 hover:underline"
-                  >
-                    View Full Breakdown <ChevronRight size={13} />
-                  </button>
-                </div>
-
-                {groupModal === app.id && (
-                  <GroupLoanBreakdownModal
-                    groupId={app.id}
-                    isOpen={true}
-                    onClose={() => setGroupModal(null)}
-                  />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
-    );
-  };
+
+      {/* Dynamic modal */}
+      {selectedLoan && (
+        <LoanApprovalModal
+          loan={selectedLoan}
+          isOpen={!!selectedLoan}
+          onClose={() => setSelectedLoan(null)}
+          approveLoan={approve}
+          rejectLoan={reject}
+          getGroupLoanWithMembers={getGroupLoanWithMembers}
+          loading={appLoading}
+        />
+      )}
+    </>
+  );
+};
 
   /* ════════════ REPAYMENT MODAL ════════════ */
   const RepaymentModal = () => {

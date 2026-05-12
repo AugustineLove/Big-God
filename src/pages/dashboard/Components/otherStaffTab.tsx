@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Save, Shield, AlertTriangle, Edit, Trash2, Users, UserPlus, Search, Building2 } from 'lucide-react';
+import { X, Save, Shield, AlertTriangle, Edit, Trash2, Users, UserPlus, Search, Building2, Verified } from 'lucide-react';
 import { useStaff } from '../../../contexts/dashboard/Staff';
 import {  User, ArrowUpDown, FileText, CreditCard,
   RefreshCcw, UserCog, DollarSign, PlusCircle,
@@ -489,6 +489,7 @@ const OtherStaffTab = () => {
             { key: 'REVERSE_TRANSACTIONS',  label: 'Reverse transactions',  desc: 'Reverse deposits and withdrawals',          icon: <RefreshCcw className="w-3.5 h-3.5" /> },
             { key: 'CUSTOMER_EDIT',         label: 'Manage customer',       desc: 'View and edit customer details',            icon: <Users className="w-3.5 h-3.5" /> },
             { key: 'MANAGE_STAFF',          label: 'Manage staff',          desc: 'Add, edit and remove staff members',        icon: <UserCog className="w-3.5 h-3.5" /> },
+            { key: 'APPROVE_LOANS',         label: 'Approve Loans',         desc: 'Can view and approve loan requests',        icon: <Verified className="w-3.5 h-3.5" />},
             { key: 'LOAN_PRIVILEGES',       label: 'Loan privileges',       desc: 'View and edit loan requests',               icon: <DollarSign className="w-3.5 h-3.5" /> },
             { key: 'TRANSACTION_CREATE',    label: 'Create transaction',    desc: 'Can create new transactions',               icon: <PlusCircle className="w-3.5 h-3.5" /> },
             { key: 'VIEW_BRIEFING',         label: 'View briefing',         desc: 'View company stat briefing',                icon: <BarChart3 className="w-3.5 h-3.5" /> },
