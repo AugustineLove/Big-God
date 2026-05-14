@@ -21,6 +21,10 @@ import {
   ScrollText,
   UserCog,
   BriefcaseIcon,
+  Workflow,
+  BookOpenText,
+  WalletCards,
+  Building,
 } from "lucide-react";
 
 import { userPermissions, userRole } from "./appConstants";
@@ -155,7 +159,19 @@ export const buildNavigation = () => {
     can("MANAGE_CASHACCOUNTS") && {
       name: "Accounting",
       href: "/dashboard/accounting",
-      icon: FileSpreadsheet,
+      icon: Building,
+      children: [
+        {
+          name: "Accounting",
+          tab: "accounting",
+          icon: BookOpenText,
+        },
+        {
+          name: "Payroll",
+          tab: "payroll",
+          icon: WalletCards,
+        }
+      ]
     },
 
     can("VIEW_BRIEFING") && {

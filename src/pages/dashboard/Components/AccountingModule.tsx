@@ -509,7 +509,9 @@ function Pagination({ pagination, onPage }) {
 // ─────────────────────────────────────────────────────────────
 // CHART OF ACCOUNTS VIEW
 // ─────────────────────────────────────────────────────────────
-function ChartOfAccounts({ companyId }) {
+// Replace the ChartOfAccounts component in your AccountingModule with this:
+
+function ChartOfAccounts({ companyId, onSelectAccount }) {
   const { data, loading, refetch } = useFetch(`${API}/accounts`);
   const [search, setSearch]   = useState("");
   const [typeFilter, setType] = useState("all");
@@ -542,6 +544,12 @@ function ChartOfAccounts({ companyId }) {
     setTimeout(() => setMsg(null), 3500);
   };
 
+  const handleAccountClick = (account) => {
+    if (onSelectAccount) {
+      onSelectAccount(account);
+    }
+  };
+
   return (
     <div>
       <div className="acc-stats">
@@ -549,11 +557,9 @@ function ChartOfAccounts({ companyId }) {
           const rows  = accounts.filter(a => a.account_type === type);
           const total = rows.reduce((sum, acc) => {
             const amount = Number(acc.current_balance || 0);
-
             const isContraAsset =
               acc.account_type === "asset" &&
               acc.normal_balance === "credit";
-
             return sum + (isContraAsset ? -amount : amount);
           }, 0);
           return (
@@ -602,14 +608,19 @@ function ChartOfAccounts({ companyId }) {
               <tbody>
                 {grouped.length === 0 && <tr><td colSpan={7}><Empty /></td></tr>}
                 {grouped.map(group => (
-                  <>
-                    <tr className="group-header" key={`g-${group.type}`}>
+                  <React.Fragment key={`g-${group.type}`}>
+                    <tr className="group-header">
                       <td colSpan={7}>{group.type.toUpperCase()} ({group.rows.length})</td>
                     </tr>
                     {group.rows.map(acc => (
                       <tr key={acc.id}>
                         <td className="mono" style={{ color: "var(--accent)", whiteSpace: "nowrap" }}>{acc.code}</td>
-                        <td className={acc.is_sub_account ? "acc-indent" : ""}>
+                        <td 
+                          className={acc.is_sub_account ? "acc-indent" : ""}
+                          style={{ cursor: "pointer"}}
+                          onClick={() => handleAccountClick(acc)}
+                          title="Click to view account details"
+                        >
                           {acc.name}
                           {acc.is_system_account && <span style={{ marginLeft: 8, fontSize: 10, color: "var(--text3)" }}>SYSTEM</span>}
                         </td>
@@ -623,11 +634,9 @@ function ChartOfAccounts({ companyId }) {
                         <td><span className={`acc-badge ${acc.is_active ? "posted" : "reversed"}`}>{acc.is_active ? "active" : "inactive"}</span></td>
                         <td>
                           <div style={{ display: "flex", gap: 8 }}>
+                            <button className="acc-btn ghost sm" onClick={() => { setEdit(acc); setModal(true); }}>Edit</button>
                             {!acc.is_system_account && (
-                              <>
-                                <button className="acc-btn ghost sm" onClick={() => { setEdit(acc); setModal(true); }}>Edit</button>
-                                <button className="acc-btn danger sm" onClick={() => handleDelete(acc.id)}>Delete</button>
-                              </>
+                              <button className="acc-btn danger sm" onClick={() => handleDelete(acc.id)}>Delete</button>
                             )}
                           </div>
                         </td>
@@ -636,19 +645,18 @@ function ChartOfAccounts({ companyId }) {
                     <tr className="subtotal">
                       <td colSpan={4} style={{ paddingLeft: 16 }}>Subtotal — {group.type}</td>
                       <td className="right"> {fmt(
-                      group.rows.reduce((sum, acc) => {
-                        const amount = Number(acc.current_balance);
-
-                        return sum + (
-                          acc.normal_balance === "credit"
-                            ? -amount
-                            : amount
-                        );
-                      }, 0)
-                    )}</td>
+                        group.rows.reduce((sum, acc) => {
+                          const amount = Number(acc.current_balance);
+                          return sum + (
+                            acc.normal_balance === "credit"
+                              ? -amount
+                              : amount
+                          );
+                        }, 0)
+                      )}</td>
                       <td colSpan={2}></td>
                     </tr>
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -1512,6 +1520,184 @@ function BalanceSheet({ companyId }) {
   );
 }
 
+function LedgerDetail({ account, onBack }) {
+  const [rows, setRows] = useState([]);
+  const [pagination, setPag] = useState(null);
+  const [loading, setLoad] = useState(true);
+  const [err, setErr] = useState(null);
+  const [page, setPage] = useState(1);
+  const [startDate, setSD] = useState("");
+  const [endDate, setED] = useState("");
+  const [search, setSearch] = useState("");
+
+  const load = useCallback(async () => {
+    setLoad(true);
+    setErr(null);
+    try {
+      const params = new URLSearchParams({ 
+        coa_id: account.id, 
+        page: String(page), 
+        limit: "100",
+        ...(startDate ? { startDate } : {}),
+        ...(endDate ? { endDate } : {})
+      });
+      const token = localStorage.getItem('susupro_token');
+      const r = await fetch(`${API}/ledger?${params}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message);
+      setRows(j.data || []);
+      setPag(j.pagination);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoad(false);
+    }
+  }, [account.id, page, startDate, endDate]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const totalDr = rows.reduce((s, r) => s + (r.debit_credit === "debit" ? Number(r.amount) : 0), 0);
+  const totalCr = rows.reduce((s, r) => s + (r.debit_credit === "credit" ? Number(r.amount) : 0), 0);
+  const nb = account.normal_balance;
+  const netBal = nb === "debit" ? totalDr - totalCr : totalCr - totalDr;
+  const openBal = Number(account.opening_balance) || 0;
+  const finalBal = openBal + netBal;
+
+  const filtered = rows.filter((r) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (r.reference_no || "").toLowerCase().includes(q) ||
+      (r.entry_description || "").toLowerCase().includes(q) ||
+      (r.source || "").toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div className="acc-card">
+      <div className="acc-card-header">
+        <div>
+          <span className="acc-card-title">{account.name}</span>
+          <div style={{ fontSize: 13, color: "var(--text2)", marginTop: 4 }}>
+            {account.code} · {account.account_type} · Normal {account.normal_balance}
+          </div>
+        </div>
+        <div className="acc-stat-value gold">{fmt(finalBal)}</div>
+      </div>
+
+      {/* Balance summary cards */}
+      <div className="acc-stats" style={{ gridTemplateColumns: "repeat(4, 1fr)", margin: 0, padding: "16px 24px" }}>
+        <div className="acc-stat" style={{ margin: 0 }}>
+          <div className="acc-stat-label">Opening balance</div>
+          <div className="acc-stat-value">{fmt(openBal)}</div>
+        </div>
+        <div className="acc-stat" style={{ margin: 0 }}>
+          <div className="acc-stat-label">Total Debits</div>
+          <div className="acc-stat-value green">{fmt(totalDr)}</div>
+        </div>
+        <div className="acc-stat" style={{ margin: 0 }}>
+          <div className="acc-stat-label">Total Credits</div>
+          <div className="acc-stat-value red">{fmt(totalCr)}</div>
+        </div>
+        <div className="acc-stat" style={{ margin: 0 }}>
+          <div className="acc-stat-label">Net Movement</div>
+          <div className={`acc-stat-value ${netBal >= 0 ? "green" : "red"}`}>
+            {netBal >= 0 ? "+" : ""}{fmt(netBal)}
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="acc-filters">
+        <input 
+          className="acc-input wide" 
+          placeholder="Search reference or description..." 
+          value={search} 
+          onChange={e => setSearch(e.target.value)} 
+        />
+        <input 
+          className="acc-input" 
+          type="date" 
+          value={startDate} 
+          onChange={e => setSD(e.target.value)} 
+          placeholder="Start date"
+        />
+        <input 
+          className="acc-input" 
+          type="date" 
+          value={endDate} 
+          onChange={e => setED(e.target.value)} 
+          placeholder="End date"
+        />
+        <button className="acc-btn ghost sm" onClick={load}>Refresh</button>
+        {onBack && <button className="acc-btn ghost" onClick={onBack}>← Back</button>}
+      </div>
+
+      {loading ? (
+        <Spinner />
+      ) : err ? (
+        <div className="acc-empty">Error: {err}</div>
+      ) : (
+        <>
+          <div className="acc-table-wrap">
+            <table className="acc-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Reference</th>
+                  <th>Source</th>
+                  <th>Description</th>
+                  <th className="right">Debit</th>
+                  <th className="right">Credit</th>
+                  <th className="right">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr><td colSpan={7}><Empty /></td></tr>
+                )}
+                {filtered.map((r, i) => {
+                  const running = Number(r.running_balance);
+                  return (
+                    <tr key={r.line_id || i}>
+                      <td className="muted">{fmtDate(r.entry_date)}</td>
+                      <td className="mono" style={{ color: "var(--accent)" }}>{r.reference_no}</td>
+                      <td><span className="muted" style={{ fontSize: 11 }}>{r.source?.replace(/_/g, " ")}</span></td>
+                      <td className="muted" style={{ fontSize: 13 }}>{r.line_description || r.entry_description || "—"}</td>
+                      <td className="right mono" style={{ color: "var(--blue)" }}>
+                        {r.debit_credit === "debit" ? fmt(r.amount) : "—"}
+                      </td>
+                      <td className="right mono" style={{ color: "var(--green)" }}>
+                        {r.debit_credit === "credit" ? fmt(r.amount) : "—"}
+                      </td>
+                      <td className="right mono" style={{ color: running < 0 ? "var(--red)" : "var(--text)" }}>
+                        {fmt(running)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="subtotal">
+                  <td colSpan={4}><strong>Totals</strong></td>
+                  <td className="right"><strong>{fmt(totalDr)}</strong></td>
+                  <td className="right"><strong>{fmt(totalCr)}</strong></td>
+                  <td className="right"><strong>{fmt(finalBal)}</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <Pagination pagination={pagination} onPage={setPage} />
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // ROOT ACCOUNTING MODULE
 // ─────────────────────────────────────────────────────────────
@@ -1522,35 +1708,74 @@ const TABS = [
   { id: "trial",   label: "Trial Balance",     icon: "" },
   { id: "pl",      label: "Profit & Loss",     icon: "" },
   { id: "bs",      label: "Balance Sheet",     icon: "" },
+  { id: "details", label: "Account Details",   icon: "" },
 ];
 
 const AccountingModule = ({ companyId }) => {
   const [tab, setTab] = useState("coa");
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [showBackButton, setShowBackButton] = useState(false);
+
+  const handleSelectAccount = (account) => {
+    setSelectedAccount(account);
+    setTab("details");
+    setShowBackButton(true);
+  };
+
+  const handleBackToCOA = () => {
+    setSelectedAccount(null);
+    setTab("coa");
+    setShowBackButton(false);
+  };
 
   return (
     <>
       <style>{STYLES}</style>
       <div className="acc-module">
-       
-
-        <div className="acc-nav">
-          {TABS.map(t => (
-            <button key={t.id}
-              className={`acc-nav-btn ${tab === t.id ? "active" : ""}`}
-              onClick={() => setTab(t.id)}>
-              <span style={{ marginRight: 6 }}>{t.icon}</span>
-              {t.label}
+        {/* Top Bar */}
+        {/* <div className="acc-topbar">
+          <div className="acc-topbar-logo">
+            📒 <span>General Ledger</span>
+          </div>
+          {showBackButton && (
+            <button 
+              className="acc-btn ghost sm" 
+              onClick={handleBackToCOA}
+              style={{ marginLeft: 8 }}
+            >
+              ← Back to Chart of Accounts
             </button>
-          ))}
-        </div>
+          )}
+          <div className="acc-topbar-sep"></div>
+          <div className="acc-topbar-badge">Double‑entry</div>
+        </div> */}
+
+        {tab !== "details" && (
+          <div className="acc-nav">
+            {TABS.filter(t => t.id !== "details").map(t => (
+              <button key={t.id}
+                className={`acc-nav-btn ${tab === t.id ? "active" : ""}`}
+                onClick={() => setTab(t.id)}>
+                <span style={{ marginRight: 6 }}>{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="acc-body">
-          {tab === "coa"     && <ChartOfAccounts companyId={companyId} />}
-          {tab === "journal" && <JournalEntries  companyId={companyId} />}
-          {tab === "ledger"  && <GeneralLedger   companyId={companyId} />}
-          {tab === "trial"   && <TrialBalance    companyId={companyId} />}
-          {tab === "pl"      && <ProfitAndLoss   companyId={companyId} />}
-          {tab === "bs"      && <BalanceSheet    companyId={companyId} />}
+          {tab === "coa" && <ChartOfAccounts companyId={companyId} onSelectAccount={handleSelectAccount} />}
+          {tab === "journal" && <JournalEntries companyId={companyId} />}
+          {tab === "ledger" && <GeneralLedger companyId={companyId} />}
+          {tab === "trial" && <TrialBalance companyId={companyId} />}
+          {tab === "pl" && <ProfitAndLoss companyId={companyId} />}
+          {tab === "bs" && <BalanceSheet companyId={companyId} />}
+          {tab === "details" && selectedAccount && (
+            <LedgerDetail 
+              account={selectedAccount}
+              onBack={handleBackToCOA}
+            />
+          )}
         </div>
       </div>
     </>

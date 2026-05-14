@@ -62,6 +62,9 @@ import AgentHistory from './pages/dashboard/MomoAgentHistrory';
 import CustomerDashboard from './pages/dashboard/CustomerDashboard';
 import AccountingModule from './pages/dashboard/Components/AccountingModule';
 import BalanceTracer from './pages/dashboard/Components/BalanceTracer';
+import PayrollDashboard from './pages/dashboard/Payroll/PayrollDashboard';
+import PayrollNavDashboard from './pages/dashboard/AccountingNavDashboard';
+import AccountingNavDashboard from './pages/dashboard/AccountingNavDashboard';
 
 function App() {
   return (
@@ -140,7 +143,7 @@ function App() {
             <Route path="contributions" element={<Contributions />} />
             <Route path="all-transactions" element={<AllTransactions />} />
             <Route path="finance/budgets/:id" element={<BudgetDetails />} />
-            <Route path='accounting' element={<AccountingModule companyId={companyId} />} />
+            <Route path='accounting' element={<AccountingNavDashboard />} />
             <Route path="finance/commissions/:date" element={<CommissionDay />} />
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="reports" element={<ReportsDashboard />} />
