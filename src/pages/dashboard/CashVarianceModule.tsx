@@ -669,8 +669,8 @@ function RecordView({ staff, toast }) {
                   type: "excess",
                   title: "Excess recorded",
                   je: [
-                    { dc: "Dr", acc: "Cash in Vault (4050)", note: "Cash increased" },
-                    { dc: "Cr", acc: "Cash Over (1010-01)", note: "Gain recognised" },
+                    { dc: "Dr", acc: "Cash overages income (4050)", note: "Gain recognised" },
+                    { dc: "Cr", acc: "Cash in Vault (1010-01)", note: "Cash increased" },
                   ],
                 },
               ].map(s => (
