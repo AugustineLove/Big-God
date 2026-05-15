@@ -474,10 +474,10 @@ function RecordView({ staff, toast }) {
                   ))}
                 </div>
               ))}
-              <div className="text-xs text-[#6b6358] leading-relaxed pt-3 border-t border-[#d8d4cb]">
+              {/* <div className="text-xs text-[#6b6358] leading-relaxed pt-3 border-t border-[#d8d4cb]">
                 After recording, the staff member receives an SMS notification with the variance
                 amount and reference number.
-              </div>
+              </div> */}
             </div>
           </div>
 
