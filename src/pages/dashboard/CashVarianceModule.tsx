@@ -662,15 +662,15 @@ function RecordView({ staff, toast }) {
                   title: "Shortage recorded",
                   je: [
                     { dc: "Dr", acc: "Cash Shortage (5075)", note: "Loss recognised" },
-                    { dc: "Cr", acc: "Cash Variance Clearing (1070)", note: "Float reduced by missing amount" },
+                    { dc: "Cr", acc: "Cash in Vault (1010-01)", note: "Cash reduced by missing amount" },
                   ],
                 },
                 {
                   type: "excess",
                   title: "Excess recorded",
                   je: [
-                    { dc: "Dr", acc: "Cash Variance Clearing (4050)", note: "Variance increased" },
-                    { dc: "Cr", acc: "Cash Over (1070)", note: "Gain recognised" },
+                    { dc: "Dr", acc: "Cash in Vault (4050)", note: "Cash increased" },
+                    { dc: "Cr", acc: "Cash Over (1010-01)", note: "Gain recognised" },
                   ],
                 },
               ].map(s => (
