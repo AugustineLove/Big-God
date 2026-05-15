@@ -25,6 +25,7 @@ import {
   BookOpenText,
   WalletCards,
   Building,
+  ArrowUpDownIcon,
 } from "lucide-react";
 
 import { userPermissions, userRole } from "./appConstants";
@@ -170,6 +171,11 @@ export const buildNavigation = () => {
           name: "Payroll",
           tab: "payroll",
           icon: WalletCards,
+        },
+        {
+          name: "Excess/Shortage",
+          tab: "variance",
+          icon: ArrowUpDownIcon,
         }
       ]
     },

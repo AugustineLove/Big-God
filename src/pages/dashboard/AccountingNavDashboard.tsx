@@ -11,6 +11,7 @@ import AccountStatement from './Components/AccountStatement';
 import CardReplacementManager from './Components/LostCardReplacement';
 import AccountingModule from './Components/AccountingModule';
 import PayrollDashboard from './Payroll/PayrollDashboard';
+import PageNotReady from './ComingSoon';
 
 export interface FormDataState {
   name?: string;
@@ -48,7 +49,8 @@ const AccountingNavDashboard: React.FC = () => {
       {/* Content */}
       <div className="px-6 py-8">
         {activeTab === 'accounting' && <AccountingModule companyId={companyId} />}
-        {activeTab === 'payroll' && <PayrollDashboard />}
+        {activeTab === 'payroll' && <PageNotReady />}
+        {activeTab === 'variance' && <PageNotReady />}
       </div>
     </div>
   );
