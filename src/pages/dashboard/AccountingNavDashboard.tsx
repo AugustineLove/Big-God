@@ -50,7 +50,7 @@ const AccountingNavDashboard: React.FC = () => {
       {/* Content */}
       <div className="px-6 py-8">
         {activeTab === 'accounting' && <AccountingModule companyId={companyId} />}
-        {activeTab === 'payroll' && <PageNotReady />}
+        {activeTab === 'payroll' && <PayrollDashboard />}
         {activeTab === 'variance' && <CashVarianceModule />}
       </div>
     </div>
