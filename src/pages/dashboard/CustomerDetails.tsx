@@ -754,6 +754,17 @@ const accountOptions = allAccounts.map(account => ({
         {account.account_number}
         </p>
 
+       {
+        account.account_type !== 'savings' && (
+           <div className="mt-4">
+          <p className="text-[11px] text-gray-400 mb-1">Rate</p>
+          <p className={`text-[12px] tracking-tight leading-none
+            ${Number(account.daily_rate) >= 0 ? 'text-gray-900' : 'text-red-500'}`}>
+            {formatCurrency(account.daily_rate)}
+          </p>
+        </div>
+        )
+       }
         <div className="mt-4">
           <p className="text-[11px] text-gray-400 mb-1">Balance</p>
           <p className={`text-[28px] font-medium tracking-tight leading-none
