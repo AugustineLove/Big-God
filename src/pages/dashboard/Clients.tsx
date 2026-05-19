@@ -189,7 +189,6 @@ const Clients: React.FC = () => {
       switch (sortConfig.key) {
         case 'name':       av = a.name?.toLowerCase(); bv = b.name?.toLowerCase(); break;
         case 'balance':    av = parseFloat(a.total_balance_across_all_accounts || '0'); bv = parseFloat(b.total_balance_across_all_accounts || '0'); break;
-        case 'daily_rate': av = parseFloat(a.daily_rate || '0'); bv = parseFloat(b.daily_rate || '0'); break;
         case 'date_joined':av = new Date(a.date_of_registration).getTime(); bv = new Date(b.date_of_registration).getTime(); break;
         default: return 0;
       }
@@ -216,7 +215,7 @@ const Clients: React.FC = () => {
   const exportData = () => {
     const rows = [
       ['Name','Email','Phone','Account Number','Balance','Location','Registered By','Join Date','Daily Rate'],
-      ...customers.map(c => [c.name, c.email, c.phone_number, c.account_number, c.total_balance_across_all_accounts, c.location, c.registered_by_name, new Date(c.date_of_registration).toLocaleDateString(), c.daily_rate]),
+      ...customers.map(c => [c.name, c.email, c.phone_number, c.account_number, c.total_balance_across_all_accounts, c.location, c.registered_by_name, new Date(c.date_of_registration).toLocaleDateString()]),
     ];
     const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
@@ -445,11 +444,11 @@ const Clients: React.FC = () => {
                   className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors">
                   <div className="flex items-center gap-2"><span>Join Date</span>{getSortIcon('date_joined')}</div>
                 </th>
-                {/* Daily Rate */}
+                {/* Daily Rate
                 <th onClick={() => handleSort('daily_rate')}
                   className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors">
                   <div className="flex items-center gap-2"><span>Daily Rate</span>{getSortIcon('daily_rate')}</div>
-                </th>
+                </th> */}
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -594,12 +593,12 @@ const Clients: React.FC = () => {
                       </p>
                     </td>
 
-                    {/* ── Daily Rate ────────────────────────────────────── */}
+                    {/* ── Daily Rate ──────────────────────────────────────
                     <td className="px-6 py-4">
                       <div className="inline-flex items-center px-3 py-1.5 text-sm font-bold rounded-lg bg-gradient-to-r from-[#f4fff0] to-[#faffe7] text-[#344a2e] shadow-sm border border-[#344a2e]/20">
                         ¢{parseFloat(customer.daily_rate || '0').toFixed(2)}
                       </div>
-                    </td>
+                    </td> */}
 
                     {/* ── Actions ───────────────────────────────────────── */}
                     <td className="px-6 py-4">

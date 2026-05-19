@@ -556,12 +556,7 @@ const accountOptions = allAccounts.map(account => ({
           icon: Calendar,
           bg: 'bg-indigo-50', iconColor: 'text-indigo-600',
         },
-        {
-          label: 'Daily Rate',
-          value: `¢${customerData.dailyRate}`,
-          icon: TrendingUp,
-          bg: 'bg-violet-50', iconColor: 'text-violet-600',
-        },
+      
       ].map(({ label, value, icon: Icon, bg, iconColor }) => (
         <div key={label} className="bg-white border border-gray-100 rounded-2xl p-5 flex items-start justify-between">
           <div>
@@ -1212,17 +1207,6 @@ const accountOptions = allAccounts.map(account => ({
               <span className={`w-1.5 h-1.5 rounded-full ${customerData.status === 'Active' ? 'bg-emerald-400' : 'bg-red-400'}`} />
               {customerData.status}
             </span>
-          </div>
-        </div>
-
-        {/* Daily Rate */}
-        <div className="flex items-start gap-3 p-4 border-b border-gray-50">
-          <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <TrendingUp className="w-3.5 h-3.5 text-gray-400" />
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-gray-400 mb-0.5">Daily Rate</p>
-            <p className="text-[13px] font-medium text-gray-900">¢{customerData.dailyRate}</p>
           </div>
         </div>
 
