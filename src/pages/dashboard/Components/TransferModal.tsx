@@ -783,7 +783,7 @@ export default function TransferModal({ isOpen, onClose }: TransferModalProps) {
     try {
       setCustomerLoading(true);
       const res = await fetch(
-        `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${baseNumber}`
+        `http://localhost:5050/api/customers/${companyId}/search?query=${baseNumber}`
       );
       const data = await res.json();
       console.log(data)

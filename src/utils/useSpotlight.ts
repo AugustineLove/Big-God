@@ -16,7 +16,6 @@ import { useState, useEffect, useCallback } from 'react';
  */
 export const useSpotlight = () => {
   const [isOpen, setIsOpen] = useState(false);
-  console.log(`Spotlight is open: ${isOpen}`)
   const open   = useCallback(() => setIsOpen(true),  []);
   const close  = useCallback(() => setIsOpen(false), []);
   const toggle = useCallback(() => setIsOpen(p => !p), []);

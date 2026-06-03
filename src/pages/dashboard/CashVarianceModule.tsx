@@ -4,7 +4,7 @@ import { companyId, userUUID } from "../../constants/appConstants";
 // ─────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────
-const API = (path) => `https://susu-pro-backend.onrender.com/api/variance/${companyId}${path}`;
+const API = (path) => `http://localhost:5050/api/variance/${companyId}${path}`;
 
 const fmt = (n, d = 2) =>
   Number(n || 0).toLocaleString("en-GH", {
@@ -107,7 +107,7 @@ export default function CashVarianceModule() {
   const { show, Toast } = useToast();
 
   useEffect(() => {
-    fetch(`https://susu-pro-backend.onrender.com/api/staff?company_id=${companyId}`)
+    fetch(`http://localhost:5050/api/staff?company_id=${companyId}`)
       .then((r) => r.json())
       .then((d) => setStaff(d.data || []))
       .catch(() => {});

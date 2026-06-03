@@ -508,7 +508,7 @@ const Overview: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg border border-gray-100">
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Pending Withdrawals</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Pending Transactions</h2>
               <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
                 {pendingWithdrawals} pending
               </span>
@@ -529,7 +529,7 @@ const Overview: React.FC = () => {
                       <div>
                         <p className="font-medium text-gray-900">{withdrawal.customer_name}</p>
                         <p className="text-sm text-gray-600">{withdrawal.description}</p>
-                        <p className="text-xs text-gray-500">Requested on {new Date(withdrawal.transaction_date).toLocaleDateString()}</p>
+                        <p className="text-xs text-gray-500">Transaction date: {new Date(withdrawal.transaction_date).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -581,7 +581,7 @@ const Overview: React.FC = () => {
                 userUUID={userUUID}
                 userRole={userRole}
                 onClose={() => setShowBulkTransactionModal(false)}
-                onComplete={(results) => console.log(results)} // summary callback
+                onComplete={(results) => {}} // summary callback
               />
               )
             }

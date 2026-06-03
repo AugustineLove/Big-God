@@ -22,9 +22,9 @@ const StaffPayrollSetup = ({ companyId, staffId }) => {
   const fetchStaffData = async () => {
     try {
       const [profileRes, allowancesRes, deductionsRes] = await Promise.all([
-        fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/staff/${staffId}/salary-profile`),
-        fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/staff/${staffId}/allowances`),
-        fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/staff/${staffId}/deductions`)
+        fetch(`http://localhost:5050/api/payroll/${companyId}/staff/${staffId}/salary-profile`),
+        fetch(`http://localhost:5050/api/payroll/${companyId}/staff/${staffId}/allowances`),
+        fetch(`http://localhost:5050/api/payroll/${companyId}/staff/${staffId}/deductions`)
       ]);
       
       setProfile((await profileRes.json()).data);
@@ -38,7 +38,7 @@ const StaffPayrollSetup = ({ companyId, staffId }) => {
   };
 
   const fetchPayrollTypes = async () => {
-    const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/types`);
+    const res = await fetch(`http://localhost:5050/api/payroll/${companyId}/types`);
     const data = await res.json();
     setAllowanceTypes(data.data.allowanceTypes);
     setDeductionTypes(data.data.deductionTypes);
@@ -48,7 +48,7 @@ const StaffPayrollSetup = ({ companyId, staffId }) => {
     const [form, setForm] = useState({ allowance_type_id: '', calculation_type: 'fixed', amount: 0 });
 
     const handleSubmit = async () => {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/staff/${staffId}/allowances`, {
+      const res = await fetch(`http://localhost:5050/api/payroll/${companyId}/staff/${staffId}/allowances`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, created_by: 'current-user-id' })

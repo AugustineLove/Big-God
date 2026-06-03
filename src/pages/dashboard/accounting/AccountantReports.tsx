@@ -7,9 +7,9 @@ import {
   AlertTriangle, Users, Banknote, Receipt, Target, Wallet
 } from 'lucide-react';
 import autoTable from 'jspdf-autotable';
-import { companyId } from '../../constants/appConstants';
+import { companyId } from '../../../constants/appConstants';
 
-const BASE_URL = 'https://susu-pro-backend.onrender.com';
+const BASE_URL = 'http://localhost:5050/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -31,7 +31,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const diffInDays =
     Math.floor((today.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    console.log('Days since signup:', diffInDays);
   if (diffInDays > 30) {
     return <Navigate to="/subscribe" replace />;
   }

@@ -18,13 +18,13 @@ const PayrollRun = ({ companyId, periodId }) => {
   }, [periodId]);
 
   const fetchPeriodDetails = async () => {
-    const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/periods/${periodId}`);
+    const res = await fetch(`http://localhost:5050/api/payroll/${companyId}/periods/${periodId}`);
     const data = await res.json();
     setPeriod(data.data);
   };
 
   const fetchEligibleStaff = async () => {
-    const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/staff/payroll-info`);
+    const res = await fetch(`http://localhost:5050/api/payroll/${companyId}/staff/payroll-info`);
     const data = await res.json();
     setStaffList(data.data);
   };
@@ -32,7 +32,7 @@ const PayrollRun = ({ companyId, periodId }) => {
   const runPayroll = async () => {
     setRunning(true);
     try {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/periods/${periodId}/run`, {
+      const res = await fetch(`http://localhost:5050/api/payroll/${companyId}/periods/${periodId}/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ created_by: 'current-user-id' })

@@ -7,9 +7,9 @@ import {
   ChevronDown, Edit2, Trash2, Shield, CreditCard,
   BarChart2, AlertTriangle, Check, Building2
 } from 'lucide-react';
-import { companyId, userUUID } from '../../../constants/appConstants';
+import { companyId, userUUID } from '../../../../constants/appConstants';
 
-const BASE = 'https://susu-pro-backend.onrender.com/api/payroll';
+const BASE = 'http://localhost:5050/api/payroll';
 
 // ─── helpers ─────────────────────────────────────────────────
 const fmt = (v) => parseFloat(v || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

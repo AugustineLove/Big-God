@@ -63,8 +63,8 @@ import CustomerDashboard from './pages/dashboard/CustomerDashboard';
 import AccountingModule from './pages/dashboard/Components/AccountingModule';
 import BalanceTracer from './pages/dashboard/Components/BalanceTracer';
 import PayrollDashboard from './pages/dashboard/Payroll/PayrollDashboard';
-import PayrollNavDashboard from './pages/dashboard/AccountingNavDashboard';
-import AccountingNavDashboard from './pages/dashboard/AccountingNavDashboard';
+import PayrollNavDashboard from './pages/dashboard/accounting/AccountingNavDashboard';
+import AccountingNavDashboard from './pages/dashboard/accounting/AccountingNavDashboard';
 import CashVarianceModule from './pages/dashboard/CashVarianceModule';
 
 function App() {

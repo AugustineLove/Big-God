@@ -26,6 +26,7 @@ import {
   WalletCards,
   Building,
   ArrowUpDownIcon,
+  Calendar,
 } from "lucide-react";
 
 import { userPermissions, userRole } from "./appConstants";
@@ -176,6 +177,11 @@ export const buildNavigation = () => {
           name: "Excess/Shortage",
           tab: "variance",
           icon: ArrowUpDownIcon,
+        },
+        {
+          name: "Backfill",
+          tab: "backfill",
+          icon: Calendar,
         }
       ]
     },

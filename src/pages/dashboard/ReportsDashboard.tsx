@@ -3,9 +3,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { companyId, formatDate, userPermissions, userUUID } from '../../constants/appConstants';
 import { Account, Asset, Budget, Commission, Customer, Expense } from '../../data/mockData';
 import Reports from './Reports';
-import AccountantReports from './AccountantReports';
 import SalesManagerDashboard from './SalesReports';
 import { useSearchParams } from 'react-router-dom';
+import AccountantReports from './accounting/AccountantReports';
 
 export interface FormDataState {
   name?: string;

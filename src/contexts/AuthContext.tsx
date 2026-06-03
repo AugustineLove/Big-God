@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const res = await fetch(
-        "https://susu-pro-backend.onrender.com/api/auth/login-company",
+        "http://localhost:5050/api/auth/login-company",
         {
           method: "POST",
           headers: {
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           body: JSON.stringify({ email, password }),
         }
       );
-
+      console.log(res);
       const data = await res.json();
 
       if (!res.ok) {
@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const res = await fetch(
-        "https://susu-pro-backend.onrender.com/api/companies/create",
+        "http://localhost:5050/api/companies/create",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
