@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
-const BASE_URL = 'http://localhost:5050/api';
+const BASE_URL = 'https://susu-pro-backend.onrender.com';
 
 export interface MomoPendingWithdrawal {
   transaction_id: string;

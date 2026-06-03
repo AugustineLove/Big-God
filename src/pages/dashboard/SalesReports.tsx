@@ -177,7 +177,7 @@ interface AcquisitionData {
 
 // ─── API Service ─────────────────────────────────────────────────────────────
 
-const API_BASE = 'http://localhost:5050/api';
+const API_BASE = 'https://susu-pro-backend.onrender.com';
 
 const salesManagerApi = {
   

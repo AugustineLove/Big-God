@@ -52,7 +52,7 @@ export const StaffProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setLoading(true);
     try {
       if (!companyId) return;
-      const res = await fetch(`http://localhost:5050/api/staff/?company_id=${companyId}`);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/staff/?company_id=${companyId}`);
       if (res.ok) {
         const data = await res.json();
         setStaffList(data.data);
@@ -74,7 +74,7 @@ export const StaffProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!companyId) return;
 
       const res = await fetch(
-        `http://localhost:5050/api/staff/dashboard?company_id=${companyId}`
+        `https://susu-pro-backend.onrender.com/staff/dashboard?company_id=${companyId}`
       );
 
       if (res.ok) {

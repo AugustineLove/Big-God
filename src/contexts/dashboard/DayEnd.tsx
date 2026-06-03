@@ -8,7 +8,7 @@ import React, {
 import { companyId, userUUID, userRole, getDisplayName, companyName } from "../../constants/appConstants";
 import { toast } from "react-hot-toast";
 
-const BASE_URL = "http://localhost:5050/api/day-end";
+const BASE_URL = "https://susu-pro-backend.onrender.com/day-end";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES

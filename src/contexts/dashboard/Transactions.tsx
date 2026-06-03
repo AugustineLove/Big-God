@@ -279,7 +279,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (filters?.endDate) params.append('endDate', filters.endDate);
 
     const res = await fetch(
-      `http://localhost:5050/api/transactions/all/${companyId}?${params.toString()}`
+      `https://susu-pro-backend.onrender.com/transactions/all/${companyId}?${params.toString()}`
     );
 
     if (!res.ok) {
@@ -350,7 +350,7 @@ const fetchWithdrawals = useCallback(async (
     if (filters?.endDate) params.append("endDate", filters.endDate);
 
     const res = await fetch(
-      `http://localhost:5050/api/transactions/all/withdrawals/${companyId}?${params.toString()}`
+      `https://susu-pro-backend.onrender.com/transactions/all/withdrawals/${companyId}?${params.toString()}`
     );
 
     if (!res.ok) {
@@ -402,7 +402,7 @@ const fetchWithdrawals = useCallback(async (
       setLoading(true);
       setError(null);
       
-      const res = await fetch(`http://localhost:5050/api/transactions/customer/${customerId}`);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/transactions/customer/${customerId}`);
       
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
@@ -478,7 +478,7 @@ const fetchWithdrawals = useCallback(async (
       setError(null);
 
       const res = await fetch(
-        `http://localhost:5050/api/transactions/stake`,
+        `https://susu-pro-backend.onrender.com/transactions/stake`,
         {
           method: 'POST',
           headers: {
@@ -636,7 +636,7 @@ const fetchWithdrawals = useCallback(async (
     const transactions: BulkTransactionPayload[] = rows.map((r) => r.payload);
 
     try {
-      const res = await fetch(`http://localhost:5050/api/transactions/bulk`, {
+      const res = await fetch(`https://susu-pro-backend.onrender.com/transactions/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transactions }),
@@ -727,7 +727,7 @@ const fetchWithdrawals = useCallback(async (
       setLoading(true);
       setError(null);
       
-      const res = await fetch(`http://localhost:5050/api/transactions/commission/${accountId}`, {
+      const res = await fetch(`https://susu-pro-backend.onrender.com/transactions/commission/${accountId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -791,7 +791,7 @@ const fetchWithdrawals = useCallback(async (
       setLoading(true);
       setError(null);
       
-      const res = await fetch(`http://localhost:5050/api/transactions/${transactionId}`, {
+      const res = await fetch(`https://susu-pro-backend.onrender.com/transactions/${transactionId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ company_id: companyId }),
@@ -817,7 +817,7 @@ const fetchWithdrawals = useCallback(async (
 
   const sendMessage = useCallback(async (messageData: Record<string, any>): Promise<boolean> => {
     try {
-      const res = await fetch('http://localhost:5050/api/messages/send-customer', {
+      const res = await fetch('https://susu-pro-backend.onrender.com/messages/send-customer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -864,7 +864,7 @@ const fetchWithdrawals = useCallback(async (
       setError(null);
       
       const res = await fetch(
-        `http://localhost:5050/api/transactions/${transactionId}/approve`,
+        `https://susu-pro-backend.onrender.com/transactions/${transactionId}/approve`,
         {
           method: 'POST',
           headers: {
@@ -918,7 +918,7 @@ const fetchWithdrawals = useCallback(async (
       setError(null);
       
       const res = await fetch(
-        `http://localhost:5050/api/transactions/${transactionId}/reject`,
+        `https://susu-pro-backend.onrender.com/transactions/${transactionId}/reject`,
         {
           method: 'POST',
           headers: {
@@ -967,7 +967,7 @@ const fetchWithdrawals = useCallback(async (
     try {
     setLoading(true);
     const res = await fetch(
-      `http://localhost:5050/api/transactions/${transactionId}/reverse`,
+      `https://susu-pro-backend.onrender.com/transactions/${transactionId}/reverse`,
       {
         method: "POST",
         headers: {
@@ -1038,7 +1038,7 @@ const transferBetweenAccounts = async (payload: {
     const toastId = toast.loading(`Transferring GHS ${payload.amount.toLocaleString()}...`);
 
     const res = await fetch(
-      `http://localhost:5050/api/transactions/transfer-money`,
+      `https://susu-pro-backend.onrender.com/transactions/transfer-money`,
       {
         method:  "POST",
         headers: { "Content-Type": "application/json" },

@@ -433,7 +433,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
       setSearchLoading(true);
       try {
         const res = await fetch(
-          `http://localhost:5050/api/customers/${companyId}/search?query=${customerSearch}`
+          `https://susu-pro-backend.onrender.com/customers/${companyId}/search?query=${customerSearch}`
         );
         const data = await res.json();
         setSearchResults(data.data || []);

@@ -179,7 +179,7 @@ export const buildNavigation = () => {
           icon: ArrowUpDownIcon,
         },
         {
-          name: "Backfill",
+          name: "Backdated Transactions",
           tab: "backfill",
           icon: Calendar,
         }

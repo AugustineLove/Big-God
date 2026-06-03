@@ -110,7 +110,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
     }
 
     const res = await fetch(
-      `http://localhost:5050/api/customers/company/${companyId}?${params.toString()}`
+      `https://susu-pro-backend.onrender.com/customers/company/${companyId}?${params.toString()}`
     );
 
     if (res.ok) {
@@ -138,7 +138,7 @@ const fetchCustomers = async (page: string, limit = 20, filters?: {
   const fetchCustomerById = async (customerId?: string) => {
     setCustomerloading(true);
     try{
-      const res = await fetch(`http://localhost:5050/api/customers/${customerId}`);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/customers/${customerId}`);
       if (res.ok){
         const data = await res.json();
         setCustomer(data.data);
@@ -173,7 +173,7 @@ const findCustomers = async (
     });
 
     const response = await fetch(
-      `http://localhost:5050/api/customers/${companyId}/find?${params.toString()}`
+      `https://susu-pro-backend.onrender.com/customers/${companyId}/find?${params.toString()}`
     );
 
     if(response.ok){
@@ -192,7 +192,7 @@ const findCustomers = async (
   const addAccount = async(newAccount: Omit<Account, 'id' | 'created_at'>)=>{
     try {
       console.log('Adding account for customer');
-      const res = await fetch('http://localhost:5050/api/accounts/create', {
+      const res = await fetch('https://susu-pro-backend.onrender.com/accounts/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
         body: JSON.stringify(newAccount),
@@ -213,7 +213,7 @@ const findCustomers = async (
   setCustomerloading(true);
   try {
     const toastId = toast.loading('Editing customer...')
-    const res = await fetch(`http://localhost:5050/api/customers/customer`, {
+    const res = await fetch(`https://susu-pro-backend.onrender.com/customers/customer`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -240,7 +240,7 @@ const findCustomers = async (
     const token = localStorage.getItem('susupro_token');
     console.log('Company ID in addCustomer: ', companyId);
     try {
-      const res = await fetch(`http://localhost:5050/api/customers/create`, {
+      const res = await fetch(`https://susu-pro-backend.onrender.com/customers/create`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',  
@@ -281,7 +281,7 @@ const findCustomers = async (
     setLoading(true);
 
     const res = await fetch(
-      "http://localhost:5050/api/customers/login",
+      "https://susu-pro-backend.onrender.com/customers/login",
       {
         method: "POST",
         headers: {
@@ -317,7 +317,7 @@ const findCustomers = async (
   const deleteCustomer = async (customerId: string) => {
     try {
       console.log('Deleting customer: ', customerId);
-      const res = await fetch('http://localhost:5050/api/customers/delete', {
+      const res = await fetch('https://susu-pro-backend.onrender.com/customers/delete', {
         method: 'DELETE',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
@@ -343,7 +343,7 @@ const findCustomers = async (
 
   try {
     const res = await fetch(
-      `http://localhost:5050/api/customers/${customerId}/sms-numbers`,
+      `https://susu-pro-backend.onrender.com/customers/${customerId}/sms-numbers`,
       {
         method: 'POST',
         headers: {
@@ -376,7 +376,7 @@ const deleteSmsNumber = async (customerId: string, phoneNumber: string) => {
 
   try {
     const res = await fetch(
-      `http://localhost:5050/api/customers/${customerId}/sms-numbers`,
+      `https://susu-pro-backend.onrender.com/customers/${customerId}/sms-numbers`,
       {
         method: 'DELETE',
         headers: {
@@ -409,7 +409,7 @@ const toggleSms = async (customerId: string) => {
 
   try {
     const res = await fetch(
-      `http://localhost:5050/api/customers/${customerId}/toggle-sms`,
+      `https://susu-pro-backend.onrender.com/customers/${customerId}/toggle-sms`,
       {
         method: 'PATCH',
         headers: {

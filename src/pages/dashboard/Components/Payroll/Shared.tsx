@@ -7,7 +7,7 @@ import { useCallback, useState } from "react";
 import { companyId } from "../../../../constants/appConstants";
 
 // ── CONFIG — change these to match your app ─────────────────
-export const BASE_URL    = "http://localhost:5050/api/payroll";
+export const BASE_URL    = "https://susu-pro-backend.onrender.com/payroll";
 
 export const API = (path) => `${BASE_URL}/${companyId}${path}`;
 

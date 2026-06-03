@@ -48,7 +48,7 @@ const AccountStatement = () => {
     
       const accountNumber = formData.accountId;
       const queryString = params.toString();
-      const url = `http://localhost:5050/api/accounts/${accountNumber}/statement${queryString ? `?${queryString}` : ''}`;
+      const url = `https://susu-pro-backend.onrender.com/accounts/${accountNumber}/statement${queryString ? `?${queryString}` : ''}`;
       
       const response = await fetch(url, {
         headers: {

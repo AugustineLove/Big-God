@@ -242,7 +242,7 @@ const PLModal: React.FC<PLModalProps> = ({ isOpen, onClose }) => {
         if (endDate) params.append('endDate', endDate);
       }
       const res = await fetch(
-        `http://localhost:5050/api/financials/get-financials/${companyId}?${params}`
+        `https://susu-pro-backend.onrender.com/financials/get-financials/${companyId}?${params}`
       );
       if (!res.ok) throw new Error('Request failed');
       const json = await res.json();
