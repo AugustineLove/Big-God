@@ -190,7 +190,7 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
     try {
       const accountId = account.id
       console.log(`Account id: ${accountId}`)
-      const res = await fetch(`https://susu-pro-backend.onrender.com/accounts/${accountId}/settings`, {
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/${accountId}/settings`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -218,7 +218,7 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
   const handleReplaceCard = async () => {
     if (!window.confirm('Request a physical card replacement for this account?')) return;
     try {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/accounts/${account.id}/card/replace`, {
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/${account.id}/card/replace`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('susupro_token')}` },
       });
@@ -233,7 +233,7 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
 
   const handleUnlockAccount = async () => {
     try {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/accounts/${account.id}/unlock`, {
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/${account.id}/unlock`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('susupro_token')}` },
       });

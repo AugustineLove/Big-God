@@ -34,7 +34,7 @@ const BudgetDetails = () => {
 
   const fetchBudget = async (budgetId: string) => {
     try {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/budgets/${budgetId}`);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/budgets/${budgetId}`);
       const data = await res.json();
       if (res.ok) setBudget(data.data);
     } catch (e) {

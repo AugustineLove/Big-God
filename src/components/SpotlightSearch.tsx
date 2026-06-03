@@ -76,7 +76,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ isOpen, onClose }) =>
     const t = setTimeout(async () => {
       try {
         const res = await fetch(
-          `https://susu-pro-backend.onrender.com/customers/${companyId}/search?query=${encodeURIComponent(query)}`
+          `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${encodeURIComponent(query)}`
         );
         const data = await res.json();
         setResults(data.data || []);

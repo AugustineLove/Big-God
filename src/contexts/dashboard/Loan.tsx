@@ -226,7 +226,7 @@ interface LoansContextType {
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BASE_URL = "https://susu-pro-backend.onrender.com/loans";
+const BASE_URL = "https://susu-pro-backend.onrender.com/api/loans";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONTEXT

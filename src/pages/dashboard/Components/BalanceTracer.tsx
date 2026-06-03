@@ -3,7 +3,7 @@ import { companyId } from "../../../constants/appConstants";
 
 // ─── CONFIG ───────────────────────────────────────────────────
 const COMPANY_ID = companyId;
-const API_BASE = "https://susu-pro-backend.onrender.com/accounting";
+const API_BASE = "https://susu-pro-backend.onrender.com/api/accounting";
 const API = `${API_BASE}/${COMPANY_ID}`;
 
 // ─── HELPERS ─────────────────────────────────────────────────

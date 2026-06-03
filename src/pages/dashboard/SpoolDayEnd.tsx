@@ -86,7 +86,7 @@ const DayEndLogsPage = () => {
     setLoaded(false);
     setExpandedId(null);
     try {
-      let url = `https://susu-pro-backend.onrender.com/day-end/${companyId}/`;
+      let url = `https://susu-pro-backend.onrender.com/api/day-end/${companyId}/`;
       if (mode === "single") {
         url += `?date=${dateSingle}`;
       } else {

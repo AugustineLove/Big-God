@@ -13,8 +13,8 @@ const Payslips = ({ companyId, staffId = null }) => {
 
   const fetchPayslips = async () => {
     const url = staffId 
-      ? `https://susu-pro-backend.onrender.com/payroll/${companyId}/staff/${staffId}/payslips`
-      : `https://susu-pro-backend.onrender.com/payroll/${companyId}/payslips`;
+      ? `https://susu-pro-backend.onrender.com/api/payroll/${companyId}/staff/${staffId}/payslips`
+      : `https://susu-pro-backend.onrender.com/api/payroll/${companyId}/payslips`;
     const res = await fetch(url);
     const data = await res.json();
     setPayslips(data.data);
@@ -22,7 +22,7 @@ const Payslips = ({ companyId, staffId = null }) => {
   };
 
   const downloadPDF = async (payslipId) => {
-    const res = await fetch(`https://susu-pro-backend.onrender.com/payroll/${companyId}/payslips/${payslipId}/pdf`);
+    const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/payslips/${payslipId}/pdf`);
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
