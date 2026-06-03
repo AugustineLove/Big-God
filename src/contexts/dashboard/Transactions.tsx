@@ -883,7 +883,46 @@ const fetchWithdrawals = useCallback(async (
           refreshStats(),
         ]);
 
-       
+          const updatedAccounts = await refreshAccounts(
+          customerId
+        );
+
+        const updatedAccount = updatedAccounts.find(
+          (a) => a.id === accountId
+        );
+
+        const newAccountBalance =
+          updatedAccount?.balance;
+
+           const numbers = [
+          ...new Set(
+            (
+              Array.isArray(updatedAccount?.sms_numbers)
+                ? updatedAccount.sms_numbers
+                : []
+            )
+              .filter(
+                (num): num is string =>
+                  typeof num === 'string' &&
+                  num.trim() !== '' &&
+                  /^[0-9+\-\s]{8,20}$/.test(num.trim())
+              )
+              .map((num) => num.trim())
+          ),
+        ];
+        const message = `A debit of GHS ${amount}.00 has been made from your ${accountType} account (${accountNumber}). Your updated balance is GHS ${newAccountBalance}.`;
+        const messageData = {
+              messageTo: numbers,
+              message,
+              messageFrom: makeSuSuProName(parentCompanyName),
+            };
+
+            sendMessage(messageData).catch((err) =>
+              console.warn(
+                `Message sending failed but transaction succeeded:`,
+                err
+              )
+            );
         
         return true;
       } else {
