@@ -11,18 +11,18 @@ const PayrollReports = ({ companyId }) => {
   }, [year]);
 
   const fetchYearlyReport = async () => {
-    const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/reports/yearly?year=${year}`);
+    const res = await fetch(`http://localhost:5000/api/payroll/${companyId}/reports/yearly?year=${year}`);
     const data = await res.json();
     setMonthlyData(data.data.monthly);
     setSummary(data.data.summary);
   };
 
   const exportPAYE = () => {
-    window.open(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/export/paye?year=${year}`, '_blank');
+    window.open(`http://localhost:5000/api/payroll/${companyId}/export/paye?year=${year}`, '_blank');
   };
 
   const exportSSNIT = () => {
-    window.open(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/export/ssnit?year=${year}`, '_blank');
+    window.open(`http://localhost:5000/api/payroll/${companyId}/export/ssnit?year=${year}`, '_blank');
   };
 
   return (

@@ -38,7 +38,7 @@ export const CommissionStatsProvider: React.FC<Props> = ({
   const refreshCommissionStats = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/commissions/stats/${companyId}`);
+      const res = await fetch(`http://localhost:5000/api/commissions/stats/${companyId}`);
       if (!res.ok) throw new Error("Failed to fetch commission stats");
 
       const json = await res.json();
@@ -54,7 +54,7 @@ export const CommissionStatsProvider: React.FC<Props> = ({
   const fetchCommissions = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/commissions/all/${companyId}`);
+      const res = await fetch(`http://localhost:5000/api/commissions/all/${companyId}`);
       if (!res.ok) throw new Error("Failed to fetch commissions");
 
       const json = await res.json();

@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, ReceiptText, ShieldAlert,
 } from 'lucide-react';
 import { companyId, userUUID } from '../../constants/appConstants';
-const BASE_URL = 'https://susu-pro-backend.onrender.com/api/transactions';
+const BASE_URL = 'http://localhost:5000/api/transactions';
 
 // ─── tiny helpers ──────────────────────────────────────────────────────────────
 const fmt  = (n) => Number(n || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -35,7 +35,7 @@ import { useParams } from 'react-router-dom';
 import { useCustomers } from '../../contexts/dashboard/Customers';
 import { useAccounts } from '../../contexts/dashboard/Account';
 import { useTransactions } from '../../contexts/dashboard/Transactions';
-import { companyId, userPermissions, userUUID } from '../../constants/appConstants';
+import { companyId, parentCompanyName, userPermissions, userUUID } from '../../constants/appConstants';
 import { ClientModal } from './Components/clientModal';
 import { Account, Customer } from '../../data/mockData';
 import toast from 'react-hot-toast';
@@ -44,6 +44,7 @@ import Select from 'react-select';
 import AccountSettingsModal from './Components/accountSettingsModal';
 import TransferModal from './Components/TransferModal';
 import DeleteTransactionModal from '../../components/deleteTransactionModal';
+import InvestmentModal from './InvestmentModal';
 
 type CustomerDTO = {
   id?: string;
@@ -83,6 +84,7 @@ const CustomerDetailsPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isInvestmentModalOpen, setIsInvestmentModalOpen] = useState(false);
   const [fromAccountId, setFromAccountId] = useState("");
 const [toAccountId, setToAccountId] = useState("");
 const [amount, setAmount] = useState<number>(0);
@@ -689,7 +691,8 @@ const accountOptions = allAccounts.map(account => ({
 
               {
                 userPermissions.MANAGE_CASHACCOUNTS && (
-                  <button
+                 <>
+                   <button
                   className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   onClick={() => setIsTransferModalOpen(true)}
 
@@ -698,6 +701,14 @@ const accountOptions = allAccounts.map(account => ({
                   <span>Transfer</span>
                 </button>
 
+                <button
+                className="flex items-center space-x-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-green-700 transition-colors"
+                onClick={() => setIsInvestmentModalOpen(true)}>
+                <TrendingUp className="w-4 h-4" />
+                <span>Invest</span>
+              </button>
+
+                 </>
                 )
               }
               </div>
@@ -1349,6 +1360,18 @@ const accountOptions = allAccounts.map(account => ({
       <TransferModal
         isOpen={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
+      />
+
+      import InvestmentModal from './Components/InvestmentModal';
+
+// In your JSX, alongside the TransferModal button:
+
+      <InvestmentModal
+        isOpen={isInvestmentModalOpen}
+        onClose={() => setIsInvestmentModalOpen(false)}
+        onSuccess={() => fetchCustomerTransactions(id || '')}
+        customer={customer}
+        parentCompanyName={parentCompanyName}
       />
       {isDeleteTransactionModal && (
               <DeleteTransactionModal

@@ -4,7 +4,7 @@ import { companyId, userUUID } from "../../../constants/appConstants";
 // ─────────────────────────────────────────────────────────────
 // CONFIG — adjust base URL to match your Express server
 // ─────────────────────────────────────────────────────────────
-const API = `https://susu-pro-backend.onrender.com/api/accounting/${companyId}`;
+const API = `http://localhost:5000/api/accounting/${companyId}`;
 
 const fmt = (n) =>
   new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 }).format(Number(n) || 0);
