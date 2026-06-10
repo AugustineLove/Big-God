@@ -12,13 +12,13 @@ const PayrollApproval = ({ companyId, periodId }) => {
   }, [periodId]);
 
   const fetchEntries = async () => {
-    const res = await fetch(`http://localhost:5000/api/payroll/${companyId}/periods/${periodId}/entries`);
+    const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/periods/${periodId}/entries`);
     const data = await res.json();
     setEntries(data.data);
   };
 
   const fetchPeriod = async () => {
-    const res = await fetch(`http://localhost:5000/api/payroll/${companyId}/periods/${periodId}`);
+    const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/periods/${periodId}`);
     const data = await res.json();
     setPeriod(data.data);
   };
@@ -26,7 +26,7 @@ const PayrollApproval = ({ companyId, periodId }) => {
   const approvePayroll = async () => {
     setApproving(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/payroll/${companyId}/periods/${periodId}/approve`, {
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/periods/${periodId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ approved_by: 'current-user-id' })
@@ -43,7 +43,7 @@ const PayrollApproval = ({ companyId, periodId }) => {
   };
 
   const markAsPaid = async () => {
-    const res = await fetch(`http://localhost:5000/api/payroll/${companyId}/periods/${periodId}/mark-paid`, {
+    const res = await fetch(`https://susu-pro-backend.onrender.com/api/payroll/${companyId}/periods/${periodId}/mark-paid`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ paid_by: 'current-user-id', payment_date: new Date().toISOString().split('T')[0] })

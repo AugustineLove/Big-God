@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { companyId, userUUID } from '../../../../constants/appConstants';
 
-const BASE = 'http://localhost:5000/api/payroll';
+const BASE = 'https://susu-pro-backend.onrender.com/api/payroll';
 
 // ─── helpers ─────────────────────────────────────────────────
 const fmt = (v) => parseFloat(v || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -589,7 +589,7 @@ const IndividualPanel: React.FC<{ availableCustomers: Customer[] }> = ({ availab
     setLoanSearchLoading(true);
     try {
       const res = await fetch(
-        `http://localhost:5000/api/customers/${companyId}/search?query=${loanCustomerSearch}`
+        `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${loanCustomerSearch}`
       );
       const data = await res.json();
       console.log(`${JSON.stringify(data)}`)
@@ -1015,7 +1015,7 @@ const [selectedLoanCustomer, setSelectedLoanCustomer] = useState(null);
     setLoanSearchLoading(true);
     try {
       const res = await fetch(
-        `http://localhost:5000/api/customers/${companyId}/search?query=${loanCustomerSearch}`
+        `https://susu-pro-backend.onrender.com/api/customers/${companyId}/search?query=${loanCustomerSearch}`
       );
       const data = await res.json();
       console.log(`${JSON.stringify(data)}`)

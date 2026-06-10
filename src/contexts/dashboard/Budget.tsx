@@ -41,7 +41,7 @@ export const BudgetProvider = ({ children }: Props) => {
   const [loadingToggle, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { fetchFinanceData } =useFinance();
-  const API_BASE = "http://localhost:5000/api/budgets";
+  const API_BASE = "https://susu-pro-backend.onrender.com/api/budgets";
 
   /* ----------------------------- Fetch Budgets ----------------------------- */
   const fetchBudgets = async (companyId: string) => {
@@ -63,7 +63,7 @@ export const BudgetProvider = ({ children }: Props) => {
 
    const fetchBudgetById = async (id: string): Promise<Budget | null> => {
     try {
-      const res = await fetch(`http://localhost:5000/api/budgets/${id}`);
+      const res = await fetch(`https://susu-pro-backend.onrender.com/api/budgets/${id}`);
       if (!res.ok) {
         console.error("Failed to fetch budget", res.statusText);
         return null;

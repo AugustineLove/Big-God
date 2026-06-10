@@ -84,9 +84,9 @@ const CardReplacementManager = () => {
     try {
       let url = '';
       if (searchType === 'account') {
-        url = `http://localhost:5000/api/accounts/search?account_number=${encodeURIComponent(searchValue)}`;
+        url = `https://susu-pro-backend.onrender.com/api/accounts/search?account_number=${encodeURIComponent(searchValue)}`;
       } else {
-        url = `http://localhost:5000/api/customers/search?query=${encodeURIComponent(searchValue)}`;
+        url = `https://susu-pro-backend.onrender.com/api/customers/search?query=${encodeURIComponent(searchValue)}`;
       }
 
       const response = await fetch(url, {
@@ -124,8 +124,8 @@ const CardReplacementManager = () => {
     setLoading(true);
     try {
       const url = type === 'account' 
-        ? `http://localhost:5000/api/accounts/${id}/card-replacements`
-        : `http://localhost:5000/api/customers/${id}/card-replacements`;
+        ? `https://susu-pro-backend.onrender.com/api/accounts/${id}/card-replacements`
+        : `https://susu-pro-backend.onrender.com/api/customers/${id}/card-replacements`;
       
       const response = await fetch(url, {
         headers: {
@@ -151,7 +151,7 @@ const CardReplacementManager = () => {
   // Fetch recent replacements (all for the staff's company)
   const fetchRecentReplacements = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/card-replacements/recent?limit=10', {
+      const response = await fetch('https://susu-pro-backend.onrender.com/api/card-replacements/recent?limit=10', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('susupro_token')}`,
           'Content-Type': 'application/json'
@@ -182,7 +182,7 @@ const CardReplacementManager = () => {
     setLoading(true);
     
     try {
-      const response = await fetch(`http://localhost:5000/api/accounts/${formData.account_id}/card/replace-with-record`, {
+      const response = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/${formData.account_id}/card/replace-with-record`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('susupro_token')}`,
@@ -227,7 +227,7 @@ const CardReplacementManager = () => {
   // Update replacement status
   const handleStatusUpdate = async (replacementId, newStatus, additionalData = {}) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/card-replacements/${replacementId}/status`, {
+      const response = await fetch(`https://susu-pro-backend.onrender.com/api/card-replacements/${replacementId}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('susupro_token')}`,
@@ -475,7 +475,7 @@ const CardReplacementManager = () => {
   
   const fetchCustomerAccounts = async (customerId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/accounts/customer/${customerId}`);
+      const response = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/customer/${customerId}`);
       const result = await response.json();
       if (response.ok) {
         setCustomerAccounts(result.data || []);

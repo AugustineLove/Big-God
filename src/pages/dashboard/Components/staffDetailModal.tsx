@@ -94,13 +94,13 @@ const StaffDetailModal = ({
       let endpoint = '';
       switch (tab) {
         case 'customers':
-          endpoint = `http://localhost:5000/api/staff/${selectedStaff.id}/customers`;
+          endpoint = `https://susu-pro-backend.onrender.com/api/staff/${selectedStaff.id}/customers`;
           break;
         case 'transactions':
-          endpoint = `http://localhost:5000/api/staff/${selectedStaff.id}/transactions`;
+          endpoint = `https://susu-pro-backend.onrender.com/api/staff/${selectedStaff.id}/transactions`;
           break;
         case 'reports':
-          endpoint = `http://localhost:5000/api/staff/${selectedStaff.id}/reports`;
+          endpoint = `https://susu-pro-backend.onrender.com/api/staff/${selectedStaff.id}/reports`;
           break;
       }
 

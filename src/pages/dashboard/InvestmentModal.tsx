@@ -1002,7 +1002,7 @@ export default function InvestmentModal({
 
     try {
       const res = await fetch(
-        "http://localhost:5000/api/investments/create",
+        "https://susu-pro-backend.onrender.com/api/investments/create",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

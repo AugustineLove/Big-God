@@ -71,7 +71,7 @@ export const FloatActivityProvider = ({
       setError(null);
 
       const res = await fetch(
-        `http://localhost:5000/api/float/${budgetId}/activity`
+        `https://susu-pro-backend.onrender.com/api/float/${budgetId}/activity`
       );
 
       if (!res.ok) {

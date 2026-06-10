@@ -78,7 +78,7 @@ const OtherStaffTab = () => {
 
     try {
       // API call to update staff
-      const response = await fetch(`http://localhost:5000/api/staff/${selectedStaff.id}`, {
+      const response = await fetch(`https://susu-pro-backend.onrender.com/api/staff/${selectedStaff.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ const OtherStaffTab = () => {
     console.log(permissionsForm);
     try {
       // API call to update permissions
-      const response = await fetch(`http://localhost:5000/api/staff/${selectedStaff.id}/permissions`, {
+      const response = await fetch(`https://susu-pro-backend.onrender.com/api/staff/${selectedStaff.id}/permissions`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +150,7 @@ const OtherStaffTab = () => {
 
     try {
       // API call to delete staff
-      const response = await fetch(`http://localhost:5000/api/staff/${selectedStaff.id}`, {
+      const response = await fetch(`https://susu-pro-backend.onrender.com/api/staff/${selectedStaff.id}`, {
         method: 'DELETE',
       });
 
