@@ -45,6 +45,7 @@ import AccountSettingsModal from './Components/accountSettingsModal';
 import TransferModal from './Components/TransferModal';
 import DeleteTransactionModal from '../../components/deleteTransactionModal';
 import InvestmentModal from './InvestmentModal';
+import AccountChargesModal from './AccountChargesModal';
 
 type CustomerDTO = {
   id?: string;
@@ -94,6 +95,7 @@ const [showSettingsModal, setShowSettingsModal] = useState(false);
 const [showCode, setShowCode] = useState(false)
 const { transferBetweenAccounts } = useTransactions();
 const [newNumber, setNewNumber] = useState("");
+const [isChargesModalOpen, setIsChargesModalOpen] = useState(false);
 
   const [selectedTransaction, setSelectedTransaction] = useState('');
   const [isDeleteTransactionModal, setIsDeleteTransactionModal] = useState(false);
@@ -707,7 +709,14 @@ const accountOptions = allAccounts.map(account => ({
                 <TrendingUp className="w-4 h-4" />
                 <span>Invest</span>
               </button>
-
+                  
+                  <button
+  className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  onClick={() => setIsChargesModalOpen(true)}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Charges</span>
+                </button>
                  </>
                 )
               }
@@ -1362,10 +1371,6 @@ const accountOptions = allAccounts.map(account => ({
         onClose={() => setIsTransferModalOpen(false)}
       />
 
-      import InvestmentModal from './Components/InvestmentModal';
-
-// In your JSX, alongside the TransferModal button:
-
       <InvestmentModal
         isOpen={isInvestmentModalOpen}
         onClose={() => setIsInvestmentModalOpen(false)}
@@ -1373,6 +1378,13 @@ const accountOptions = allAccounts.map(account => ({
         customer={customer}
         parentCompanyName={parentCompanyName}
       />
+
+      <AccountChargesModal
+        isOpen={isChargesModalOpen}
+        onClose={() => setIsChargesModalOpen(false)}
+        onSuccess={() => fetchCustomerTransactions(id || '')}
+      />
+
       {isDeleteTransactionModal && (
               <DeleteTransactionModal
                 transaction_id={selectedTransaction}
