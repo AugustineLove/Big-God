@@ -693,31 +693,31 @@ const accountOptions = allAccounts.map(account => ({
 
               {
                 userPermissions.MANAGE_CASHACCOUNTS && (
-                 <>
-                   <button
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  onClick={() => setIsTransferModalOpen(true)}
+                <>
+  <button
+    className="flex items-center justify-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
+    onClick={() => setIsTransferModalOpen(true)}
+  >
+    <ArrowLeftRight className="w-4 h-4" />
+    <span>Transfer</span>
+  </button>
 
-                >
-                  <ArrowLeftRight className="w-4 h-4" />
-                  <span>Transfer</span>
-                </button>
+  <button
+    className="flex items-center justify-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+    onClick={() => setIsInvestmentModalOpen(true)}
+  >
+    <TrendingUp className="w-4 h-4" />
+    <span>Invest</span>
+  </button>
 
-                <button
-                className="flex items-center space-x-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-green-700 transition-colors"
-                onClick={() => setIsInvestmentModalOpen(true)}>
-                <TrendingUp className="w-4 h-4" />
-                <span>Invest</span>
-              </button>
-                  
-                  <button
-  className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  onClick={() => setIsChargesModalOpen(true)}
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Charges</span>
-                </button>
-                 </>
+  <button
+    className="flex items-center justify-center space-x-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+    onClick={() => setIsChargesModalOpen(true)}
+  >
+    <CreditCard className="w-4 h-4" />
+    <span>Charges</span>
+  </button>
+</>
                 )
               }
               </div>
