@@ -928,8 +928,8 @@ export default function InvestmentModal({
       // (mirrors: "Use ACCOUNT sms_numbers instead of customer")
       const numbers = [
         ...new Set(
-          (Array.isArray(investmentAccount?.sms_numbers)
-            ? investmentAccount.sms_numbers
+          (Array.isArray(sourceAccount?.sms_numbers)
+            ? sourceAccount.sms_numbers
             : []
           )
             .filter(
