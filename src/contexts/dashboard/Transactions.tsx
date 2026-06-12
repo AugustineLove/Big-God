@@ -559,7 +559,7 @@ const fetchWithdrawals = useCallback(async (
           let message = '';
 
           if (isDeposit) {
-            message = `Your ${account?.account_type} Account (${account.account_number}) has been credited with GHS ${amount}. Your available balance is GHS ${newAccountBalance}. Thank you for banking with us.`;
+            message = `Dear Customer, Your ${account?.account_type} account (${account.account_number}) has been successfully credited with GHS${amount}. Your new balance is GHS${newAccountBalance}.\nThank you for choosing us!`
             const messageData = {
               messageTo: numbers,
               message,
