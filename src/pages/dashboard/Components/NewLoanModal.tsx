@@ -115,7 +115,7 @@ const RELATIONSHIPS = [
   "Spouse", "Parent", "Sibling", "Friend", "Business partner", "Other",
 ];
 
-const DURATIONS = [3, 6, 12, 18, 24, 36, 60];
+const DURATIONS = [3, 4, 5, 6, 12, 18, 24, 36, 60];
 
 const GROUP_INTEREST_RATE = 0.20;
 const GROUP_DURATION = 6;
