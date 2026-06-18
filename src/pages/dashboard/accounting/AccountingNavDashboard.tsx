@@ -13,6 +13,7 @@ import PayrollDashboard from './Payroll/PayrollDashboard';
 import PageNotReady from '../ComingSoon';
 import CashVarianceModule from '../CashVarianceModule';
 import PendingBackdatedTransactions from '../PendingBackDatedTransactions';
+import AccountingRulesModule from '../AccountingRulesModule';
 
 export interface FormDataState {
   name?: string;
@@ -53,6 +54,7 @@ const AccountingNavDashboard: React.FC = () => {
         {activeTab === 'payroll' && <PayrollDashboard />}
         {activeTab === 'variance' && <CashVarianceModule />}
         {activeTab === 'backfill' && <PendingBackdatedTransactions />}
+        {activeTab === 'settings' && <AccountingRulesModule />}
       </div>
     </div>
   );

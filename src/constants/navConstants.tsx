@@ -27,6 +27,7 @@ import {
   Building,
   ArrowUpDownIcon,
   Calendar,
+  Settings,
 } from "lucide-react";
 
 import { userPermissions, userRole } from "./appConstants";
@@ -182,6 +183,11 @@ export const buildNavigation = () => {
           name: "Backdated Transactions",
           tab: "backfill",
           icon: Calendar,
+        },
+        {
+          name: "Settings",
+          tab: "settings",
+          icon: Settings,
         }
       ]
     },
