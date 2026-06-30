@@ -46,7 +46,7 @@ type ToastType = "success" | "error" | "info";
 // ─────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────
-const BASE = "https://susu-pro-backend.onrender.com/api";
+const BASE = "https://susu-pro-backend.onrender.com";
 const RULES_API = (path: string) => `${BASE}/${companyId}/accounting-rules${path}`;
 const COA_API = (path: string) => `${BASE}/accounting/${companyId}/accounts${path}`;
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { companyId, userUUID } from "../../../constants/appConstants";
 
 const API = `https://susu-pro-backend.onrender.com/api/accounting/${companyId}`;
-const COMPANY_NAME = "Big God Susu Enterprise";
+const COMPANY_NAME = "SusuPro Finance Ltd";
 
 // ─────────────────────────────────────────────────────────────
 // FORMATTERS
@@ -1657,10 +1657,7 @@ function ProfitAndLoss() {
             </div>
             <button className="acc-btn primary" style={{ alignSelf:"flex-end" }}
               disabled={!startDate || !endDate}
-              onClick={() => {
-                console.log(startDate, endDate);
-                setSubmitted(true)
-              }}>
+              onClick={() => setSubmitted(true)}>
               Generate Report →
             </button>
           </div>
@@ -2133,7 +2130,7 @@ const AccountingModule = ({ companyId: _cid }) => {
         <div className="acc-sidebar">
           <div className="acc-sidebar-logo">
             <div className="acc-sidebar-logo-mark">General Ledger</div>
-            <div className="acc-sidebar-logo-name">Big God Susu</div>
+            <div className="acc-sidebar-logo-name">SusuPro</div>
           </div>
 
           <div className="acc-sidebar-section">Accounts</div>

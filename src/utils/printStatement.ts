@@ -65,10 +65,10 @@ export const printStatement = (statement) => {
             </div>
             <div class="letterhead-center">
               <h1 class="company-name">${companyName}</h1>
-              <p class="company-address">${statement.bank_info?.company_address || ''}</p>
+              <p class="company-address">Agona Nkwanta</p>
               <p class="company-contact">
-                Tel: ${statement.bank_info?.company_phone || ''} | 
-                Email: ${statement.bank_info?.company_email || ''}
+                Tel: 0542384752
+                Email: bigodsusuenterprise@gmail.com
               </p>
             </div>
             <div class="letterhead-right">
