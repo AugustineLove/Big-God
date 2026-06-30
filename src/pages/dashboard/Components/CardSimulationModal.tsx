@@ -1,6 +1,16 @@
 // components/CardSimulationModal.tsx
-import React, { useEffect, useState } from "react";
-import { X, ChevronLeft, ChevronRight, Stamp, Clock3, CircleDashed } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Stamp,
+  Clock3,
+  CircleDashed,
+  CheckCircle2,
+  ArrowUpRight,
+  Coins,
+} from "lucide-react";
 
 type CardLine = {
   lineNumber: number;
@@ -54,6 +64,34 @@ type CardData = {
   pages: CardPage[];
 };
 
+// ── Derived per-line withdrawal state, computed client-side from
+//    page.withdrawnOnPage. Withdrawals consume lines in order (1 → 31),
+//    same convention as deposits filling them in order. ─────────────────
+type LineRuntimeState = "withdrawn" | "partial-withdrawn" | "staked" | "depositing" | "open";
+
+function getLineRuntimeState(
+  line: CardLine,
+  lineNumber: number,
+  withdrawnLinesCount: number,
+  partialWithdrawnAmount: number,
+  rate: number,
+  pageStatus: CardPage["status"]
+): LineRuntimeState {
+  // A fully completed/stamped page: every line — including the commission
+  // line — has been paid out. Show it as withdrawn across the board.
+  if (pageStatus === "completed") return "withdrawn";
+
+  if (lineNumber <= withdrawnLinesCount) return "withdrawn";
+
+  if (lineNumber === withdrawnLinesCount + 1 && partialWithdrawnAmount > 0.0001) {
+    return "partial-withdrawn";
+  }
+
+  if (line.filled) return "staked";
+  if (line.pending) return "depositing";
+  return "open";
+}
+
 const formatCurrency = (n: number) =>
   new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(n || 0);
 
@@ -65,35 +103,77 @@ const formatDate = (d: string | null) => {
     : date.toLocaleDateString("en-GH", { year: "2-digit", month: "short", day: "numeric" });
 };
 
-const statusMeta: Record<string, { label: string; pill: string; dot: string; icon: React.ReactNode }> = {
+const pageStatusMeta: Record <
+  CardPage["status"],
+  { label: string; pill: string; dot: string; icon: React.ReactNode; bannerClass: string }
+> = {
   completed: {
     label: "Completed — Stamped",
-    pill: "bg-emerald-50 text-emerald-700",
-    dot: "bg-emerald-400",
+    pill: "bg-red-50 text-red-700",
+    dot: "bg-red-400",
     icon: <Stamp className="w-3.5 h-3.5" />,
+    bannerClass: "from-[#3a1d1d] to-[#5c2b2b]",
   },
   advance: {
-    label: "Advance",
+    label: "Advance — In Progress",
     pill: "bg-amber-50 text-amber-700",
     dot: "bg-amber-400",
     icon: <Clock3 className="w-3.5 h-3.5" />,
+    bannerClass: "from-[#1d2b22] to-[#3a5841]",
   },
   open: {
-    label: "Open",
-    pill: "bg-gray-100 text-gray-400",
+    label: "Open — Untouched",
+    pill: "bg-gray-100 text-gray-500",
     dot: "bg-gray-300",
     icon: <CircleDashed className="w-3.5 h-3.5" />,
+    bannerClass: "from-[#1d2b22] to-[#3a5841]",
   },
 };
 
+const lineStateMeta: Record <
+  LineRuntimeState,
+  { rowClass: string; badgeClass: string; amountClass: string; icon: React.ReactNode }
+> = {
+  withdrawn: {
+    rowClass: "bg-red-50/70",
+    badgeClass: "bg-red-500 text-white",
+    amountClass: "text-red-600",
+    icon: <ArrowUpRight className="w-2.5 h-2.5" />,
+  },
+  "partial-withdrawn": {
+    rowClass: "bg-gradient-to-r from-red-50/70 to-amber-50/60",
+    badgeClass: "bg-gradient-to-br from-red-400 to-amber-400 text-white",
+    amountClass: "text-red-500",
+    icon: <Clock3 className="w-2.5 h-2.5" />,
+  },
+  staked: {
+    rowClass: "bg-emerald-50/60",
+    badgeClass: "bg-emerald-500 text-white",
+    amountClass: "text-emerald-700",
+    icon: <CheckCircle2 className="w-2.5 h-2.5" />,
+  },
+  depositing: {
+    rowClass: "bg-amber-50/60",
+    badgeClass: "bg-amber-400 text-white",
+    amountClass: "text-amber-700",
+    icon: <Clock3 className="w-2.5 h-2.5" />,
+  },
+  open: {
+    rowClass: "bg-gray-50",
+    badgeClass: "bg-gray-200 text-gray-400",
+    amountClass: "text-gray-300",
+    icon: <CircleDashed className="w-2.5 h-2.5" />,
+  },
+};
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   accountId: string;
   apiBaseUrl: string; // e.g. import.meta.env.VITE_API_URL
+  authHeaders?: Record<string, string>; // pass e.g. { Authorization: `Bearer ${token}` } if your API needs it
 }
 
-const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiBaseUrl }) => {
+const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiBaseUrl, authHeaders }) => {
   const [card, setCard] = useState<CardData | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -107,7 +187,7 @@ const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiB
       setError(null);
       try {
         const res = await fetch(`${apiBaseUrl}/accounts/${accountId}/card-simulate`, {
-          credentials: "include",
+          headers: authHeaders,
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.message || "Failed to load card");
@@ -123,34 +203,63 @@ const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiB
     fetchCard();
   }, [isOpen, accountId, apiBaseUrl]);
 
+  const page = card?.pages?.[pageIndex];
+  const rate = card?.rate ?? 0;
+
+  // Compute how many lines on this page have been consumed by withdrawals,
+  // and whether the line right after the cutoff is a partial withdrawal.
+  const { withdrawnLinesCount, partialWithdrawnAmount } = useMemo(() => {
+    if (!page || !rate) return { withdrawnLinesCount: 0, partialWithdrawnAmount: 0 };
+    const count = Math.floor(page.withdrawnOnPage / rate + 0.0001);
+    const partial = +(page.withdrawnOnPage - count * rate).toFixed(2);
+    return { withdrawnLinesCount: count, partialWithdrawnAmount: partial };
+  }, [page, rate]);
+
   if (!isOpen) return null;
 
-  const page = card?.pages?.[pageIndex];
   const leftLines = page?.lines.filter((l) => l.side === "left") ?? [];
   const rightLines = page?.lines.filter((l) => l.side === "right") ?? [];
+  const isCommissionLine = (lineNumber: number) => lineNumber === 31;
 
   const renderLine = (line: CardLine) => {
+    if (!page) return null;
     const date = formatDate(line.date);
+    const state = getLineRuntimeState(
+      line,
+      line.lineNumber,
+      withdrawnLinesCount,
+      partialWithdrawnAmount,
+      rate,
+      page.status
+    );
+    const meta = lineStateMeta[state];
+    const showsCommissionTag = page.status === "completed" && isCommissionLine(line.lineNumber);
+
     return (
       <div
         key={line.lineNumber}
-        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px]
-          ${line.filled ? "bg-emerald-50/60" : line.pending ? "bg-amber-50/60" : "bg-gray-50"}`}
+        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-colors ${meta.rowClass}`}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <span
-            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0
-              ${line.filled ? "bg-emerald-500 text-white" : line.pending ? "bg-amber-400 text-white" : "bg-gray-200 text-gray-400"}`}
+            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0 ${meta.badgeClass}`}
           >
             {line.lineNumber}
           </span>
-          <span className={`font-mono ${line.filled ? "text-gray-700" : "text-gray-300"}`}>
-            {date || (line.pending ? `${line.pendingPercent}% staked` : "—")}
+          <span className={`font-mono truncate ${state === "open" ? "text-gray-300" : "text-gray-700"}`}>
+            {showsCommissionTag
+              ? "Commission"
+              : state === "depositing"
+              ? `${line.pendingPercent}% staked`
+              : state === "partial-withdrawn"
+              ? `${formatCurrency(partialWithdrawnAmount)} drawn`
+              : date || "—"}
           </span>
         </div>
-        <span className={`font-semibold tabular-nums ${line.filled ? "text-emerald-700" : "text-gray-300"}`}>
-          {line.amount}
-        </span>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {meta.icon}
+          <span className={`font-semibold tabular-nums ${meta.amountClass}`}>{line.amount}</span>
+        </div>
       </div>
     );
   };
@@ -158,7 +267,6 @@ const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiB
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-
         {/* Modal header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <h2 className="text-sm font-semibold text-gray-900">Susu Card Simulation</h2>
@@ -172,9 +280,14 @@ const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiB
 
         {card && page && (
           <div className="p-5 space-y-4">
-
-            {/* Card header strip — account number / start date / rate */}
-            <div className="bg-gradient-to-br from-[#1d2b22] to-[#3a5841] text-white rounded-2xl p-5">
+            {/* Card header strip — account number / start date / rate.
+                Tints red when this specific page is fully completed/stamped. */}
+            <div
+              className={`bg-gradient-to-br ${pageStatusMeta[page.status].bannerClass} text-white rounded-2xl p-5 relative overflow-hidden`}
+            >
+              {page.status === "completed" && (
+                <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/5" />
+              )}
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-white/50">Account Number</p>
@@ -194,6 +307,12 @@ const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiB
                   <p className="text-sm font-medium mt-0.5">{formatCurrency(card.rate)}</p>
                 </div>
               </div>
+              {page.status === "completed" && (
+                <div className="mt-3 inline-flex items-center gap-1.5 bg-red-500/20 border border-red-300/30 text-red-100 rounded-full px-2.5 py-1 text-[10px] font-medium">
+                  <Stamp className="w-3 h-3" />
+                  This page is fully withdrawn & stamped
+                </div>
+              )}
             </div>
 
             {/* Page navigator */}
@@ -211,11 +330,10 @@ const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiB
                   Page {page.pageNumber} of {card.totalPages}
                 </p>
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium mt-1
-                    ${statusMeta[page.status].pill}`}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium mt-1 ${pageStatusMeta[page.status].pill}`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${statusMeta[page.status].dot}`} />
-                  {statusMeta[page.status].label}
+                  <span className={`w-1.5 h-1.5 rounded-full ${pageStatusMeta[page.status].dot}`} />
+                  {pageStatusMeta[page.status].label}
                 </span>
               </div>
 
@@ -228,8 +346,28 @@ const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiB
               </button>
             </div>
 
+            {/* Color legend */}
+            <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 px-1">
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Staked
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Withdrawn
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> In progress
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-gray-300" /> Open
+              </span>
+            </div>
+
             {/* 31 lines: 15 left / 16 right */}
-            <div className="border border-gray-100 rounded-2xl p-4 bg-[repeating-linear-gradient(180deg,#fff,#fff_27px,#f8f8f6_28px)]">
+            <div
+              className={`border rounded-2xl p-4 bg-[repeating-linear-gradient(180deg,#fff,#fff_27px,#f8f8f6_28px)] transition-colors ${
+                page.status === "completed" ? "border-red-100" : "border-gray-100"
+              }`}
+            >
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">{leftLines.map(renderLine)}</div>
                 <div className="space-y-1">{rightLines.map(renderLine)}</div>
@@ -244,21 +382,23 @@ const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiB
                   {page.linesStaked}/31 · {formatCurrency(page.stakedAmount)}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-[10px] text-gray-400 font-medium">Withdrawn on page</p>
-                <p className="text-sm font-semibold text-gray-800 mt-0.5">
+              <div className={`rounded-xl p-3 ${page.withdrawnOnPage > 0 ? "bg-red-50" : "bg-gray-50"}`}>
+                <p className={`text-[10px] font-medium ${page.withdrawnOnPage > 0 ? "text-red-500" : "text-gray-400"}`}>
+                  Withdrawn on page
+                </p>
+                <p className={`text-sm font-semibold mt-0.5 ${page.withdrawnOnPage > 0 ? "text-red-600" : "text-gray-800"}`}>
                   {formatCurrency(page.withdrawnOnPage)}
                 </p>
               </div>
               <div className="bg-gray-50 rounded-xl p-3">
                 <p className="text-[10px] text-gray-400 font-medium">Balance on page</p>
-                <p className="text-sm font-semibold text-gray-800 mt-0.5">
-                  {formatCurrency(page.balanceOnPage)}
-                </p>
+                <p className="text-sm font-semibold text-gray-800 mt-0.5">{formatCurrency(page.balanceOnPage)}</p>
               </div>
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-[10px] text-gray-400 font-medium">Commission taken</p>
-                <p className="text-sm font-semibold text-gray-800 mt-0.5">
+              <div className={`rounded-xl p-3 ${page.commissionTaken > 0 ? "bg-red-50" : "bg-gray-50"}`}>
+                <p className={`text-[10px] font-medium flex items-center gap-1 ${page.commissionTaken > 0 ? "text-red-500" : "text-gray-400"}`}>
+                  <Coins className="w-3 h-3" /> Commission taken
+                </p>
+                <p className={`text-sm font-semibold mt-0.5 ${page.commissionTaken > 0 ? "text-red-600" : "text-gray-800"}`}>
                   {page.commissionTaken > 0 ? formatCurrency(page.commissionTaken) : "—"}
                 </p>
               </div>
@@ -276,13 +416,13 @@ const CardSimulationModal: React.FC<Props> = ({ isOpen, onClose, accountId, apiB
                   <span className="text-red-700">Total Withdrawn</span>
                   <span className="font-semibold text-red-600">{formatCurrency(card.totals.totalWithdrawn)}</span>
                 </div>
-                <div className="flex justify-between bg-amber-50 rounded-lg px-3 py-2">
-                  <span className="text-amber-700">Commission Earned</span>
-                  <span className="font-semibold text-amber-700">{formatCurrency(card.totals.totalCommissionEarned)}</span>
+                <div className="flex justify-between bg-red-50 rounded-lg px-3 py-2">
+                  <span className="text-red-700">Commission Earned</span>
+                  <span className="font-semibold text-red-600">{formatCurrency(card.totals.totalCommissionEarned)}</span>
                 </div>
-                <div className="flex justify-between bg-indigo-50 rounded-lg px-3 py-2">
-                  <span className="text-indigo-700">Pages Completed</span>
-                  <span className="font-semibold text-indigo-700">{card.totals.completedPages}</span>
+                <div className="flex justify-between bg-red-50 rounded-lg px-3 py-2">
+                  <span className="text-red-700">Pages Completed</span>
+                  <span className="font-semibold text-red-600">{card.totals.completedPages}</span>
                 </div>
                 <div className="flex justify-between bg-blue-50 rounded-lg px-3 py-2">
                   <span className="text-blue-700">Paid to Customer</span>
