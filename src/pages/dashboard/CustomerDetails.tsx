@@ -46,6 +46,10 @@ import TransferModal from './Components/TransferModal';
 import DeleteTransactionModal from '../../components/deleteTransactionModal';
 import InvestmentModal from './InvestmentModal';
 import AccountChargesModal from './AccountChargesModal';
+import CardSimulationModal from './Components/CardSimulationModal';
+import { apiFetch } from './Components/Payroll/Shared';
+
+const BASE_URL = 'https://susu-pro-backend.onrender.com/api';
 
 type CustomerDTO = {
   id?: string;
@@ -83,6 +87,7 @@ const CustomerDetailsPage = () => {
   const { fetchCustomerTransactions, customerTransactions, deleteTransaction } = useTransactions();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [cardModalAccountId, setCardModalAccountId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isInvestmentModalOpen, setIsInvestmentModalOpen] = useState(false);
@@ -811,13 +816,20 @@ const accountOptions = allAccounts.map(account => ({
       </div>
 
       {/* Actions */}
-      <div className="border-t border-gray-100 flex">
+      <div className="border-t border-gray-100 flex"> 
         <button
           onClick={() => handleOpenSettings(account)}
           className="flex-1 flex items-center justify-center gap-1.5 py-3.5 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors"
         >
           <Settings className="w-4 h-4" />
           Settings
+        </button>
+         <button
+          onClick={() => setCardModalAccountId(account.id)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3.5 text-sm font-medium text-gray-500 border-r border-gray-100 hover:bg-gray-50 hover:text-gray-800 transition-colors"
+        >
+          <CreditCard className="w-4 h-4" />
+          Card
         </button>
         <button
           onClick={() => handleDeleteAccount(account.id)}
@@ -1357,6 +1369,13 @@ const accountOptions = allAccounts.map(account => ({
             
 
           {/* Add Account Modal */}
+          <CardSimulationModal
+        isOpen={!!cardModalAccountId}
+        onClose={() => setCardModalAccountId(null)}
+        accountId={cardModalAccountId || ''}
+        apiBaseUrl={BASE_URL}
+      />
+
       <AddAccountModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}

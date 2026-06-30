@@ -1,272 +1,283 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { companyId, userUUID } from "../../../constants/appConstants";
 
+// ─────────────────────────────────────────────────────────────
+// CONFIG — adjust base URL to match your Express server
+// ─────────────────────────────────────────────────────────────
 const API = `https://susu-pro-backend.onrender.com/api/accounting/${companyId}`;
-const COMPANY_NAME = "Big God Susu Enterprise";
 
-// ─────────────────────────────────────────────────────────────
-// FORMATTERS
-// ─────────────────────────────────────────────────────────────
 const fmt = (n) =>
-  new Intl.NumberFormat("en-GH", {
-    style: "currency", currency: "GHS", minimumFractionDigits: 2,
-  }).format(Number(n) || 0);
+  new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 }).format(Number(n) || 0);
 
-const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-
-const fmtDateLong = (d) =>
-  d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "—";
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
 // ─────────────────────────────────────────────────────────────
-// STYLES
+// STYLES - Light Theme
 // ─────────────────────────────────────────────────────────────
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:           #f5f6fa;
-    --bg2:          #ffffff;
-    --bg3:          #f0f1f7;
-    --bg4:          #e8eaf4;
-    --border:       #e2e4ef;
-    --border2:      #c9cbdb;
-    --text:         #111827;
-    --text2:        #4b5563;
-    --text3:        #9ca3af;
-    --ink:          #1e293b;
-    --accent:       #2563eb;
-    --accent-d:     #1d4ed8;
-    --accent-light: #eff6ff;
-    --accent-mid:   #bfdbfe;
-    --green:        #059669;
-    --green-light:  #d1fae5;
-    --red:          #dc2626;
-    --red-light:    #fee2e2;
-    --amber:        #d97706;
-    --amber-light:  #fef3c7;
-    --purple:       #7c3aed;
+    --bg:        #f8f9fc;
+    --bg2:       #ffffff;
+    --bg3:       #f1f3f8;
+    --border:    #e4e7ed;
+    --border2:   #d1d5db;
+    --text:      #1a1a2e;
+    --text2:     #6b7280;
+    --text3:     #9ca3af;
+    --accent:    #4f46e5;
+    --accent2:   #6366f1;
+    --accent-light: #eef2ff;
+    --green:     #10b981;
+    --green-light: #d1fae5;
+    --red:       #ef4444;
+    --red-light: #fee2e2;
+    --blue:      #3b82f6;
+    --blue-light: #dbeafe;
+    --purple:    #8b5cf6;
     --purple-light: #ede9fe;
-    --sky:          #0284c7;
-    --sky-light:    #e0f2fe;
-    --slate:        #475569;
-    --radius:       8px;
-    --radius-lg:    12px;
-    --shadow-sm:    0 1px 2px 0 rgba(0,0,0,0.05);
-    --shadow:       0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
-    --shadow-md:    0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
-    --shadow-lg:    0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
-    --font:         'Inter', system-ui, sans-serif;
-    --mono:         'JetBrains Mono', 'Fira Mono', monospace;
+    --orange:    #f59e0b;
+    --orange-light: #fed7aa;
+    --radius:    10px;
+    --radius-lg: 16px;
+    --shadow:    0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   }
 
-  body { background: var(--bg); color: var(--text); font-family: var(--font); }
+  body { background: var(--bg); color: var(--text); }
 
-  .acc { min-height: 100vh; background: var(--bg); }
-
-  /* ── Sidebar layout ── */
-  .acc-layout {
-    display: flex;
+  .acc-module {
     min-height: 100vh;
+    background: var(--bg);
   }
 
-  .acc-sidebar {
-    width: 220px;
-    min-height: 100vh;
-    background: var(--ink);
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: 0; left: 0;
-    z-index: 100;
-  }
-
-  .acc-sidebar-logo {
-    padding: 20px 18px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .acc-sidebar-logo-mark {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--accent-mid);
-  }
-  .acc-sidebar-logo-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: #ffffff;
-  }
-  .acc-sidebar-section {
-    padding: 14px 12px 6px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.3);
-  }
-  .acc-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 14px;
-    margin: 1px 8px;
-    border-radius: 7px;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.65);
-    cursor: pointer;
-    border: none;
-    background: none;
-    width: calc(100% - 16px);
-    text-align: left;
-    transition: all .15s;
-  }
-  .acc-nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
-  .acc-nav-item.active {
-    background: var(--accent);
-    color: #fff;
-  }
-  .acc-nav-item .nav-icon { font-size: 15px; width: 20px; text-align: center; }
-
-  /* ── Main content ── */
-  .acc-main {
-    margin-left: 220px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-
+  /* ── Top bar ── */
   .acc-topbar {
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    padding: 0 28px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky; top: 0; z-index: 50;
-    box-shadow: var(--shadow-sm);
-  }
-  .acc-topbar-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .acc-topbar-right {
     display: flex;
     align-items: center;
     gap: 12px;
-  }
-  .acc-topbar-date {
-    font-size: 12px;
-    color: var(--text3);
-  }
-
-  .acc-body { padding: 24px 28px; }
-
-  /* ── KPI cards ── */
-  .acc-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  .acc-kpi {
+    padding: 16px 28px;
     background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 18px 20px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow .2s;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: var(--shadow);
   }
-  .acc-kpi:hover { box-shadow: var(--shadow-md); }
-  .acc-kpi::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
+  .acc-topbar-logo {
+    font-size: 24px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
   }
-  .acc-kpi.asset::before   { background: var(--accent); }
-  .acc-kpi.liability::before { background: var(--red); }
-  .acc-kpi.equity::before  { background: var(--purple); }
-  .acc-kpi.income::before  { background: var(--green); }
-  .acc-kpi.expense::before { background: var(--amber); }
-  .acc-kpi.net.positive::before { background: var(--green); }
-  .acc-kpi.net.negative::before { background: var(--red); }
-  .acc-kpi-label {
+  .acc-topbar-logo span { font-style: italic; color: var(--accent2); }
+  .acc-topbar-sep { flex: 1; }
+  .acc-topbar-badge {
     font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--text3);
-    margin-bottom: 10px;
-  }
-  .acc-kpi-value {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-  }
-  .acc-kpi-value.green  { color: var(--green); }
-  .acc-kpi-value.red    { color: var(--red); }
-  .acc-kpi-value.blue   { color: var(--accent); }
-  .acc-kpi-value.purple { color: var(--purple); }
-  .acc-kpi-sub {
-    font-size: 12px;
-    color: var(--text3);
-    margin-top: 4px;
+    background: var(--accent-light);
+    border: 1px solid var(--accent2);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 99px;
+    letter-spacing: 0.5px;
   }
 
-  /* ── Panel ── */
-  .acc-panel {
+  /* ── Nav tabs ── */
+  .acc-nav {
+    display: flex;
+    gap: 4px;
+    padding: 0 28px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .acc-nav-btn {
+    padding: 12px 20px;
+    border: none;
+    background: none;
+    color: var(--text2);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all .2s;
+  }
+  .acc-nav-btn:hover { color: var(--accent); background: var(--bg3); }
+  .acc-nav-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  /* ── Layout ── */
+  .acc-body { padding: 28px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Cards ── */
+  .acc-card {
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 20px;
+    box-shadow: var(--shadow);
   }
-  .acc-panel-header {
+  .acc-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 20px 24px;
     border-bottom: 1px solid var(--border);
+    background: var(--bg2);
   }
-  .acc-panel-title {
-    font-size: 15px;
-    font-weight: 600;
+  .acc-card-title {
+    font-size: 20px;
     color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .acc-panel-title .count {
-    font-size: 11px;
-    background: var(--bg3);
-    color: var(--text2);
-    padding: 2px 8px;
-    border-radius: 99px;
-    font-weight: 600;
   }
 
-  /* ── Toolbar / filters ── */
-  .acc-toolbar {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    padding: 14px 20px;
+  /* ── Stat grid ── */
+  .acc-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .acc-stat {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .acc-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  .acc-stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .acc-stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .acc-stat-value.green { color: var(--green); }
+  .acc-stat-value.red   { color: var(--red); }
+  .acc-stat-value.gold  { color: var(--accent); }
+  .acc-stat-sub {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 6px;
+  }
+
+  /* ── Table ── */
+  .acc-table-wrap { overflow-x: auto; }
+  .acc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .acc-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text2);
     border-bottom: 1px solid var(--border);
+    white-space: nowrap;
     background: var(--bg3);
+  }
+  .acc-table th.right, .acc-table td.right { text-align: right; }
+  .acc-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+  }
+  .acc-table tr:last-child td { border-bottom: none; }
+  .acc-table tr:hover td { background: var(--bg3); }
+  .acc-table .mono { font-size: 13px; }
+  .acc-table .muted { color: var(--text2); }
+  .acc-table .group-header td {
+    background: var(--bg3);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 10px 16px;
+  }
+  .acc-table .subtotal td {
+    font-weight: 600;
+    font-size: 13px;
+    background: var(--accent-light);
+    border-top: 1px solid var(--border);
+  }
+  .acc-table .grand-total td {
+    font-weight: 700;
+    background: var(--accent-light);
+    border-top: 2px solid var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── Badges ── */
+  .acc-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    text-transform: uppercase;
+  }
+  .acc-badge.asset     { background: var(--blue-light); color: var(--blue); }
+  .acc-badge.liability { background: var(--red-light); color: var(--red); }
+  .acc-badge.equity    { background: var(--purple-light); color: var(--purple); }
+  .acc-badge.income    { background: var(--green-light); color: var(--green); }
+  .acc-badge.expense   { background: var(--orange-light); color: var(--orange); }
+  .acc-badge.posted    { background: var(--green-light); color: var(--green); }
+  .acc-badge.draft     { background: #f3f4f6; color: var(--text2); }
+  .acc-badge.reversed  { background: var(--red-light); color: var(--red); }
+  .acc-badge.debit     { background: var(--blue-light); color: var(--blue); }
+  .acc-badge.credit    { background: var(--green-light); color: var(--green); }
+
+  /* ── Buttons ── */
+  .acc-btn {
+    display: inline-flex;
     align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+  }
+  .acc-btn:hover { opacity: .85; transform: translateY(-1px); }
+  .acc-btn:active { transform: translateY(0); }
+  .acc-btn.primary { background: var(--accent); color: white; }
+  .acc-btn.ghost {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border2);
+  }
+  .acc-btn.ghost:hover { background: var(--bg3); color: var(--text); border-color: var(--text3); }
+  .acc-btn.danger { background: var(--red-light); color: var(--red); border: 1px solid var(--red); }
+  .acc-btn.sm { padding: 5px 12px; font-size: 12px; }
+
+  /* ── Search / filter bar ── */
+  .acc-filters {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
   }
   .acc-input {
     background: var(--bg2);
@@ -274,413 +285,186 @@ const STYLES = `
     border-radius: var(--radius);
     color: var(--text);
     font-size: 13px;
-    font-family: var(--font);
-    padding: 7px 12px;
+    padding: 8px 14px;
     outline: none;
     transition: all .2s;
-    height: 34px;
   }
-  .acc-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+  .acc-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
   .acc-input::placeholder { color: var(--text3); }
   .acc-input.wide { flex: 1; min-width: 200px; }
-  select.acc-input { cursor: pointer; padding-right: 28px;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-  }
-
-  /* ── Buttons ── */
-  .acc-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 0 16px;
-    height: 34px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 500;
-    font-family: var(--font);
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all .15s;
-    white-space: nowrap;
-  }
-  .acc-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .acc-btn.primary { background: var(--accent); color: white; border-color: var(--accent-d); }
-  .acc-btn.primary:hover:not(:disabled) { background: var(--accent-d); }
-  .acc-btn.ghost { background: var(--bg2); color: var(--text2); border-color: var(--border2); }
-  .acc-btn.ghost:hover:not(:disabled) { background: var(--bg3); color: var(--text); border-color: var(--border2); }
-  .acc-btn.danger { background: var(--red-light); color: var(--red); border-color: var(--red); }
-  .acc-btn.danger:hover:not(:disabled) { background: var(--red); color: white; }
-  .acc-btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
-  .acc-btn.icon { padding: 0 8px; }
-
-  /* ── Table ── */
-  .acc-tbl-wrap { overflow-x: auto; }
-  .acc-tbl {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
-  }
-  .acc-tbl th {
-    padding: 10px 16px;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    color: var(--text3);
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-    background: var(--bg3);
-    position: sticky; top: 0;
-  }
-  .acc-tbl th.r, .acc-tbl td.r { text-align: right; }
-  .acc-tbl th.c, .acc-tbl td.c { text-align: center; }
-  .acc-tbl td {
-    padding: 11px 16px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-    vertical-align: middle;
-  }
-  .acc-tbl tr:last-child td { border-bottom: none; }
-  .acc-tbl tbody tr:hover td { background: var(--bg3); }
-  .acc-tbl .grp-row td {
-    background: var(--bg4);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    color: var(--accent);
-    padding: 8px 16px;
-    border-top: 1px solid var(--border);
-  }
-  .acc-tbl .sub-row td {
-    background: var(--accent-light);
-    font-weight: 600;
-    font-size: 13px;
-    border-top: 1px solid var(--accent-mid);
-  }
-  .acc-tbl .grand-row td {
-    background: var(--ink);
-    color: #fff;
-    font-weight: 700;
-    font-size: 13px;
-  }
-  .acc-tbl .exp-row td { background: var(--bg3); }
-
-  /* ── Badges ── */
-  .acc-chip {
-    display: inline-flex;
-    align-items: center;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    padding: 3px 9px;
-    border-radius: 99px;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-  .chip-asset     { background: var(--sky-light); color: var(--sky); }
-  .chip-liability { background: var(--red-light); color: var(--red); }
-  .chip-equity    { background: var(--purple-light); color: var(--purple); }
-  .chip-income    { background: var(--green-light); color: var(--green); }
-  .chip-expense   { background: var(--amber-light); color: var(--amber); }
-  .chip-posted    { background: var(--green-light); color: var(--green); }
-  .chip-draft     { background: var(--bg4); color: var(--text2); }
-  .chip-reversed  { background: var(--red-light); color: var(--red); }
-  .chip-debit     { background: var(--sky-light); color: var(--sky); }
-  .chip-credit    { background: var(--green-light); color: var(--green); }
-  .chip-active    { background: var(--green-light); color: var(--green); }
-  .chip-inactive  { background: var(--red-light); color: var(--red); }
-
-  /* ── Mono ── */
-  .mono { font-family: var(--mono); font-size: 12.5px; }
-
-  /* ── Empty / Loading ── */
-  .acc-empty {
-    text-align: center;
-    padding: 56px 20px;
-    color: var(--text3);
-  }
-  .acc-empty-icon { font-size: 42px; margin-bottom: 12px; }
-  .acc-empty-text { font-size: 14px; margin-bottom: 6px; color: var(--text2); font-weight: 500; }
-  .acc-empty-sub  { font-size: 13px; }
-
-  .acc-loading {
-    display: flex; align-items: center; justify-content: center;
-    gap: 10px; padding: 56px 20px;
-    color: var(--text3); font-size: 13px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .acc-spinner {
-    width: 18px; height: 18px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-  }
-
-  /* ── Pagination ── */
-  .acc-pager {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px;
-    border-top: 1px solid var(--border);
-    font-size: 12.5px;
-    color: var(--text3);
-    background: var(--bg3);
-  }
+  select.acc-input { cursor: pointer; background: var(--bg2); }
 
   /* ── Modal ── */
   .acc-modal-bg {
     position: fixed; inset: 0;
-    background: rgba(17,24,39,0.55);
-    backdrop-filter: blur(3px);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
     z-index: 200;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 20px;
   }
   .acc-modal {
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    width: 100%; max-width: 640px;
-    max-height: 92vh; overflow-y: auto;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: var(--shadow-lg);
   }
-  .acc-modal.wide { max-width: 900px; }
-  .acc-modal-hdr {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 22px;
+  .acc-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
     border-bottom: 1px solid var(--border);
     background: var(--bg2);
-    position: sticky; top: 0; z-index: 5;
   }
-  .acc-modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .acc-modal-title {
+    font-size: 20px;
+    color: var(--text);
+  }
   .acc-modal-close {
-    background: none; border: none; color: var(--text3); font-size: 20px;
-    cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: all .15s;
-    line-height: 1;
+    background: none; border: none;
+    color: var(--text2); font-size: 24px;
+    cursor: pointer; padding: 4px 8px;
+    border-radius: 6px;
+    transition: background .2s;
   }
   .acc-modal-close:hover { background: var(--bg3); color: var(--text); }
-  .acc-modal-body { padding: 22px; }
-  .acc-modal-ftr {
-    padding: 14px 22px;
+  .acc-modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .acc-modal-footer {
+    padding: 16px 24px;
     border-top: 1px solid var(--border);
-    display: flex; gap: 10px; justify-content: flex-end;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
     background: var(--bg3);
   }
 
   /* ── Form ── */
-  .f-row { display: flex; flex-direction: column; gap: 5px; }
-  .f-row label { font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.3px; }
-  .f-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .f-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-  .f-sep { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
+  .acc-form-row { display: flex; flex-direction: column; gap: 6px; }
+  .acc-form-row label { font-size: 13px; font-weight: 500; color: var(--text2); }
+  .acc-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .acc-form-line {
+    display: grid;
+    grid-template-columns: 1fr 100px 120px 32px;
+    gap: 8px;
+    align-items: center;
+  }
+  .acc-form-sep {
+    border: none; border-top: 1px solid var(--border);
+    margin: 8px 0;
+  }
+
+  /* ── Empty / loading ── */
+  .acc-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+    font-size: 14px;
+  }
+  .acc-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: .5; }
+  .acc-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text3);
+    gap: 12px;
+    font-size: 14px;
+  }
+  .acc-spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Pagination ── */
+  .acc-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text2);
+    background: var(--bg2);
+  }
 
   /* ── Alert ── */
   .acc-alert {
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-radius: var(--radius);
     font-size: 13px;
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 12px;
-  }
-  .acc-alert.ok  { background: var(--green-light); color: var(--green); border: 1px solid #6ee7b7; }
-  .acc-alert.err { background: var(--red-light); color: var(--red); border: 1px solid #fca5a5; }
-
-  /* ── Report gate (date picker before data loads) ── */
-  .acc-gate {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 24px;
-    padding: 80px 40px;
-    text-align: center;
-  }
-  .acc-gate-icon { font-size: 56px; }
-  .acc-gate-title { font-size: 22px; font-weight: 700; color: var(--text); }
-  .acc-gate-sub { font-size: 14px; color: var(--text2); max-width: 400px; line-height: 1.6; }
-  .acc-gate-form {
-    display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
-    justify-content: center; width: 100%;
-  }
-  .acc-gate-field { display: flex; flex-direction: column; gap: 6px; text-align: left; }
-  .acc-gate-field label { font-size: 12px; font-weight: 600; color: var(--text2); }
-
-  /* ── Professional report layout ── */
-  .acc-report {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-  }
-  .acc-report-cover {
-    background: var(--ink);
-    padding: 32px 40px;
-    color: white;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-  .acc-report-co { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-  .acc-report-name { font-size: 14px; color: rgba(255,255,255,0.6); }
-  .acc-report-meta { text-align: right; }
-  .acc-report-meta-label { font-size: 11px; color: rgba(255,255,255,0.45); margin-bottom: 2px; }
-  .acc-report-meta-val { font-size: 14px; font-weight: 500; }
-
-  .acc-report-section { margin: 0; }
-  .acc-report-section-hdr {
-    background: var(--bg4);
-    padding: 10px 24px;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--accent);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-  .acc-report-row {
-    display: grid;
-    grid-template-columns: 80px 1fr 1fr auto;
-    gap: 0;
-    padding: 10px 24px;
-    border-bottom: 1px solid var(--border);
-    font-size: 13.5px;
     align-items: center;
-    transition: background .1s;
+    gap: 10px;
   }
-  .acc-report-row:hover { background: var(--bg3); }
-  .acc-report-row.indent { padding-left: 40px; }
-  .acc-report-row.sub {
-    background: var(--accent-light);
-    font-weight: 700;
-    border-top: 2px solid var(--accent-mid);
-    font-size: 13px;
+  .acc-alert.success { background: var(--green-light); color: var(--green); border: 1px solid var(--green); }
+  .acc-alert.error   { background: var(--red-light); color: var(--red); border: 1px solid var(--red); }
+
+  /* ── Report sections ── */
+  .acc-report-section { margin-bottom: 32px; }
+  .acc-report-section-title {
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent);
   }
-  .acc-report-row.sub:hover { background: var(--accent-light); }
-  .acc-report-row.grand {
-    background: var(--ink);
-    color: white;
-    font-weight: 700;
-    font-size: 14px;
-    border-top: none;
-  }
-  .acc-report-row.grand:hover { background: var(--ink); }
-  .acc-report-row .code { font-family: var(--mono); font-size: 12px; color: var(--text3); }
-  .acc-report-row .name { color: var(--text); }
-  .acc-report-row.sub .name, .acc-report-row.grand .name { font-weight: 700; }
-  .acc-report-row .cat { font-size: 11px; color: var(--text3); }
-  .acc-report-row .amt {
-    text-align: right;
-    font-family: var(--mono);
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--text);
-  }
-  .acc-report-row.sub .amt { color: var(--accent); }
-  .acc-report-row.grand .amt { color: #93c5fd; }
+
+  /* ── Expand/collapse ── */
+  .acc-expand { cursor: pointer; user-select: none; }
+  .acc-indent { padding-left: 32px !important; }
+  .acc-indent2 { padding-left: 48px !important; }
 
   /* ── Balance indicator ── */
-  .bal-pill {
+  .acc-balanced {
     display: inline-flex; align-items: center; gap: 6px;
-    font-size: 12px; font-weight: 600;
-    padding: 4px 12px; border-radius: 99px;
+    font-size: 12px; font-weight: 600; padding: 4px 12px;
+    border-radius: 99px;
   }
-  .bal-pill.ok  { background: var(--green-light); color: var(--green); }
-  .bal-pill.bad { background: var(--red-light); color: var(--red); }
-
-  /* ── Journal entry table in modal ── */
-  .je-lines-tbl {
-    width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px;
-  }
-  .je-lines-tbl th {
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.5px; color: var(--text3);
-    padding: 8px 10px; background: var(--bg3);
-    border-bottom: 1px solid var(--border);
-    text-align: left;
-  }
-  .je-lines-tbl th.r { text-align: right; }
-  .je-lines-tbl td { padding: 6px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  .je-lines-tbl tfoot td {
-    background: var(--bg3); font-weight: 700; font-size: 13px;
-    padding: 10px 10px; border-top: 2px solid var(--border);
-  }
-  .je-lines-tbl .acc-input { height: 32px; font-size: 12.5px; }
-
-  .je-balance-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--bg3); border-radius: var(--radius);
-    padding: 10px 14px; margin-top: 10px;
-    border: 1px solid var(--border);
-    font-size: 13px;
-  }
-  .je-balance-bar .side { display: flex; align-items: center; gap: 8px; }
-  .je-balance-bar .label { color: var(--text2); }
-  .je-balance-bar .val { font-family: var(--mono); font-weight: 700; }
-  .je-balance-bar .dr { color: var(--sky); }
-  .je-balance-bar .cr { color: var(--green); }
-  .je-balance-bar .diff.ok { color: var(--green); }
-  .je-balance-bar .diff.bad { color: var(--red); }
+  .acc-balanced.ok  { background: var(--green-light); color: var(--green); }
+  .acc-balanced.bad { background: var(--red-light); color: var(--red); }
 
   /* ── Scrollbar ── */
-  ::-webkit-scrollbar { width: 7px; height: 7px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg3); }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
-
-  /* ── Account detail breadcrumb ── */
-  .acc-breadcrumb {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; color: var(--text2);
-    margin-bottom: 16px;
-  }
-  .acc-breadcrumb a { color: var(--accent); cursor: pointer; text-decoration: none; font-weight: 500; }
-  .acc-breadcrumb a:hover { text-decoration: underline; }
-
-  /* ── Divider with label ── */
-  .acc-divider {
-    display: flex; align-items: center; gap: 12px;
-    margin: 6px 0;
-    font-size: 12px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.6px; color: var(--text3);
-  }
-  .acc-divider::before, .acc-divider::after {
-    content: ''; flex: 1; border-top: 1px solid var(--border);
-  }
 `;
 
 // ─────────────────────────────────────────────────────────────
-// AUTH HELPER
-// ─────────────────────────────────────────────────────────────
-const authHeaders = () => {
-  const token = localStorage.getItem("susupro_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-// ─────────────────────────────────────────────────────────────
-// HOOK: useFetch
+// HOOKS
 // ─────────────────────────────────────────────────────────────
 function useFetch(url, deps = []) {
   const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
   const load = useCallback(async () => {
     if (!url) return;
     setLoading(true); setError(null);
     try {
-      const r = await fetch(url, { headers: authHeaders() });
+      const token = localStorage.getItem('susupro_token');
+      const r = await fetch(url, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message || "Request failed");
       setData(j);
-    } catch (e) { setError(e.message); }
-    finally     { setLoading(false); }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, [url]);
 
   useEffect(() => { load(); }, [load, ...deps]);
@@ -688,47 +472,46 @@ function useFetch(url, deps = []) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SHARED MICRO-COMPONENTS
+// SHARED COMPONENTS
 // ─────────────────────────────────────────────────────────────
-const Spinner = () => (
-  <div className="acc-loading"><div className="acc-spinner" /><span>Loading…</span></div>
-);
+function Spinner() {
+  return <div className="acc-loading"><div className="acc-spinner" /><span>Loading...</span></div>;
+}
 
-const Empty = ({ icon = "📭", text = "No records found", sub = "" }) => (
-  <div className="acc-empty">
-    <div className="acc-empty-icon">{icon}</div>
-    <div className="acc-empty-text">{text}</div>
-    {sub && <div className="acc-empty-sub">{sub}</div>}
-  </div>
-);
+function Empty({ icon = "📭", text = "No records found" }) {
+  return <div className="acc-empty"><div className="acc-empty-icon">{icon}</div>{text}</div>;
+}
 
-const Chip = ({ type }) => {
-  const map = { asset:"chip-asset", liability:"chip-liability", equity:"chip-equity",
-    income:"chip-income", expense:"chip-expense", posted:"chip-posted", draft:"chip-draft",
-    reversed:"chip-reversed", debit:"chip-debit", credit:"chip-credit",
-    active:"chip-active", inactive:"chip-inactive" };
-  return <span className={`acc-chip ${map[type] || "chip-draft"}`}>{type}</span>;
-};
+function Badge({ type }) {
+  const badgeMap = {
+    asset: 'asset', liability: 'liability', equity: 'equity',
+    income: 'income', expense: 'expense', posted: 'posted',
+    draft: 'draft', reversed: 'reversed', debit: 'debit', credit: 'credit'
+  };
+  return <span className={`acc-badge ${badgeMap[type] || 'draft'}`}>{type}</span>;
+}
 
-const Pager = ({ pagination, onPage }) => {
+function Pagination({ pagination, onPage }) {
   if (!pagination || pagination.totalPages <= 1) return null;
   return (
-    <div className="acc-pager">
-      <span>Showing page {pagination.page} of {pagination.totalPages} · {pagination.total} records</span>
-      <div style={{ display:"flex", gap:6 }}>
+    <div className="acc-pagination">
+      <span>Page {pagination.page} of {pagination.totalPages} ({pagination.total} records)</span>
+      <div style={{ display: "flex", gap: 8 }}>
         <button className="acc-btn ghost sm" disabled={pagination.page <= 1}
-          onClick={() => onPage(pagination.page - 1)}>← Prev</button>
+          onClick={() => onPage(pagination.page - 1)}>← Previous</button>
         <button className="acc-btn ghost sm" disabled={pagination.page >= pagination.totalPages}
           onClick={() => onPage(pagination.page + 1)}>Next →</button>
       </div>
     </div>
   );
-};
+}
 
 // ─────────────────────────────────────────────────────────────
-// CHART OF ACCOUNTS
+// CHART OF ACCOUNTS VIEW
 // ─────────────────────────────────────────────────────────────
-function ChartOfAccounts({ onSelectAccount }) {
+// Replace the ChartOfAccounts component in your AccountingModule with this:
+
+function ChartOfAccounts({ companyId, onSelectAccount }) {
   const { data, loading, refetch } = useFetch(`${API}/accounts`);
   const [search, setSearch]   = useState("");
   const [typeFilter, setType] = useState("all");
@@ -739,132 +522,118 @@ function ChartOfAccounts({ onSelectAccount }) {
   const accounts = data?.data || [];
 
   const filtered = useMemo(() => accounts.filter(a => {
-    const mt = typeFilter === "all" || a.account_type === typeFilter;
-    const ms = !search || a.name.toLowerCase().includes(search.toLowerCase()) || a.code.includes(search);
-    return mt && ms;
+    const matchType = typeFilter === "all" || a.account_type === typeFilter;
+    const matchSearch = !search || a.name.toLowerCase().includes(search.toLowerCase()) || a.code.includes(search);
+    return matchType && matchSearch;
   }), [accounts, search, typeFilter]);
 
   const grouped = useMemo(() => {
-    return ["asset","liability","equity","income","expense"].map(type => ({
-      type, rows: filtered.filter(a => a.account_type === type)
+    const order = ["asset", "liability", "equity", "income", "expense"];
+    return order.map(type => ({
+      type,
+      rows: filtered.filter(a => a.account_type === type)
     })).filter(g => g.rows.length > 0);
   }, [filtered]);
 
-  const TYPE_CONFIG = {
-    asset:     { label:"Assets",      color:"var(--accent)",  icon:"🏦" },
-    liability: { label:"Liabilities", color:"var(--red)",     icon:"📋" },
-    equity:    { label:"Equity",      color:"var(--purple)",  icon:"💼" },
-    income:    { label:"Income",      color:"var(--green)",   icon:"📈" },
-    expense:   { label:"Expenses",    color:"var(--amber)",   icon:"📉" },
-  };
-
   const handleDelete = async (id) => {
     if (!confirm("Delete this account?")) return;
-    const r = await fetch(`${API}/accounts/${id}`, {
-      method:"DELETE", headers: authHeaders()
-    });
+    const r = await fetch(`${API}/accounts/${id}`, { method: "DELETE" });
     const j = await r.json();
-    if (r.ok) { setMsg({ type:"ok", text:"Account deleted" }); refetch(); }
-    else setMsg({ type:"err", text: j.message });
+    if (r.ok) { setMsg({ type: "success", text: "Account deleted" }); refetch(); }
+    else setMsg({ type: "error", text: j.message });
     setTimeout(() => setMsg(null), 3500);
+  };
+
+  const handleAccountClick = (account) => {
+    if (onSelectAccount) {
+      onSelectAccount(account);
+    }
   };
 
   return (
     <div>
-      {/* KPI strip */}
-      <div className="acc-kpi-grid">
+      <div className="acc-stats">
         {["asset","liability","equity","income","expense"].map(type => {
           const rows  = accounts.filter(a => a.account_type === type);
-          const total = rows.reduce((s, a) => {
-            const n = Number(a.current_balance || 0);
-            return s + (a.account_type === "asset" && a.normal_balance === "credit" ? -n : n);
+          const total = rows.reduce((sum, acc) => {
+            const amount = Number(acc.current_balance || 0);
+            const isContraAsset =
+              acc.account_type === "asset" &&
+              acc.normal_balance === "credit";
+            return sum + (isContraAsset ? -amount : amount);
           }, 0);
-          const cfg = TYPE_CONFIG[type];
           return (
-            <div className={`acc-kpi ${type}`} key={type}>
-              <div className="acc-kpi-label">{cfg.label}</div>
-              <div className="acc-kpi-value" style={{ color: cfg.color }}>{fmt(total)}</div>
-              <div className="acc-kpi-sub">{rows.length} account{rows.length !== 1 ? "s" : ""}</div>
+            <div className="acc-stat" key={type}>
+              <div className="acc-stat-label">{type}</div>
+              <div className={`acc-stat-value ${type === "income" ? "green" : type === "expense" ? "red" : type === "asset" ? "gold" : ""}`}>
+                {fmt(total)}
+              </div>
+              <div className="acc-stat-sub">{rows.length} accounts</div>
             </div>
           );
         })}
       </div>
 
-      {msg && <div className={`acc-alert ${msg.type}`}>{msg.type==="ok"?"✓":"✕"} {msg.text}</div>}
+      {msg && <div className={`acc-alert ${msg.type}`} style={{ marginBottom: 16 }}>
+        {msg.type === "success" ? "✓" : "✕"} {msg.text}
+      </div>}
 
-      <div className="acc-panel">
-        <div className="acc-panel-header">
-          <span className="acc-panel-title">
-            Chart of Accounts
-            <span className="count">{accounts.length}</span>
-          </span>
+      <div className="acc-card">
+        <div className="acc-card-header">
+          <span className="acc-card-title">Chart of Accounts</span>
           <button className="acc-btn primary" onClick={() => { setEdit(null); setModal(true); }}>
             + New Account
           </button>
         </div>
 
-        <div className="acc-toolbar">
-          <input className="acc-input wide" placeholder="Search by name or account code…"
+        <div className="acc-filters">
+          <input className="acc-input wide" placeholder="Search by name or code..."
             value={search} onChange={e => setSearch(e.target.value)} />
           <select className="acc-input" value={typeFilter} onChange={e => setType(e.target.value)}>
             <option value="all">All types</option>
-            {["asset","liability","equity","income","expense"].map(t => (
-              <option key={t} value={t}>{TYPE_CONFIG[t].label}</option>
-            ))}
+            <option value="asset">Assets</option>
+            <option value="liability">Liabilities</option>
+            <option value="equity">Equity</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
           </select>
         </div>
 
         {loading ? <Spinner /> : (
-          <div className="acc-tbl-wrap">
-            <table className="acc-tbl">
+          <div className="acc-table-wrap">
+            <table className="acc-table">
               <thead>
-                <tr>
-                  <th style={{ width:90 }}>Code</th>
-                  <th>Account name</th>
-                  <th>Type</th>
-                  <th>Category</th>
-                  <th className="r">Balance</th>
-                  <th className="c">Status</th>
-                  <th style={{ width:130 }}></th>
-                </tr>
+                <tr><th>Code</th><th>Account name</th><th>Type</th><th>Category</th><th className="right">Balance</th><th>Status</th><th></th></tr>
               </thead>
               <tbody>
-                {grouped.length === 0 && (
-                  <tr><td colSpan={7}><Empty text="No accounts found" sub="Try a different search or filter" /></td></tr>
-                )}
+                {grouped.length === 0 && <tr><td colSpan={7}><Empty /></td></tr>}
                 {grouped.map(group => (
                   <React.Fragment key={`g-${group.type}`}>
-                    <tr className="grp-row">
-                      <td colSpan={7}>
-                        {TYPE_CONFIG[group.type].icon} {TYPE_CONFIG[group.type].label}
-                        <span style={{ marginLeft:8, opacity:.6, fontWeight:400 }}>({group.rows.length})</span>
-                      </td>
+                    <tr className="group-header">
+                      <td colSpan={7}>{group.type.toUpperCase()} ({group.rows.length})</td>
                     </tr>
                     {group.rows.map(acc => (
                       <tr key={acc.id}>
-                        <td><span className="mono" style={{ color:"var(--accent)" }}>{acc.code}</span></td>
-                        <td
-                          style={{ paddingLeft: acc.is_sub_account ? 32 : 16, cursor:"pointer" }}
-                          onClick={() => onSelectAccount(acc)}
+                        <td className="mono" style={{ color: "var(--accent)", whiteSpace: "nowrap" }}>{acc.code}</td>
+                        <td 
+                          className={acc.is_sub_account ? "acc-indent" : ""}
+                          style={{ cursor: "pointer"}}
+                          onClick={() => handleAccountClick(acc)}
+                          title="Click to view account details"
                         >
-                          {acc.is_sub_account && <span style={{ color:"var(--text3)", marginRight:6 }}>↳</span>}
-                          <span style={{ fontWeight:500 }}>{acc.name}</span>
-                          {acc.is_system_account && (
-                            <span style={{ marginLeft:8, fontSize:10, background:"var(--bg4)", color:"var(--text3)", padding:"1px 6px", borderRadius:99 }}>
-                              SYSTEM
-                            </span>
-                          )}
+                          {acc.name}
+                          {acc.is_system_account && <span style={{ marginLeft: 8, fontSize: 10, color: "var(--text3)" }}>SYSTEM</span>}
                         </td>
-                        <td><Chip type={acc.account_type} /></td>
-                        <td style={{ fontSize:12, color:"var(--text3)" }}>{acc.category?.replace(/_/g," ")}</td>
-                        <td className="r">
-                          <span className="mono" style={{ color: Number(acc.current_balance) < 0 ? "var(--red)" : "var(--text)" }}>
+                        <td><Badge type={acc.account_type} /></td>
+                        <td className="muted" style={{ fontSize: 12 }}>{acc.category?.replace(/_/g, " ")}</td>
+                        <td className="right mono">
+                          <span style={{ color: Number(acc.current_balance) < 0 ? "var(--red)" : "var(--text)" }}>
                             {fmt(acc.current_balance)}
                           </span>
                         </td>
-                        <td className="c"><Chip type={acc.is_active ? "active" : "inactive"} /></td>
+                        <td><span className={`acc-badge ${acc.is_active ? "posted" : "reversed"}`}>{acc.is_active ? "active" : "inactive"}</span></td>
                         <td>
-                          <div style={{ display:"flex", gap:6, justifyContent:"flex-end" }}>
+                          <div style={{ display: "flex", gap: 8 }}>
                             <button className="acc-btn ghost sm" onClick={() => { setEdit(acc); setModal(true); }}>Edit</button>
                             {!acc.is_system_account && (
                               <button className="acc-btn danger sm" onClick={() => handleDelete(acc.id)}>Delete</button>
@@ -873,14 +642,18 @@ function ChartOfAccounts({ onSelectAccount }) {
                         </td>
                       </tr>
                     ))}
-                    <tr className="sub-row">
-                      <td colSpan={4} style={{ paddingLeft:20 }}>Subtotal — {TYPE_CONFIG[group.type].label}</td>
-                      <td className="r">
-                        {fmt(group.rows.reduce((s, a) => {
-                          const n = Number(a.current_balance);
-                          return s + (a.normal_balance === "credit" ? -n : n);
-                        }, 0))}
-                      </td>
+                    <tr className="subtotal">
+                      <td colSpan={4} style={{ paddingLeft: 16 }}>Subtotal — {group.type}</td>
+                      <td className="right"> {fmt(
+                        group.rows.reduce((sum, acc) => {
+                          const amount = Number(acc.current_balance);
+                          return sum + (
+                            acc.normal_balance === "credit"
+                              ? -amount
+                              : amount
+                          );
+                        }, 0)
+                      )}</td>
                       <td colSpan={2}></td>
                     </tr>
                   </React.Fragment>
@@ -893,6 +666,7 @@ function ChartOfAccounts({ onSelectAccount }) {
 
       {showModal && (
         <AccountModal
+          companyId={companyId}
           account={editAcc}
           accounts={accounts}
           onClose={() => setModal(false)}
@@ -903,8 +677,8 @@ function ChartOfAccounts({ onSelectAccount }) {
   );
 }
 
-// ─── Account Modal ────────────────────────────────────────────
-function AccountModal({ account, accounts, onClose, onSaved }) {
+// ─── Account create/edit modal ───────────────────────────────
+function AccountModal({ companyId, account, accounts, onClose, onSaved }) {
   const isEdit = !!account;
   const [form, setForm] = useState({
     code:            account?.code || "",
@@ -914,13 +688,13 @@ function AccountModal({ account, accounts, onClose, onSaved }) {
     category:        account?.category || "cash_and_cash_equivalents",
     parent_id:       account?.parent_id || "",
     opening_balance: account?.opening_balance || 0,
-    opening_date:    account?.opening_date?.slice(0,10) || new Date().toISOString().slice(0,10),
+    opening_date:    account?.opening_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
     is_active:       account?.is_active ?? true,
   });
   const [loading, setLoading] = useState(false);
   const [err, setErr]         = useState(null);
 
-  const CATS = {
+  const CATEGORIES = {
     asset:     ["cash_and_cash_equivalents","bank_accounts","accounts_receivable","other_receivables","fixed_assets","accumulated_depreciation","other_assets"],
     liability: ["customer_deposits","loans_payable","accounts_payable","accrued_liabilities","other_liabilities"],
     equity:    ["share_capital","retained_earnings","current_year_profit"],
@@ -928,18 +702,17 @@ function AccountModal({ account, accounts, onClose, onSaved }) {
     expense:   ["staff_costs","depreciation_expense","interest_expense","operating_expense","commission_expense","other_expense"],
   };
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
   const submit = async () => {
     setLoading(true); setErr(null);
     const url    = isEdit ? `${API}/accounts/${account.id}` : `${API}/accounts`;
     const method = isEdit ? "PATCH" : "POST";
     const body   = isEdit
-      ? { name:form.name, description:form.description, is_active:form.is_active }
-      : { ...form, created_by: userUUID };
+      ? { name: form.name, description: form.description, is_active: form.is_active }
+      : form;
     const r = await fetch(url, {
-      method, headers: { "Content-Type":"application/json", ...authHeaders() },
-      body: JSON.stringify(body),
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({...body, created_by: userUUID})
     });
     const j = await r.json();
     setLoading(false);
@@ -947,66 +720,68 @@ function AccountModal({ account, accounts, onClose, onSaved }) {
     else setErr(j.message);
   };
 
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
   return (
     <div className="acc-modal-bg" onClick={onClose}>
       <div className="acc-modal" onClick={e => e.stopPropagation()}>
-        <div className="acc-modal-hdr">
+        <div className="acc-modal-header">
           <span className="acc-modal-title">{isEdit ? "Edit Account" : "New Account"}</span>
           <button className="acc-modal-close" onClick={onClose}>×</button>
         </div>
         <div className="acc-modal-body">
-          {err && <div className="acc-alert err">✕ {err}</div>}
-
-          <div className="f-grid-2">
-            <div className="f-row">
+          {err && <div className="acc-alert error">✕ {err}</div>}
+          <div className="acc-form-grid">
+            <div className="acc-form-row">
               <label>Account code *</label>
               <input className="acc-input" value={form.code} disabled={isEdit}
-                onChange={e => set("code", e.target.value)} placeholder="e.g. 1010-04" />
+                onChange={e => set("code", e.target.value)} placeholder="e.g., 1010-04" />
             </div>
-            <div className="f-row">
+            <div className="acc-form-row">
               <label>Account type *</label>
               <select className="acc-input" value={form.account_type} disabled={isEdit}
-                onChange={e => { set("account_type", e.target.value); set("category", CATS[e.target.value][0]); }}>
+                onChange={e => { set("account_type", e.target.value); set("category", CATEGORIES[e.target.value][0]); }}>
                 {["asset","liability","equity","income","expense"].map(t => (
-                  <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>
+                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          <div className="f-row" style={{ marginTop:14 }}>
+          <div className="acc-form-row">
             <label>Account name *</label>
             <input className="acc-input" value={form.name}
-              onChange={e => set("name", e.target.value)} placeholder="e.g. Petty Cash" />
+              onChange={e => set("name", e.target.value)} placeholder="e.g., Petty Cash" />
           </div>
 
-          <div className="f-row" style={{ marginTop:14 }}>
+          <div className="acc-form-row">
             <label>Category *</label>
             <select className="acc-input" value={form.category} disabled={isEdit}
               onChange={e => set("category", e.target.value)}>
-              {(CATS[form.account_type]||[]).map(c => (
-                <option key={c} value={c}>{c.replace(/_/g," ")}</option>
+              {(CATEGORIES[form.account_type] || []).map(c => (
+                <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
               ))}
             </select>
           </div>
 
           {!isEdit && (
             <>
-              <div className="f-row" style={{ marginTop:14 }}>
+              <div className="acc-form-row">
                 <label>Parent account (optional)</label>
-                <select className="acc-input" value={form.parent_id} onChange={e => set("parent_id", e.target.value)}>
+                <select className="acc-input" value={form.parent_id}
+                  onChange={e => set("parent_id", e.target.value)}>
                   <option value="">— None (top-level) —</option>
                   {accounts.filter(a => a.account_type === form.account_type && !a.is_sub_account)
                     .map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
                 </select>
               </div>
-              <div className="f-grid-2" style={{ marginTop:14 }}>
-                <div className="f-row">
-                  <label>Opening balance (GHS)</label>
+              <div className="acc-form-grid">
+                <div className="acc-form-row">
+                  <label>Opening balance</label>
                   <input className="acc-input" type="number" value={form.opening_balance}
                     onChange={e => set("opening_balance", e.target.value)} />
                 </div>
-                <div className="f-row">
+                <div className="acc-form-row">
                   <label>Opening date</label>
                   <input className="acc-input" type="date" value={form.opening_date}
                     onChange={e => set("opening_date", e.target.value)} />
@@ -1015,16 +790,16 @@ function AccountModal({ account, accounts, onClose, onSaved }) {
             </>
           )}
 
-          <div className="f-row" style={{ marginTop:14 }}>
-            <label>Description (optional)</label>
+          <div className="acc-form-row">
+            <label>Description</label>
             <input className="acc-input" value={form.description}
-              onChange={e => set("description", e.target.value)} placeholder="Internal notes" />
+              onChange={e => set("description", e.target.value)} placeholder="Optional notes" />
           </div>
 
           {isEdit && (
-            <div className="f-row" style={{ marginTop:14 }}>
+            <div className="acc-form-row">
               <label>Status</label>
-              <select className="acc-input" value={String(form.is_active)}
+              <select className="acc-input" value={form.is_active}
                 onChange={e => set("is_active", e.target.value === "true")}>
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
@@ -1032,10 +807,10 @@ function AccountModal({ account, accounts, onClose, onSaved }) {
             </div>
           )}
         </div>
-        <div className="acc-modal-ftr">
+        <div className="acc-modal-footer">
           <button className="acc-btn ghost" onClick={onClose}>Cancel</button>
           <button className="acc-btn primary" onClick={submit} disabled={loading}>
-            {loading ? "Saving…" : isEdit ? "Save changes" : "Create account"}
+            {loading ? "Saving..." : isEdit ? "Save changes" : "Create account"}
           </button>
         </div>
       </div>
@@ -1044,48 +819,43 @@ function AccountModal({ account, accounts, onClose, onSaved }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// JOURNAL ENTRIES
+// JOURNAL ENTRIES VIEW
 // ─────────────────────────────────────────────────────────────
-function JournalEntries() {
+function JournalEntries({ companyId }) {
   const [page, setPage]         = useState(1);
   const [search, setSearch]     = useState("");
   const [status, setStatus]     = useState("all");
   const [source, setSource]     = useState("all");
   const [startDate, setStart]   = useState("");
   const [endDate, setEnd]       = useState("");
-  const [modal, setModal]       = useState(null); // null | "create" | {entry}
+  const [showModal, setModal]   = useState(false);
   const [expanded, setExpanded] = useState({});
 
   const params = new URLSearchParams({
     page,
-    ...(search ? {search} : {}),
-    ...(status !== "all" ? {status} : {}),
-    ...(source !== "all" ? {source} : {}),
-    ...(startDate ? {startDate} : {}),
-    ...(endDate   ? {endDate}   : {}),
+    ...(search    ? { search } : {}),
+    ...(status !== "all" ? { status } : {}),
+    ...(source !== "all" ? { source } : {}),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate   ? { endDate }   : {}),
   });
 
   const { data, loading, refetch } = useFetch(`${API}/journal?${params}`, [page, search, status, source, startDate, endDate]);
   const entries    = data?.data        || [];
   const pagination = data?.pagination;
 
-  const toggle = (id) => setExpanded(e => ({ ...e, [id]: !e[id] }));
-
-  const SOURCES = ["customer_deposit","customer_withdrawal","commission","expense","revenue","transfer","depreciation","manual","opening_balance"];
+  const toggleExpand = (id) => setExpanded(e => ({ ...e, [id]: !e[id] }));
 
   return (
     <div>
-      <div className="acc-panel">
-        <div className="acc-panel-header">
-          <span className="acc-panel-title">
-            Journal Entries
-            {pagination && <span className="count">{pagination.total}</span>}
-          </span>
-          <button className="acc-btn primary" onClick={() => setModal("create")}>+ New Journal Entry</button>
+      <div className="acc-card">
+        <div className="acc-card-header">
+          <span className="acc-card-title">Journal Entries</span>
+          <button className="acc-btn primary" onClick={() => setModal(true)}>+ Manual Entry</button>
         </div>
 
-        <div className="acc-toolbar">
-          <input className="acc-input wide" placeholder="Search by reference or description…"
+        <div className="acc-filters">
+          <input className="acc-input wide" placeholder="Search reference or description..."
             value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
           <select className="acc-input" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
             <option value="all">All statuses</option>
@@ -1095,146 +865,137 @@ function JournalEntries() {
           </select>
           <select className="acc-input" value={source} onChange={e => { setSource(e.target.value); setPage(1); }}>
             <option value="all">All sources</option>
-            {SOURCES.map(s => <option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
+            {["customer_deposit","customer_withdrawal","commission","expense","revenue","transfer","depreciation","manual","opening_balance"].map(s => (
+              <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+            ))}
           </select>
-          <input className="acc-input" type="date" value={startDate} onChange={e => { setStart(e.target.value); setPage(1); }} />
-          <input className="acc-input" type="date" value={endDate} onChange={e => { setEnd(e.target.value); setPage(1); }} />
+          <input className="acc-input" type="date" placeholder="Start date" value={startDate} onChange={e => setStart(e.target.value)} />
+          <input className="acc-input" type="date" placeholder="End date" value={endDate} onChange={e => setEnd(e.target.value)} />
         </div>
 
         {loading ? <Spinner /> : (
-          <div className="acc-tbl-wrap">
-            <table className="acc-tbl">
+          <div className="acc-table-wrap">
+            <table className="acc-table">
               <thead>
                 <tr>
-                  <th style={{ width:30 }}></th>
+                  <th style={{ width: 30 }}></th>
                   <th>Reference</th>
                   <th>Date</th>
                   <th>Description</th>
                   <th>Source</th>
-                  <th className="r">Debits</th>
-                  <th className="r">Credits</th>
+                  <th className="right">Debits</th>
+                  <th className="right">Credits</th>
                   <th>Status</th>
-                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {entries.length === 0 && (
-                  <tr><td colSpan={9}><Empty text="No journal entries found" sub="Adjust your filters or post a new entry" /></td></tr>
+                  <tr>
+                    <td colSpan={8}>
+                      <Empty />
+                    </td>
+                  </tr>
                 )}
+
                 {entries.map(je => (
                   <React.Fragment key={je.id}>
-                    <tr style={{ cursor:"pointer" }} onClick={() => toggle(je.id)}>
-                      <td className="c" style={{ color:"var(--text3)", fontSize:10 }}>
+                    <tr className="acc-expand" onClick={() => toggleExpand(je.id)}>
+                      <td style={{ color: "var(--text3)", textAlign: "center" }}>
                         {expanded[je.id] ? "▼" : "▶"}
                       </td>
-                      <td><span className="mono" style={{ color:"var(--accent)" }}>{je.reference_no}</span></td>
-                      <td style={{ color:"var(--text2)", whiteSpace:"nowrap" }}>{fmtDate(je.entry_date)}</td>
-                      <td style={{ maxWidth:260 }}>{je.description}</td>
-                      <td><span style={{ fontSize:12, color:"var(--text3)" }}>{je.source?.replace(/_/g," ")}</span></td>
-                      <td className="r"><span className="mono" style={{ color:"var(--sky)" }}>{fmt(je.total_debits)}</span></td>
-                      <td className="r"><span className="mono" style={{ color:"var(--green)" }}>{fmt(je.total_credits)}</span></td>
-                      <td><Chip type={je.status} /></td>
-                      <td>
-                        {je.status !== "reversed" && (
-                          <button className="acc-btn ghost sm" onClick={e => { e.stopPropagation(); setModal(je); }}>
-                            Edit
-                          </button>
-                        )}
+                      <td className="mono" style={{ color: "var(--accent)" }}>
+                        {je.reference_no}
                       </td>
+                      <td className="muted">{fmtDate(je.entry_date)}</td>
+                      <td>{je.description}</td>
+                      <td>
+                        <span className="muted" style={{ fontSize: 12 }}>
+                          {je.source?.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="right mono">{fmt(je.total_debits)}</td>
+                      <td className="right mono">{fmt(je.total_credits)}</td>
+                      <td><Badge type={je.status} /></td>
                     </tr>
-                    {expanded[je.id] && (je.lines || []).map(line => (
-                      <tr key={line.id} className="exp-row">
-                        <td></td>
-                        <td style={{ paddingLeft:28 }}>
-                          <span className="mono" style={{ fontSize:11, color:"var(--text3)" }}>{line.account_code}</span>
-                        </td>
-                        <td colSpan={3} style={{ paddingLeft:8 }}>
-                          <span style={{ fontSize:13 }}>{line.account_name}</span>
-                          {line.description && <span style={{ color:"var(--text3)", fontSize:12 }}> — {line.description}</span>}
-                        </td>
-                        <td className="r" style={{ fontSize:12 }}>
-                          {line.debit_credit === "debit" ? <span className="mono" style={{ color:"var(--sky)" }}>{fmt(line.amount)}</span> : ""}
-                        </td>
-                        <td className="r" style={{ fontSize:12 }}>
-                          {line.debit_credit === "credit" ? <span className="mono" style={{ color:"var(--green)" }}>{fmt(line.amount)}</span> : ""}
-                        </td>
-                        <td colSpan={2}></td>
-                      </tr>
-                    ))}
+
+                    {expanded[je.id] &&
+                      (je.lines || []).map(line => (
+                        <tr key={line.id} style={{ background: "var(--bg3)" }}>
+                          <td></td>
+                          <td className="acc-indent2 mono" style={{ fontSize: 12, color: "var(--text3)" }}>
+                            {line.account_code}
+                          </td>
+                          <td colSpan={2} className="acc-indent2 muted" style={{ fontSize: 12 }}>
+                            {line.account_name}
+                            {line.description && (
+                              <span style={{ color: "var(--text3)" }}>
+                                {" — "}{line.description}
+                              </span>
+                            )}
+                          </td>
+                          <td><Badge type={line.debit_credit} /></td>
+                          <td className="right mono">
+                            {line.debit_credit === "debit" ? fmt(line.amount) : ""}
+                          </td>
+                          <td className="right mono">
+                            {line.debit_credit === "credit" ? fmt(line.amount) : ""}
+                          </td>
+                          <td></td>
+                        </tr>
+                      ))}
                   </React.Fragment>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <Pager pagination={pagination} onPage={setPage} />
+        <Pagination pagination={pagination} onPage={setPage} />
       </div>
 
-      {modal && (
-        <JournalModal
-          entry={modal === "create" ? null : modal}
-          onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); refetch(); }}
-        />
+      {showModal && (
+        <JournalModal companyId={companyId}
+          onClose={() => setModal(false)}
+          onSaved={() => { setModal(false); refetch(); }} />
       )}
     </div>
   );
 }
 
-// ─── Journal Modal (QuickBooks-style) ────────────────────────
-function JournalModal({ entry, onClose, onSaved }) {
-  const isEdit = !!entry;
+// ─── Manual journal entry modal ───────────────────────────────
+function JournalModal({ companyId, onClose, onSaved }) {
   const { data: coaData } = useFetch(`${API}/accounts`);
   const accounts = coaData?.data || [];
 
-  const [desc, setDesc]       = useState(entry?.description || "");
-  const [date, setDate]       = useState(entry?.entry_date?.slice(0,10) || new Date().toISOString().slice(0,10));
-  const [memo, setMemo]       = useState(entry?.memo || "");
-  const [lines, setLines]     = useState(() => {
-    if (entry?.lines && entry.lines.length > 0) {
-      return entry.lines.map(l => ({
-        coa_id:      l.coa_id || "",
-        debit_credit: l.debit_credit,
-        amount:       l.amount,
-        description:  l.description || "",
-      }));
-    }
-    return [
-      { coa_id:"", debit_credit:"debit",  amount:"", description:"" },
-      { coa_id:"", debit_credit:"credit", amount:"", description:"" },
-    ];
-  });
+  const [desc, setDesc]       = useState("");
+  const [date, setDate]       = useState(new Date().toISOString().slice(0, 10));
+  const [memo, setMemo]       = useState("");
+  const [lines, setLines]     = useState([
+    { coa_id: "", debit_credit: "debit",  amount: "" },
+    { coa_id: "", debit_credit: "credit", amount: "" },
+  ]);
   const [loading, setLoading] = useState(false);
   const [err, setErr]         = useState(null);
 
-  const totalDebits  = lines.filter(l => l.debit_credit==="debit"). reduce((s,l)=>s+Number(l.amount||0),0);
-  const totalCredits = lines.filter(l => l.debit_credit==="credit").reduce((s,l)=>s+Number(l.amount||0),0);
-  const diff         = Math.abs(totalDebits - totalCredits);
-  const balanced     = diff < 0.01;
+  const totalDebits  = lines.filter(l => l.debit_credit === "debit").reduce((s, l) => s + Number(l.amount || 0), 0);
+  const totalCredits = lines.filter(l => l.debit_credit === "credit").reduce((s, l) => s + Number(l.amount || 0), 0);
+  const balanced     = Math.abs(totalDebits - totalCredits) < 0.01;
 
-  const addLine = () => setLines(ls => [...ls, { coa_id:"", debit_credit:"debit", amount:"", description:"" }]);
-  const remLine = (i) => setLines(ls => ls.filter((_,idx) => idx !== i));
-  const setLine = (i, k, v) => setLines(ls => ls.map((l,idx) => idx===i ? {...l,[k]:v} : l));
-
-  // Auto-balance: when user enters debit amount, mirror it as credit if there's only 2 lines
-  const handleAmountChange = (i, val) => {
-    setLine(i, "amount", val);
-  };
+  const addLine = () => setLines(ls => [...ls, { coa_id: "", debit_credit: "debit", amount: "" }]);
+  const remLine = (i) => setLines(ls => ls.filter((_, idx) => idx !== i));
+  const setLine = (i, k, v) => setLines(ls => ls.map((l, idx) => idx === i ? { ...l, [k]: v } : l));
 
   const submit = async () => {
-    if (!desc.trim()) return setErr("Description is required");
-    if (!balanced)    return setErr(`Entry is unbalanced — difference of ${fmt(diff)}`);
-    const validLines = lines.filter(l => l.coa_id && l.amount);
-    if (validLines.length < 2) return setErr("At least 2 complete lines are required");
-
+    if (!desc) return setErr("Description is required");
+    if (!balanced) return setErr("Debits must equal credits");
     setLoading(true); setErr(null);
     const r = await fetch(`${API}/journal`, {
       method: "POST",
-      headers: { "Content-Type":"application/json", ...authHeaders() },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         description: desc, entry_date: date, memo,
-        lines: validLines, created_by: userUUID,
-      }),
+        lines: lines.filter(l => l.coa_id && l.amount),
+        created_by: userUUID,
+      })
     });
     const j = await r.json();
     setLoading(false);
@@ -1244,126 +1005,65 @@ function JournalModal({ entry, onClose, onSaved }) {
 
   return (
     <div className="acc-modal-bg" onClick={onClose}>
-      <div className="acc-modal wide" onClick={e => e.stopPropagation()}>
-        <div className="acc-modal-hdr">
-          <span className="acc-modal-title">
-            {isEdit ? `Edit Journal Entry — ${entry.reference_no}` : "New Journal Entry"}
-          </span>
+      <div className="acc-modal" style={{ maxWidth: 700 }} onClick={e => e.stopPropagation()}>
+        <div className="acc-modal-header">
+          <span className="acc-modal-title">Manual Journal Entry</span>
           <button className="acc-modal-close" onClick={onClose}>×</button>
         </div>
         <div className="acc-modal-body">
-          {err && <div className="acc-alert err">✕ {err}</div>}
-
-          {/* Header fields */}
-          <div className="f-grid-3">
-            <div className="f-row" style={{ gridColumn:"span 2" }}>
+          {err && <div className="acc-alert error">✕ {err}</div>}
+          <div className="acc-form-grid">
+            <div className="acc-form-row">
               <label>Description *</label>
-              <input className="acc-input" value={desc} onChange={e=>setDesc(e.target.value)}
-                placeholder="e.g. Adjusting entry for Q4 accruals" />
+              <input className="acc-input" value={desc} onChange={e => setDesc(e.target.value)} placeholder="e.g., Adjusting entry" />
             </div>
-            <div className="f-row">
-              <label>Entry date *</label>
-              <input className="acc-input" type="date" value={date} onChange={e=>setDate(e.target.value)} />
+            <div className="acc-form-row">
+              <label>Date *</label>
+              <input className="acc-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
           </div>
-          <div className="f-row" style={{ marginTop:12 }}>
-            <label>Memo (internal reference)</label>
-            <input className="acc-input" value={memo} onChange={e=>setMemo(e.target.value)}
-              placeholder="Optional internal note" />
+          <div className="acc-form-row">
+            <label>Memo (optional)</label>
+            <input className="acc-input" value={memo} onChange={e => setMemo(e.target.value)} placeholder="Internal reference" />
           </div>
 
-          {/* Lines table */}
-          <div style={{ marginTop:20 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-              <span style={{ fontSize:13, fontWeight:600, color:"var(--text2)" }}>Journal Lines</span>
-              <button className="acc-btn ghost sm" onClick={addLine}>+ Add line</button>
-            </div>
+          <hr className="acc-form-sep" />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text2)" }}>Journal Lines</span>
+            <span className={`acc-balanced ${balanced ? "ok" : "bad"}`}>
+              {balanced ? "✓ Balanced" : `Out by ${fmt(Math.abs(totalDebits - totalCredits))}`}
+            </span>
+          </div>
 
-            <table className="je-lines-tbl">
-              <thead>
-                <tr>
-                  <th style={{ width:34 }}>#</th>
-                  <th>Account</th>
-                  <th style={{ width:90 }}>Dr / Cr</th>
-                  <th style={{ width:130 }} className="r">Amount (GHS)</th>
-                  <th>Description</th>
-                  <th style={{ width:36 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, i) => (
-                  <tr key={i}>
-                    <td style={{ color:"var(--text3)", fontSize:12, textAlign:"center" }}>{i+1}</td>
-                    <td>
-                      <select className="acc-input" style={{ width:"100%" }}
-                        value={line.coa_id} onChange={e=>setLine(i,"coa_id",e.target.value)}>
-                        <option value="">— Select account —</option>
-                        {["asset","liability","equity","income","expense"].map(type => (
-                          <optgroup key={type} label={type.charAt(0).toUpperCase()+type.slice(1)}>
-                            {accounts.filter(a=>a.account_type===type).map(a => (
-                              <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <select className="acc-input" style={{ width:"100%" }}
-                        value={line.debit_credit} onChange={e=>setLine(i,"debit_credit",e.target.value)}>
-                        <option value="debit">Debit</option>
-                        <option value="credit">Credit</option>
-                      </select>
-                    </td>
-                    <td>
-                      <input className="acc-input" type="number" style={{ width:"100%", textAlign:"right" }}
-                        placeholder="0.00" value={line.amount}
-                        onChange={e=>handleAmountChange(i, e.target.value)} />
-                    </td>
-                    <td>
-                      <input className="acc-input" style={{ width:"100%" }}
-                        placeholder="Note (optional)" value={line.description}
-                        onChange={e=>setLine(i,"description",e.target.value)} />
-                    </td>
-                    <td>
-                      <button className="acc-btn danger sm icon"
-                        disabled={lines.length<=2} onClick={()=>remLine(i)}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={3} style={{ textAlign:"right", color:"var(--text2)" }}>Totals</td>
-                  <td style={{ textAlign:"right", fontFamily:"var(--mono)" }}>
-                    <div style={{ color:"var(--sky)" }}>DR {fmt(totalDebits)}</div>
-                    <div style={{ color:"var(--green)", marginTop:2 }}>CR {fmt(totalCredits)}</div>
-                  </td>
-                  <td colSpan={2}></td>
-                </tr>
-              </tfoot>
-            </table>
-
-            <div className="je-balance-bar" style={{ marginTop:12 }}>
-              <div className="side">
-                <span className="label">Debits</span>
-                <span className="val dr">{fmt(totalDebits)}</span>
-              </div>
-              <div className="side">
-                <span className={`bal-pill ${balanced ? "ok" : "bad"}`}>
-                  {balanced ? "✓ Balanced" : `Out by ${fmt(diff)}`}
-                </span>
-              </div>
-              <div className="side">
-                <span className="label">Credits</span>
-                <span className="val cr">{fmt(totalCredits)}</span>
-              </div>
+          {lines.map((line, i) => (
+            <div className="acc-form-line" key={i}>
+              <select className="acc-input" value={line.coa_id} onChange={e => setLine(i, "coa_id", e.target.value)}>
+                <option value="">— Select account —</option>
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+              </select>
+              <select className="acc-input" value={line.debit_credit} onChange={e => setLine(i, "debit_credit", e.target.value)}>
+                <option value="debit">Debit</option>
+                <option value="credit">Credit</option>
+              </select>
+              <input className="acc-input" type="number" placeholder="Amount" value={line.amount}
+                onChange={e => setLine(i, "amount", e.target.value)} />
+              <button className="acc-btn danger sm" onClick={() => remLine(i)} disabled={lines.length <= 2}>✕</button>
             </div>
+          ))}
+
+          <button className="acc-btn ghost sm" style={{ width: "fit-content" }} onClick={addLine}>+ Add line</button>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, background: "var(--bg3)", borderRadius: 8, padding: "12px 16px", marginTop: 8 }}>
+            <span style={{ fontSize: 13, color: "var(--text2)" }}>Total debits</span>
+            <span style={{ fontFamily: "DM Mono, monospace", fontSize: 14, color: "var(--blue)", textAlign: "right" }}>{fmt(totalDebits)}</span>
+            <span style={{ fontSize: 13, color: "var(--text2)" }}>Total credits</span>
+            <span style={{ fontFamily: "DM Mono, monospace", fontSize: 14, color: "var(--green)", textAlign: "right" }}>{fmt(totalCredits)}</span>
           </div>
         </div>
-        <div className="acc-modal-ftr">
+        <div className="acc-modal-footer">
           <button className="acc-btn ghost" onClick={onClose}>Cancel</button>
           <button className="acc-btn primary" onClick={submit} disabled={loading || !balanced}>
-            {loading ? "Posting…" : isEdit ? "Save & Repost" : "Post Entry"}
+            {loading ? "Posting..." : "Post Entry"}
           </button>
         </div>
       </div>
@@ -1372,9 +1072,9 @@ function JournalModal({ entry, onClose, onSaved }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// GENERAL LEDGER
+// GENERAL LEDGER VIEW
 // ─────────────────────────────────────────────────────────────
-function GeneralLedger() {
+function GeneralLedger({ companyId }) {
   const { data: coaData } = useFetch(`${API}/accounts`);
   const accounts = coaData?.data || [];
 
@@ -1384,44 +1084,36 @@ function GeneralLedger() {
   const [page, setPage]       = useState(1);
 
   const params = new URLSearchParams({
-    page, limit:50,
-    ...(coaId     ? {coa_id:coaId} : {}),
-    ...(startDate ? {startDate}    : {}),
-    ...(endDate   ? {endDate}      : {}),
+    page, limit: 50,
+    ...(coaId     ? { coa_id: coaId } : {}),
+    ...(startDate ? { startDate }     : {}),
+    ...(endDate   ? { endDate }       : {}),
   });
 
   const { data, loading } = useFetch(`${API}/ledger?${params}`, [coaId, startDate, endDate, page]);
-  const rows       = data?.data || [];
+  const rows       = data?.data        || [];
   const pagination = data?.pagination;
 
   return (
     <div>
-      <div className="acc-panel">
-        <div className="acc-panel-header">
-          <span className="acc-panel-title">
-            General Ledger
-            {pagination && <span className="count">{pagination.total} lines</span>}
-          </span>
+      <div className="acc-card">
+        <div className="acc-card-header">
+          <span className="acc-card-title">General Ledger</span>
         </div>
-        <div className="acc-toolbar">
-          <select className="acc-input" style={{ flex:1, minWidth:260 }} value={coaId}
+
+        <div className="acc-filters">
+          <select className="acc-input" style={{ flex: 1, minWidth: 250 }} value={coaId}
             onChange={e => { setCoaId(e.target.value); setPage(1); }}>
             <option value="">— All accounts —</option>
-            {["asset","liability","equity","income","expense"].map(type => (
-              <optgroup key={type} label={type.charAt(0).toUpperCase()+type.slice(1)}>
-                {accounts.filter(a=>a.account_type===type).map(a => (
-                  <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
-                ))}
-              </optgroup>
-            ))}
+            {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
           </select>
-          <input className="acc-input" type="date" value={startDate} onChange={e=>{setStart(e.target.value);setPage(1);}} />
-          <input className="acc-input" type="date" value={endDate}   onChange={e=>{setEnd(e.target.value);setPage(1);}} />
+          <input className="acc-input" type="date" placeholder="Start date" value={startDate} onChange={e => { setStart(e.target.value); setPage(1); }} />
+          <input className="acc-input" type="date" placeholder="End date" value={endDate} onChange={e => { setEnd(e.target.value); setPage(1); }} />
         </div>
 
         {loading ? <Spinner /> : (
-          <div className="acc-tbl-wrap">
-            <table className="acc-tbl">
+          <div className="acc-table-wrap">
+            <table className="acc-table">
               <thead>
                 <tr>
                   <th>Date</th>
@@ -1429,32 +1121,30 @@ function GeneralLedger() {
                   <th>Account</th>
                   <th>Description</th>
                   <th>Source</th>
-                  <th className="r">Debit</th>
-                  <th className="r">Credit</th>
-                  <th className="r">Running balance</th>
+                  <th className="right">Debit</th>
+                  <th className="right">Credit</th>
+                  <th className="right">Balance</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.length === 0 && <tr><td colSpan={8}><Empty text="No ledger entries" sub="Select an account or date range to narrow results" /></td></tr>}
+                {rows.length === 0 && <tr><td colSpan={8}><Empty /></td></tr>}
                 {rows.map(r => (
                   <tr key={r.line_id}>
-                    <td style={{ color:"var(--text2)", whiteSpace:"nowrap" }}>{fmtDate(r.entry_date)}</td>
-                    <td><span className="mono" style={{ color:"var(--accent)" }}>{r.reference_no}</span></td>
+                    <td className="muted">{fmtDate(r.entry_date)}</td>
+                    <td className="mono" style={{ color: "var(--accent)" }}>{r.reference_no}</td>
                     <td>
-                      <div className="mono" style={{ fontSize:11, color:"var(--accent)" }}>{r.account_code}</div>
-                      <div style={{ fontSize:13 }}>{r.account_name}</div>
+                      <div style={{ fontFamily: "DM Mono, monospace", fontSize: 12, color: "var(--accent)" }}>{r.account_code}</div>
+                      <div style={{ fontSize: 13 }}>{r.account_name}</div>
                     </td>
-                    <td style={{ fontSize:13, color:"var(--text2)" }}>
+                    <td className="muted" style={{ fontSize: 13 }}>
                       {r.line_description || r.entry_description}
-                      {r.customer_name && <div style={{ fontSize:11, color:"var(--text3)" }}>{r.customer_name}</div>}
+                      {r.customer_name && <div style={{ fontSize: 11, color: "var(--text3)" }}>{r.customer_name}</div>}
                     </td>
-                    <td><span style={{ fontSize:11, color:"var(--text3)" }}>{r.source?.replace(/_/g," ")}</span></td>
-                    <td className="r"><span className="mono" style={{ color:"var(--sky)" }}>{r.debit_credit==="debit" ? fmt(r.amount) : ""}</span></td>
-                    <td className="r"><span className="mono" style={{ color:"var(--green)" }}>{r.debit_credit==="credit" ? fmt(r.amount) : ""}</span></td>
-                    <td className="r">
-                      <span className="mono" style={{ color: Number(r.running_balance)<0 ? "var(--red)" : "var(--text)", fontWeight:600 }}>
-                        {fmt(r.running_balance)}
-                      </span>
+                    <td><span className="muted" style={{ fontSize: 11 }}>{r.source?.replace(/_/g," ")}</span></td>
+                    <td className="right mono" style={{ color: "var(--blue)" }}>{r.debit_credit === "debit" ? fmt(r.amount) : ""}</td>
+                    <td className="right mono" style={{ color: "var(--green)" }}>{r.debit_credit === "credit" ? fmt(r.amount) : ""}</td>
+                    <td className="right mono" style={{ color: Number(r.running_balance) < 0 ? "var(--red)" : "var(--text)" }}>
+                      {fmt(r.running_balance)}
                     </td>
                   </tr>
                 ))}
@@ -1462,156 +1152,121 @@ function GeneralLedger() {
             </table>
           </div>
         )}
-        <Pager pagination={pagination} onPage={setPage} />
+        <Pagination pagination={pagination} onPage={setPage} />
       </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// TRIAL BALANCE
+// TRIAL BALANCE VIEW
 // ─────────────────────────────────────────────────────────────
-function TrialBalance() {
+function TrialBalance({ companyId }) {
   const [startDate, setStart] = useState("");
   const [endDate, setEnd]     = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
   const params = new URLSearchParams({
-    ...(startDate ? {startDate} : {}),
-    ...(endDate   ? {endDate}   : {}),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate   ? { endDate }   : {}),
   });
 
-  const { data, loading } = useFetch(
-    submitted ? `${API}/reports/trial-balance?${params}` : null,
-    [submitted, startDate, endDate]
-  );
-
+  const { data, loading } = useFetch(`${API}/reports/trial-balance?${params}`, [startDate, endDate]);
   const rows    = data?.data    || [];
   const summary = data?.summary || {};
 
-  const TYPE_CONFIG = {
-    asset:     { label:"Assets",      icon:"🏦" },
-    liability: { label:"Liabilities", icon:"📋" },
-    equity:    { label:"Equity",      icon:"💼" },
-    income:    { label:"Income",      icon:"📈" },
-    expense:   { label:"Expenses",    icon:"📉" },
-  };
-
-  if (!submitted) {
-    return (
-      <div className="acc-panel">
-        <div className="acc-gate">
-          <div className="acc-gate-icon">⚖️</div>
-          <div className="acc-gate-title">Trial Balance</div>
-          <div className="acc-gate-sub">
-            Select a reporting period to generate your trial balance. Leave dates empty to include all posted transactions.
-          </div>
-          <div className="acc-gate-form">
-            <div className="acc-gate-field">
-              <label>From date (optional)</label>
-              <input className="acc-input" type="date" value={startDate} onChange={e=>setStart(e.target.value)} />
-            </div>
-            <div className="acc-gate-field">
-              <label>To date (optional)</label>
-              <input className="acc-input" type="date" value={endDate} onChange={e=>setEnd(e.target.value)} />
-            </div>
-            <button className="acc-btn primary" style={{ alignSelf:"flex-end" }} onClick={() => setSubmitted(true)}>
-              Generate Report →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
-      {/* KPI bar */}
-      <div className="acc-kpi-grid" style={{ gridTemplateColumns:"repeat(3,1fr)" }}>
-        <div className="acc-kpi">
-          <div className="acc-kpi-label">Total debits</div>
-          <div className="acc-kpi-value blue">{fmt(summary.total_debits)}</div>
+      {data && (
+        <div style={{ marginBottom: 16 }}>
+          <span className={`acc-balanced ${summary.is_balanced ? "ok" : "bad"}`} style={{ fontSize: 13, padding: "6px 14px" }}>
+            {summary.is_balanced ? "✓ Trial balance is balanced" : "✕ Trial balance is OUT OF BALANCE"}
+          </span>
         </div>
-        <div className="acc-kpi">
-          <div className="acc-kpi-label">Total credits</div>
-          <div className="acc-kpi-value green">{fmt(summary.total_credits)}</div>
+      )}
+
+      <div className="acc-stats" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <div className="acc-stat">
+          <div className="acc-stat-label">Total debits</div>
+          <div className="acc-stat-value">{fmt(summary.total_debits)}</div>
         </div>
-        <div className="acc-kpi">
-          <div className="acc-kpi-label">Balance status</div>
-          <div style={{ marginTop:8 }}>
-            <span className={`bal-pill ${summary.is_balanced ? "ok" : "bad"}`} style={{ fontSize:13, padding:"6px 16px" }}>
-              {summary.is_balanced ? "✓ Balanced" : "✕ Out of Balance"}
-            </span>
-          </div>
-          <div className="acc-kpi-sub" style={{ marginTop:6 }}>
-            {summary.is_balanced ? "Debits = Credits" : `Difference: ${fmt(Math.abs((summary.total_debits||0)-(summary.total_credits||0)))}`}
+        <div className="acc-stat">
+          <div className="acc-stat-label">Total credits</div>
+          <div className="acc-stat-value">{fmt(summary.total_credits)}</div>
+        </div>
+        <div className="acc-stat">
+          <div className="acc-stat-label">Difference</div>
+          <div className={`acc-stat-value ${summary.is_balanced ? "green" : "red"}`}>
+            {fmt(Math.abs((summary.total_debits || 0) - (summary.total_credits || 0)))}
           </div>
         </div>
       </div>
 
-      <div className="acc-report">
-        <div className="acc-report-cover">
-          <div>
-            <div className="acc-report-co">{COMPANY_NAME}</div>
-            <div className="acc-report-name">Trial Balance</div>
-          </div>
-          <div className="acc-report-meta">
-            <div className="acc-report-meta-label">Period</div>
-            <div className="acc-report-meta-val">
-              {startDate ? fmtDateLong(startDate) : "All dates"} — {endDate ? fmtDateLong(endDate) : "Present"}
-            </div>
-            <div style={{ display:"flex", gap:8, marginTop:12, justifyContent:"flex-end" }}>
-              <button className="acc-btn ghost sm" onClick={() => setSubmitted(false)}>← Change period</button>
-            </div>
+      <div className="acc-card">
+        <div className="acc-card-header">
+          <span className="acc-card-title">Trial Balance</span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input className="acc-input" type="date" placeholder="Start date" value={startDate} onChange={e => setStart(e.target.value)} />
+            <input className="acc-input" type="date" placeholder="End date" value={endDate} onChange={e => setEnd(e.target.value)} />
           </div>
         </div>
 
         {loading ? <Spinner /> : (
-          <>
-            {["asset","liability","equity","income","expense"].map(type => {
-              const typeRows = rows.filter(r => r.account_type === type);
-              if (!typeRows.length) return null;
-              const totDr  = typeRows.reduce((s,r)=>s+Number(r.total_debits),0);
-              const totCr  = typeRows.reduce((s,r)=>s+Number(r.total_credits),0);
-              const totNet = typeRows.reduce((s,r)=>s+Number(r.net_balance),0);
-              return (
-                <div className="acc-report-section" key={type}>
-                  <div className="acc-report-section-hdr">
-                    {TYPE_CONFIG[type].icon} {TYPE_CONFIG[type].label} ({typeRows.length})
-                  </div>
-                  {/* header row */}
-                  <div className="acc-report-row" style={{ background:"var(--bg3)", fontWeight:700, fontSize:11, color:"var(--text3)", textTransform:"uppercase", letterSpacing:".5px" }}>
-                    <span>Code</span>
-                    <span>Account name</span>
-                    <span style={{ textAlign:"right" }}>Debits</span>
-                    <span style={{ textAlign:"right" }}>Credits</span>
-                  </div>
-                  {typeRows.map(r => (
-                    <div className={`acc-report-row ${r.is_sub_account?"indent":""}`} key={r.coa_id}>
-                      <span className="code">{r.account_code}</span>
-                      <span className="name">{r.account_name}</span>
-                      <span className="amt" style={{ color:"var(--sky)" }}>{Number(r.total_debits)>0 ? fmt(r.total_debits) : "—"}</span>
-                      <span className="amt" style={{ color:"var(--green)" }}>{Number(r.total_credits)>0 ? fmt(r.total_credits) : "—"}</span>
-                    </div>
-                  ))}
-                  <div className="acc-report-row sub">
-                    <span></span>
-                    <span className="name">Subtotal — {TYPE_CONFIG[type].label}</span>
-                    <span className="amt" style={{ color:"var(--sky)" }}>{fmt(totDr)}</span>
-                    <span className="amt" style={{ color:"var(--green)" }}>{fmt(totCr)}</span>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Grand total */}
-            <div className="acc-report-row grand">
-              <span></span>
-              <span className="name">Grand Total</span>
-              <span className="amt">{fmt(summary.total_debits)}</span>
-              <span className="amt">{fmt(summary.total_credits)}</span>
-            </div>
-          </>
+          <div className="acc-table-wrap">
+            <table className="acc-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Account name</th>
+                  <th>Type</th>
+                  <th className="right">Debits</th>
+                  <th className="right">Credits</th>
+                  <th className="right">Net balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length === 0 && <tr><td colSpan={6}><Empty /></td></tr>}
+                {["asset","liability","equity","income","expense"].map(type => {
+                  const typeRows = rows.filter(r => r.account_type === type);
+                  if (!typeRows.length) return null;
+                  const typeTotals = {
+                    dr: typeRows.reduce((s, r) => s + Number(r.total_debits), 0),
+                    cr: typeRows.reduce((s, r) => s + Number(r.total_credits), 0),
+                    net: typeRows.reduce((s, r) => s + Number(r.net_balance), 0),
+                  };
+                  return (
+                    <>
+                      <tr className="group-header" key={`g-${type}`}>
+                        <td colSpan={6}>{type.toUpperCase()} ({typeRows.length})</td>
+                      </tr>
+                      {typeRows.map(r => (
+                        <tr key={r.coa_id}>
+                          <td className="mono" style={{ color: "var(--accent)" }}>{r.account_code}</td>
+                          <td className={r.is_sub_account ? "acc-indent" : ""}>{r.account_name}</td>
+                          <td><Badge type={r.account_type} /></td>
+                          <td className="right mono">{Number(r.total_debits) > 0 ? fmt(r.total_debits) : "—"}</td>
+                          <td className="right mono">{Number(r.total_credits) > 0 ? fmt(r.total_credits) : "—"}</td>
+                          <td className="right mono" style={{ color: Number(r.net_balance) < 0 ? "var(--red)" : "" }}>
+                            {fmt(r.net_balance)}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="subtotal">
+                        <td colSpan={3}>Subtotal — {type}</td>
+                        <td className="right">{fmt(typeTotals.dr)}</td>
+                        <td className="right">{fmt(typeTotals.cr)}</td>
+                        <td className="right">{fmt(typeTotals.net)}</td>
+                      </tr>
+                    </>
+                  );
+                })}
+                <tr className="grand-total">
+                  <td colSpan={3}>Grand total</td>
+                  <td className="right">{fmt(summary.total_debits)}</td>
+                  <td className="right">{fmt(summary.total_credits)}</td>
+                  <td className="right">{fmt(Math.abs((summary.total_debits||0)-(summary.total_credits||0)))}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
@@ -1619,162 +1274,109 @@ function TrialBalance() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PROFIT & LOSS
+// PROFIT & LOSS VIEW
 // ─────────────────────────────────────────────────────────────
-function ProfitAndLoss() {
-  const [startDate, setStart] = useState("");
-  const [endDate, setEnd]     = useState("");
-  const [submitted, setSubmitted] = useState(false);
+function ProfitAndLoss({ companyId }) {
+  const [startDate, setStart] = useState(new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10));
+  const [endDate, setEnd]     = useState(new Date().toISOString().slice(0, 10));
 
   const params = new URLSearchParams({ startDate, endDate });
-  const { data, loading } = useFetch(
-    submitted ? `${API}/reports/profit-loss?${params}` : null,
-    [submitted, startDate, endDate]
-  );
+  const { data, loading } = useFetch(`${API}/reports/profit-loss?${params}`, [startDate, endDate]);
 
   const income   = data?.data?.income   || [];
   const expenses = data?.data?.expenses || [];
   const summary  = data?.summary        || {};
-  const isProfit = Number(summary.netProfit) >= 0;
-
-  if (!submitted) {
-    return (
-      <div className="acc-panel">
-        <div className="acc-gate">
-          <div className="acc-gate-icon">📊</div>
-          <div className="acc-gate-title">Profit & Loss Statement</div>
-          <div className="acc-gate-sub">
-            Select a reporting period to see your income, expenses, and net profit or loss for that period.
-          </div>
-          <div className="acc-gate-form">
-            <div className="acc-gate-field">
-              <label>From date *</label>
-              <input className="acc-input" type="date" value={startDate} onChange={e=>setStart(e.target.value)} />
-            </div>
-            <div className="acc-gate-field">
-              <label>To date *</label>
-              <input className="acc-input" type="date" value={endDate} onChange={e=>setEnd(e.target.value)} />
-            </div>
-            <button className="acc-btn primary" style={{ alignSelf:"flex-end" }}
-              disabled={!startDate || !endDate}
-              onClick={() => {
-                console.log(startDate, endDate);
-                setSubmitted(true)
-              }}>
-              Generate Report →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div>
-      {/* KPI bar */}
-      <div className="acc-kpi-grid" style={{ gridTemplateColumns:"repeat(3,1fr)" }}>
-        <div className="acc-kpi income">
-          <div className="acc-kpi-label">Total income</div>
-          <div className="acc-kpi-value green">{fmt(summary.totalIncome)}</div>
-          <div className="acc-kpi-sub">{income.length} income account{income.length!==1?"s":""}</div>
+      <div className="acc-stats" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <div className="acc-stat">
+          <div className="acc-stat-label">Total income</div>
+          <div className="acc-stat-value green">{fmt(summary.totalIncome)}</div>
         </div>
-        <div className="acc-kpi expense">
-          <div className="acc-kpi-label">Total expenses</div>
-          <div className="acc-kpi-value red">{fmt(summary.totalExpenses)}</div>
-          <div className="acc-kpi-sub">{expenses.length} expense account{expenses.length!==1?"s":""}</div>
+        <div className="acc-stat">
+          <div className="acc-stat-label">Total expenses</div>
+          <div className="acc-stat-value red">{fmt(summary.totalExpenses)}</div>
         </div>
-        <div className={`acc-kpi net ${isProfit?"positive":"negative"}`}>
-          <div className="acc-kpi-label">Net {isProfit ? "Profit" : "Loss"}</div>
-          <div className={`acc-kpi-value ${isProfit?"green":"red"}`}>{fmt(summary.netProfit)}</div>
-          <div className="acc-kpi-sub">
-            {summary.totalIncome > 0 ? `${((Number(summary.netProfit)/Number(summary.totalIncome))*100).toFixed(1)}% net margin` : "—"}
+        <div className="acc-stat">
+          <div className="acc-stat-label">Net profit / loss</div>
+          <div className={`acc-stat-value ${Number(summary.netProfit) >= 0 ? "green" : "red"}`}>
+            {fmt(summary.netProfit)}
           </div>
+          <div className="acc-stat-sub">{Number(summary.netProfit) >= 0 ? "Profit" : "Loss"}</div>
         </div>
       </div>
 
-      <div className="acc-report">
-        <div className="acc-report-cover">
-          <div>
-            <div className="acc-report-co">{COMPANY_NAME}</div>
-            <div className="acc-report-name">Statement of Profit & Loss</div>
-          </div>
-          <div className="acc-report-meta">
-            <div className="acc-report-meta-label">Period</div>
-            <div className="acc-report-meta-val">{fmtDateLong(startDate)} to {fmtDateLong(endDate)}</div>
-            <div style={{ display:"flex", gap:8, marginTop:12, justifyContent:"flex-end" }}>
-              <button className="acc-btn ghost sm" onClick={() => setSubmitted(false)}>← Change period</button>
-            </div>
+      <div className="acc-card">
+        <div className="acc-card-header">
+          <span className="acc-card-title">Profit & Loss Statement</span>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: "var(--text2)" }}>From</span>
+            <input className="acc-input" type="date" value={startDate} onChange={e => setStart(e.target.value)} />
+            <span style={{ fontSize: 13, color: "var(--text2)" }}>to</span>
+            <input className="acc-input" type="date" value={endDate} onChange={e => setEnd(e.target.value)} />
           </div>
         </div>
 
         {loading ? <Spinner /> : (
-          <>
-            {/* INCOME */}
+          <div style={{ padding: "20px 24px" }}>
             <div className="acc-report-section">
-              <div className="acc-report-section-hdr">📈 Income</div>
-              <div className="acc-report-row" style={{ background:"var(--bg3)", fontWeight:700, fontSize:11, color:"var(--text3)", textTransform:"uppercase", letterSpacing:".5px" }}>
-                <span>Code</span><span>Account</span><span></span><span style={{textAlign:"right"}}>Amount</span>
-              </div>
-              {income.length === 0 && (
-                <div style={{ padding:"20px 24px", color:"var(--text3)", fontSize:13 }}>No income recorded for this period</div>
-              )}
-              {income.map(r => (
-                <div className={`acc-report-row ${r.is_sub_account?"indent":""}`} key={r.code}>
-                  <span className="code">{r.code}</span>
-                  <span className="name">{r.name}</span>
-                  <span className="cat">{r.category?.replace(/_/g," ")}</span>
-                  <span className="amt" style={{ color:"var(--green)" }}>{fmt(r.amount)}</span>
-                </div>
-              ))}
-              <div className="acc-report-row sub">
-                <span></span><span className="name">Total Income</span><span></span>
-                <span className="amt" style={{ color:"var(--green)" }}>{fmt(summary.totalIncome)}</span>
-              </div>
-            </div>
+              <div className="acc-report-section-title">Income</div>
+              <table className="acc-table">
+                <tbody>
+                  {income.map(r => (
+                    <tr key={r.code}>
+                      <td className="mono" style={{ color: "var(--accent)", width: 100 }}>{r.code}</td>
+                      <td className={r.is_sub_account ? "acc-indent" : ""}>{r.name}</td>
+                      <td className="right mono" style={{ color: "var(--green)" }}>{fmt(r.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+               </table>
+             </div>
+             <table className="acc-table" style={{ marginBottom: 32 }}>
+               <tbody>
+                 <tr className="subtotal">
+                   <td colSpan={2}>Total income</td>
+                   <td className="right" style={{ color: "var(--green)" }}>{fmt(summary.totalIncome)}</td>
+                 </tr>
+               </tbody>
+             </table>
 
-            {/* EXPENSES */}
-            <div className="acc-report-section">
-              <div className="acc-report-section-hdr">📉 Expenses</div>
-              <div className="acc-report-row" style={{ background:"var(--bg3)", fontWeight:700, fontSize:11, color:"var(--text3)", textTransform:"uppercase", letterSpacing:".5px" }}>
-                <span>Code</span><span>Account</span><span></span><span style={{textAlign:"right"}}>Amount</span>
-              </div>
-              {expenses.length === 0 && (
-                <div style={{ padding:"20px 24px", color:"var(--text3)", fontSize:13 }}>No expenses recorded for this period</div>
-              )}
-              {expenses.map(r => (
-                <div className={`acc-report-row ${r.is_sub_account?"indent":""}`} key={r.code}>
-                  <span className="code">{r.code}</span>
-                  <span className="name">{r.name}</span>
-                  <span className="cat">{r.category?.replace(/_/g," ")}</span>
-                  <span className="amt" style={{ color:"var(--amber)" }}>{fmt(r.amount)}</span>
-                </div>
-              ))}
-              <div className="acc-report-row sub">
-                <span></span><span className="name">Total Expenses</span><span></span>
-                <span className="amt" style={{ color:"var(--red)" }}>{fmt(summary.totalExpenses)}</span>
-              </div>
-            </div>
+             <div className="acc-report-section">
+               <div className="acc-report-section-title">Expenses</div>
+               <table className="acc-table">
+                 <tbody>
+                   {expenses.map(r => (
+                     <tr key={r.code}>
+                       <td className="mono" style={{ color: "var(--accent)", width: 100 }}>{r.code}</td>
+                       <td className={r.is_sub_account ? "acc-indent" : ""}>{r.name}</td>
+                       <td className="right mono" style={{ color: "var(--red)" }}>{fmt(r.amount)}</td>
+                      </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+             <table className="acc-table" style={{ marginBottom: 32 }}>
+               <tbody>
+                 <tr className="subtotal">
+                   <td colSpan={2}>Total expenses</td>
+                   <td className="right" style={{ color: "var(--red)" }}>{fmt(summary.totalExpenses)}</td>
+                 </tr>
+               </tbody>
+             </table>
 
-            {/* GROSS PROFIT LINE */}
-            <div className="acc-report-row" style={{ background:"var(--bg4)", borderTop:"2px solid var(--border)", padding:"14px 24px" }}>
-              <span></span>
-              <span style={{ fontWeight:700, fontSize:14 }}>Gross profit before tax</span>
-              <span></span>
-              <span style={{ textAlign:"right", fontFamily:"var(--mono)", fontWeight:700, fontSize:14, color:"var(--text)" }}>
-                {fmt(Number(summary.totalIncome) - Number(summary.totalExpenses))}
-              </span>
-            </div>
-
-            {/* NET */}
-            <div className="acc-report-row grand">
-              <span></span>
-              <span className="name">Net {isProfit ? "Profit" : "Loss"} for the Period</span>
-              <span></span>
-              <span className="amt" style={{ color: isProfit ? "#6ee7b7" : "#fca5a5", fontSize:16 }}>
-                {fmt(summary.netProfit)}
-              </span>
-            </div>
-          </>
+             <table className="acc-table">
+               <tbody>
+                 <tr className="grand-total">
+                   <td colSpan={2}>Net {Number(summary.netProfit) >= 0 ? "Profit" : "Loss"}</td>
+                   <td className="right" style={{ color: Number(summary.netProfit) >= 0 ? "var(--green)" : "var(--red)" }}>
+                     {fmt(summary.netProfit)}
+                   </td>
+                 </tr>
+               </tbody>
+             </table>
+          </div>
         )}
       </div>
     </div>
@@ -1782,409 +1384,398 @@ function ProfitAndLoss() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// BALANCE SHEET
+// BALANCE SHEET VIEW
 // ─────────────────────────────────────────────────────────────
-function BalanceSheet() {
-  const [asOf, setAsOf]           = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  const params = new URLSearchParams({ ...(asOf ? {asOf} : {}) });
-  const { data, loading } = useFetch(
-    submitted ? `${API}/reports/balance-sheet?${params}` : null,
-    [submitted, asOf]
-  );
+function BalanceSheet({ companyId }) {
+  const [asOf, setAsOf] = useState(new Date().toISOString().slice(0, 10));
+  const params = new URLSearchParams({ asOf });
+  const { data, loading } = useFetch(`${API}/reports/balance-sheet?${params}`, [asOf]);
 
   const assets      = data?.data?.assets      || [];
   const liabilities = data?.data?.liabilities || [];
   const equity      = data?.data?.equity      || [];
   const summary     = data?.summary           || {};
 
-  if (!submitted) {
-    return (
-      <div className="acc-panel">
-        <div className="acc-gate">
-          <div className="acc-gate-icon">📑</div>
-          <div className="acc-gate-title">Balance Sheet</div>
-          <div className="acc-gate-sub">
-            Choose a date to produce your Statement of Financial Position. The report shows all assets,
-            liabilities, and equity as of that date.
-          </div>
-          <div className="acc-gate-form">
-            <div className="acc-gate-field">
-              <label>As of date *</label>
-              <input className="acc-input" type="date" value={asOf} onChange={e=>setAsOf(e.target.value)} />
-            </div>
-            <button className="acc-btn primary" style={{ alignSelf:"flex-end" }}
-              disabled={!asOf}
-              onClick={() => setSubmitted(true)}>
-              Generate Report →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const totalLiabEquity = (Number(summary.totalLiabilities)||0) + (Number(summary.totalEquity)||0);
-
   return (
     <div>
-      {/* KPI strip */}
-      <div className="acc-kpi-grid" style={{ gridTemplateColumns:"repeat(4,1fr)" }}>
-        <div className="acc-kpi asset">
-          <div className="acc-kpi-label">Total assets</div>
-          <div className="acc-kpi-value blue">{fmt(summary.totalAssets)}</div>
+      <div className="acc-stats" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+        <div className="acc-stat">
+          <div className="acc-stat-label">Total assets</div>
+          <div className="acc-stat-value gold">{fmt(summary.totalAssets)}</div>
         </div>
-        <div className="acc-kpi liability">
-          <div className="acc-kpi-label">Total liabilities</div>
-          <div className="acc-kpi-value red">{fmt(summary.totalLiabilities)}</div>
+        <div className="acc-stat">
+          <div className="acc-stat-label">Total liabilities</div>
+          <div className="acc-stat-value red">{fmt(summary.totalLiabilities)}</div>
         </div>
-        <div className="acc-kpi equity">
-          <div className="acc-kpi-label">Total equity</div>
-          <div className="acc-kpi-value purple">{fmt(summary.totalEquity)}</div>
+        <div className="acc-stat">
+          <div className="acc-stat-label">Total equity</div>
+          <div className="acc-stat-value">{fmt(summary.totalEquity)}</div>
         </div>
-        <div className="acc-kpi">
-          <div className="acc-kpi-label">Balance check</div>
-          <div style={{ marginTop:8 }}>
-            <span className={`bal-pill ${summary.isBalanced?"ok":"bad"}`} style={{ fontSize:13, padding:"6px 14px" }}>
+        <div className="acc-stat">
+          <div className="acc-stat-label">Balance check</div>
+          <div style={{ marginTop: 8 }}>
+            <span className={`acc-balanced ${summary.isBalanced ? "ok" : "bad"}`}>
               {summary.isBalanced ? "✓ Balanced" : "✕ Unbalanced"}
             </span>
           </div>
-          <div className="acc-kpi-sub" style={{ marginTop:6 }}>Assets = Liabilities + Equity</div>
+          <div className="acc-stat-sub">Assets = Liabilities + Equity</div>
         </div>
       </div>
 
-      <div className="acc-report">
-        <div className="acc-report-cover">
-          <div>
-            <div className="acc-report-co">{COMPANY_NAME}</div>
-            <div className="acc-report-name">Statement of Financial Position (Balance Sheet)</div>
-          </div>
-          <div className="acc-report-meta">
-            <div className="acc-report-meta-label">As of</div>
-            <div className="acc-report-meta-val">{fmtDateLong(asOf)}</div>
-            <div style={{ display:"flex", gap:8, marginTop:12, justifyContent:"flex-end" }}>
-              <button className="acc-btn ghost sm" onClick={() => setSubmitted(false)}>← Change date</button>
-            </div>
+      <div className="acc-card">
+        <div className="acc-card-header">
+          <span className="acc-card-title">Balance Sheet</span>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: "var(--text2)" }}>As of</span>
+            <input className="acc-input" type="date" value={asOf} onChange={e => setAsOf(e.target.value)} />
           </div>
         </div>
 
         {loading ? <Spinner /> : (
-          <>
-            {/* ASSETS */}
+          <div style={{ padding: "20px 24px" }}>
             <div className="acc-report-section">
-              <div className="acc-report-section-hdr">🏦 Assets</div>
-              <div className="acc-report-row" style={{ background:"var(--bg3)", fontWeight:700, fontSize:11, color:"var(--text3)", textTransform:"uppercase", letterSpacing:".5px" }}>
-                <span>Code</span><span>Account</span><span>Category</span><span style={{textAlign:"right"}}>Amount</span>
-              </div>
-              {assets.map(r => (
-                <div className={`acc-report-row ${r.is_sub_account?"indent":""}`} key={r.code}>
-                  <span className="code">{r.code}</span>
-                  <span className="name">{r.name}</span>
-                  <span className="cat">{r.category?.replace(/_/g," ")}</span>
-                  <span className="amt" style={{ color: Number(r.amount)<0 ? "var(--red)" : "var(--sky)" }}>{fmt(r.amount)}</span>
-                </div>
-              ))}
-              <div className="acc-report-row sub">
-                <span></span><span className="name">Total Assets</span><span></span>
-                <span className="amt" style={{ color:"var(--accent)" }}>{fmt(summary.totalAssets)}</span>
-              </div>
+              <div className="acc-report-section-title">Assets</div>
+              <table className="acc-table">
+                <tbody>
+                  {assets.map(r => (
+                    <tr key={r.code}>
+                      <td className="mono" style={{ color: "var(--accent)", width: 100 }}>{r.code}</td>
+                      <td className={r.is_sub_account ? "acc-indent" : ""}>{r.name}</td>
+                      <td className="muted" style={{ fontSize: 12 }}>{r.category?.replace(/_/g," ")}</td>
+                      <td className="right mono" style={{ color: "var(--blue)" }}>{fmt(r.amount)}</td>
+                    </tr>
+                  ))}
+                  <tr className="subtotal">
+                    <td colSpan={3}>Total assets</td>
+                    <td className="right">
+                    {fmt(
+                      assets.reduce((sum, acc) => {
+                        const amount = Number(acc.amount);
+
+                        return sum + (
+                          acc.normal_balance === "credit"
+                            ? -amount
+                            : amount
+                        );
+                      }, 0)
+                    )}
+                  </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            {/* LIABILITIES */}
             <div className="acc-report-section">
-              <div className="acc-report-section-hdr">📋 Liabilities</div>
-              <div className="acc-report-row" style={{ background:"var(--bg3)", fontWeight:700, fontSize:11, color:"var(--text3)", textTransform:"uppercase", letterSpacing:".5px" }}>
-                <span>Code</span><span>Account</span><span>Category</span><span style={{textAlign:"right"}}>Amount</span>
-              </div>
-              {liabilities.map(r => (
-                <div className={`acc-report-row ${r.is_sub_account?"indent":""}`} key={r.code}>
-                  <span className="code">{r.code}</span>
-                  <span className="name">{r.name}</span>
-                  <span className="cat">{r.category?.replace(/_/g," ")}</span>
-                  <span className="amt" style={{ color:"var(--red)" }}>{fmt(r.amount)}</span>
-                </div>
-              ))}
-              <div className="acc-report-row sub">
-                <span></span><span className="name">Total Liabilities</span><span></span>
-                <span className="amt" style={{ color:"var(--red)" }}>{fmt(summary.totalLiabilities)}</span>
-              </div>
+              <div className="acc-report-section-title">Liabilities</div>
+              <table className="acc-table">
+                <tbody>
+                  {liabilities.map(r => (
+                    <tr key={r.code}>
+                      <td className="mono" style={{ color: "var(--accent)", width: 100 }}>{r.code}</td>
+                      <td className={r.is_sub_account ? "acc-indent" : ""}>{r.name}</td>
+                      <td className="muted" style={{ fontSize: 12 }}>{r.category?.replace(/_/g," ")}</td>
+                      <td className="right mono" style={{ color: "var(--red)" }}>{fmt(r.amount)}</td>
+                    </tr>
+                  ))}
+                  <tr className="subtotal">
+                    <td colSpan={3}>Total liabilities</td>
+                    <td className="right">{fmt(liabilities.reduce((s, r) => s + Number(r.amount), 0))}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            {/* EQUITY */}
             <div className="acc-report-section">
-              <div className="acc-report-section-hdr">💼 Equity</div>
-              <div className="acc-report-row" style={{ background:"var(--bg3)", fontWeight:700, fontSize:11, color:"var(--text3)", textTransform:"uppercase", letterSpacing:".5px" }}>
-                <span>Code</span><span>Account</span><span>Category</span><span style={{textAlign:"right"}}>Amount</span>
-              </div>
-              {equity.map(r => (
-                <div className={`acc-report-row ${r.is_sub_account?"indent":""}`} key={r.code}>
-                  <span className="code">{r.code}</span>
-                  <span className="name">{r.name}</span>
-                  <span className="cat">{r.category?.replace(/_/g," ")}</span>
-                  <span className="amt" style={{ color:"var(--purple)" }}>{fmt(r.amount)}</span>
-                </div>
-              ))}
-              {/* Net profit line */}
-              <div className="acc-report-row" style={{ background:"var(--amber-light)", borderLeft:"3px solid var(--amber)" }}>
-                <span className="code">—</span>
-                <span className="name" style={{ color:"var(--amber)" }}>Current period profit / (loss)</span>
-                <span className="cat">Retained earnings</span>
-                <span className="amt" style={{ color: Number(summary.netProfit)>=0?"var(--green)":"var(--red)" }}>
-                  {fmt(summary.netProfit)}
-                </span>
-              </div>
-              <div className="acc-report-row sub">
-                <span></span><span className="name">Total Equity</span><span></span>
-                <span className="amt" style={{ color:"var(--purple)" }}>{fmt(summary.totalEquity)}</span>
-              </div>
+              <div className="acc-report-section-title">Equity</div>
+              <table className="acc-table">
+                <tbody>
+                  {equity.map(r => (
+                    <tr key={r.code}>
+                      <td className="mono" style={{ color: "var(--accent)", width: 100 }}>{r.code}</td>
+                      <td className={r.is_sub_account ? "acc-indent" : ""}>{r.name}</td>
+                      <td className="muted" style={{ fontSize: 12 }}>{r.category?.replace(/_/g," ")}</td>
+                      <td className="right mono" style={{ color: "var(--purple)" }}>{fmt(r.amount)}</td>
+                    </tr>
+                  ))}
+                  <tr className="subtotal">
+                    <td colSpan={3}>Total equity</td>
+                    <td className="right">{fmt(equity.reduce((s, r) => s + Number(r.amount), 0))}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            {/* LIAB + EQUITY TOTAL */}
-            <div className="acc-report-row" style={{ background:"var(--bg4)", borderTop:"2px solid var(--border)", padding:"14px 24px" }}>
-              <span></span>
-              <span style={{ fontWeight:700, fontSize:13 }}>Total Liabilities + Equity</span>
-              <span></span>
-              <span style={{ textAlign:"right", fontFamily:"var(--mono)", fontWeight:700, fontSize:14, color:"var(--text)" }}>
-                {fmt(totalLiabEquity)}
-              </span>
-            </div>
-
-            {/* BALANCE CONFIRMATION */}
-            <div className="acc-report-row grand">
-              <span></span>
-              <span className="name">
-                {summary.isBalanced
-                  ? "✓ Statement balances — Assets equal Liabilities + Equity"
-                  : "✕ Statement does not balance — please review your entries"}
-              </span>
-              <span></span>
-              <span className="amt" style={{ color: summary.isBalanced ? "#6ee7b7" : "#fca5a5" }}>
-                {fmt(summary.totalAssets)} = {fmt(totalLiabEquity)}
-              </span>
-            </div>
-          </>
+            <table className="acc-table">
+              <tbody>
+                <tr className="grand-total">
+                  <td colSpan={3}>Total Liabilities + Equity</td>
+                  <td className="right">{fmt((summary.totalLiabilities || 0) + (summary.totalEquity || 0))}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// ACCOUNT DETAIL (Ledger drilldown)
-// ─────────────────────────────────────────────────────────────
-function AccountDetail({ account, onBack }) {
-  const [page, setPage]       = useState(1);
-  const [startDate, setStart] = useState("");
-  const [endDate, setEnd]     = useState("");
-  const [search, setSearch]   = useState("");
+function LedgerDetail({ account, onBack }) {
+  const [rows, setRows] = useState([]);
+  const [pagination, setPag] = useState(null);
+  const [loading, setLoad] = useState(true);
+  const [err, setErr] = useState(null);
+  const [page, setPage] = useState(1);
+  const [startDate, setSD] = useState("");
+  const [endDate, setED] = useState("");
+  const [search, setSearch] = useState("");
 
-  const params = new URLSearchParams({
-    coa_id: account.id, page, limit:"100",
-    ...(startDate ? {startDate} : {}),
-    ...(endDate   ? {endDate}   : {}),
-  });
+  const load = useCallback(async () => {
+    setLoad(true);
+    setErr(null);
+    try {
+      const params = new URLSearchParams({ 
+        coa_id: account.id, 
+        page: String(page), 
+        limit: "100",
+        ...(startDate ? { startDate } : {}),
+        ...(endDate ? { endDate } : {})
+      });
+      const token = localStorage.getItem('susupro_token');
+      const r = await fetch(`${API}/ledger?${params}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message);
+      setRows(j.data || []);
+      setPag(j.pagination);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoad(false);
+    }
+  }, [account.id, page, startDate, endDate]);
 
-  const { data, loading, refetch } = useFetch(`${API}/ledger?${params}`, [account.id, page, startDate, endDate]);
-  const rows       = data?.data        || [];
-  const pagination = data?.pagination;
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const totalDr = rows.reduce((s,r)=>s+(r.debit_credit==="debit"  ? Number(r.amount) : 0), 0);
-  const totalCr = rows.reduce((s,r)=>s+(r.debit_credit==="credit" ? Number(r.amount) : 0), 0);
-  const nb      = account.normal_balance;
-  const netMov  = nb==="debit" ? totalDr-totalCr : totalCr-totalDr;
+  const totalDr = rows.reduce((s, r) => s + (r.debit_credit === "debit" ? Number(r.amount) : 0), 0);
+  const totalCr = rows.reduce((s, r) => s + (r.debit_credit === "credit" ? Number(r.amount) : 0), 0);
+  const nb = account.normal_balance;
+  const netBal = nb === "debit" ? totalDr - totalCr : totalCr - totalDr;
   const openBal = Number(account.opening_balance) || 0;
-  const finalBal = openBal + netMov;
+  const finalBal = openBal + netBal;
 
-  const filtered = rows.filter(r => {
+  const filtered = rows.filter((r) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (r.reference_no||"").toLowerCase().includes(q) ||
-           (r.entry_description||"").toLowerCase().includes(q) ||
-           (r.source||"").toLowerCase().includes(q);
+    return (
+      (r.reference_no || "").toLowerCase().includes(q) ||
+      (r.entry_description || "").toLowerCase().includes(q) ||
+      (r.source || "").toLowerCase().includes(q)
+    );
   });
 
   return (
-    <div>
-      <div className="acc-breadcrumb">
-        <a onClick={onBack}>Chart of Accounts</a>
-        <span>›</span>
-        <span style={{ color:"var(--text)", fontWeight:600 }}>{account.code} — {account.name}</span>
-      </div>
-
-      {/* KPI */}
-      <div className="acc-kpi-grid" style={{ gridTemplateColumns:"repeat(4,1fr)" }}>
-        <div className="acc-kpi">
-          <div className="acc-kpi-label">Opening balance</div>
-          <div className="acc-kpi-value">{fmt(openBal)}</div>
-        </div>
-        <div className="acc-kpi">
-          <div className="acc-kpi-label">Total debits</div>
-          <div className="acc-kpi-value blue">{fmt(totalDr)}</div>
-        </div>
-        <div className="acc-kpi">
-          <div className="acc-kpi-label">Total credits</div>
-          <div className="acc-kpi-value red">{fmt(totalCr)}</div>
-        </div>
-        <div className="acc-kpi">
-          <div className="acc-kpi-label">Closing balance</div>
-          <div className={`acc-kpi-value ${finalBal>=0?"green":"red"}`}>{fmt(finalBal)}</div>
-          <div className="acc-kpi-sub">Normal balance: {nb}</div>
-        </div>
-      </div>
-
-      <div className="acc-panel">
-        <div className="acc-panel-header">
-          <span className="acc-panel-title">
-            Ledger — {account.name}
-            <Chip type={account.account_type} />
-          </span>
-          <div style={{ display:"flex", gap:8 }}>
-            <button className="acc-btn ghost sm" onClick={refetch}>↻ Refresh</button>
-            <button className="acc-btn ghost" onClick={onBack}>← Back</button>
+    <div className="acc-card">
+      <div className="acc-card-header">
+        <div>
+          <span className="acc-card-title">{account.name}</span>
+          <div style={{ fontSize: 13, color: "var(--text2)", marginTop: 4 }}>
+            {account.code} · {account.account_type} · Normal {account.normal_balance}
           </div>
         </div>
-        <div className="acc-toolbar">
-          <input className="acc-input wide" placeholder="Search reference or description…"
-            value={search} onChange={e=>setSearch(e.target.value)} />
-          <input className="acc-input" type="date" value={startDate} onChange={e=>setStart(e.target.value)} />
-          <input className="acc-input" type="date" value={endDate}   onChange={e=>setEnd(e.target.value)} />
-        </div>
+        <div className="acc-stat-value gold">{fmt(finalBal)}</div>
+      </div>
 
-        {loading ? <Spinner /> : (
-          <div className="acc-tbl-wrap">
-            <table className="acc-tbl">
+      {/* Balance summary cards */}
+      <div className="acc-stats" style={{ gridTemplateColumns: "repeat(4, 1fr)", margin: 0, padding: "16px 24px" }}>
+        <div className="acc-stat" style={{ margin: 0 }}>
+          <div className="acc-stat-label">Opening balance</div>
+          <div className="acc-stat-value">{fmt(openBal)}</div>
+        </div>
+        <div className="acc-stat" style={{ margin: 0 }}>
+          <div className="acc-stat-label">Total Debits</div>
+          <div className="acc-stat-value green">{fmt(totalDr)}</div>
+        </div>
+        <div className="acc-stat" style={{ margin: 0 }}>
+          <div className="acc-stat-label">Total Credits</div>
+          <div className="acc-stat-value red">{fmt(totalCr)}</div>
+        </div>
+        <div className="acc-stat" style={{ margin: 0 }}>
+          <div className="acc-stat-label">Net Movement</div>
+          <div className={`acc-stat-value ${netBal >= 0 ? "green" : "red"}`}>
+            {netBal >= 0 ? "+" : ""}{fmt(netBal)}
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="acc-filters">
+        <input 
+          className="acc-input wide" 
+          placeholder="Search reference or description..." 
+          value={search} 
+          onChange={e => setSearch(e.target.value)} 
+        />
+        <input 
+          className="acc-input" 
+          type="date" 
+          value={startDate} 
+          onChange={e => setSD(e.target.value)} 
+          placeholder="Start date"
+        />
+        <input 
+          className="acc-input" 
+          type="date" 
+          value={endDate} 
+          onChange={e => setED(e.target.value)} 
+          placeholder="End date"
+        />
+        <button className="acc-btn ghost sm" onClick={load}>Refresh</button>
+        {onBack && <button className="acc-btn ghost" onClick={onBack}>← Back</button>}
+      </div>
+
+      {loading ? (
+        <Spinner />
+      ) : err ? (
+        <div className="acc-empty">Error: {err}</div>
+      ) : (
+        <>
+          <div className="acc-table-wrap">
+            <table className="acc-table">
               <thead>
                 <tr>
                   <th>Date</th>
                   <th>Reference</th>
                   <th>Source</th>
                   <th>Description</th>
-                  <th className="r">Debit</th>
-                  <th className="r">Credit</th>
-                  <th className="r">Balance</th>
+                  <th className="right">Debit</th>
+                  <th className="right">Credit</th>
+                  <th className="right">Balance</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length===0 && <tr><td colSpan={7}><Empty text="No transactions found" /></td></tr>}
-                {filtered.map((r,i)=>(
-                  <tr key={r.line_id||i}>
-                    <td style={{ whiteSpace:"nowrap", color:"var(--text2)" }}>{fmtDate(r.entry_date)}</td>
-                    <td><span className="mono" style={{ color:"var(--accent)" }}>{r.reference_no}</span></td>
-                    <td><span style={{ fontSize:11, color:"var(--text3)" }}>{r.source?.replace(/_/g," ")}</span></td>
-                    <td style={{ fontSize:13, color:"var(--text2)" }}>{r.line_description||r.entry_description||"—"}</td>
-                    <td className="r"><span className="mono" style={{ color:"var(--sky)" }}>{r.debit_credit==="debit"?fmt(r.amount):"—"}</span></td>
-                    <td className="r"><span className="mono" style={{ color:"var(--green)" }}>{r.debit_credit==="credit"?fmt(r.amount):"—"}</span></td>
-                    <td className="r"><span className="mono" style={{ fontWeight:600, color: Number(r.running_balance)<0?"var(--red)":"var(--text)" }}>{fmt(r.running_balance)}</span></td>
-                  </tr>
-                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={7}><Empty /></td></tr>
+                )}
+                {filtered.map((r, i) => {
+                  const running = Number(r.running_balance);
+                  return (
+                    <tr key={r.line_id || i}>
+                      <td className="muted">{fmtDate(r.entry_date)}</td>
+                      <td className="mono" style={{ color: "var(--accent)" }}>{r.reference_no}</td>
+                      <td><span className="muted" style={{ fontSize: 11 }}>{r.source?.replace(/_/g, " ")}</span></td>
+                      <td className="muted" style={{ fontSize: 13 }}>{r.line_description || r.entry_description || "—"}</td>
+                      <td className="right mono" style={{ color: "var(--blue)" }}>
+                        {r.debit_credit === "debit" ? fmt(r.amount) : "—"}
+                      </td>
+                      <td className="right mono" style={{ color: "var(--green)" }}>
+                        {r.debit_credit === "credit" ? fmt(r.amount) : "—"}
+                      </td>
+                      <td className="right mono" style={{ color: running < 0 ? "var(--red)" : "var(--text)" }}>
+                        {fmt(running)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
-                <tr>
-                  <td colSpan={4} style={{ background:"var(--bg3)", padding:"10px 16px", fontWeight:700, fontSize:13, color:"var(--text2)" }}>Totals</td>
-                  <td className="r" style={{ background:"var(--bg3)", padding:"10px 16px", fontFamily:"var(--mono)", fontWeight:700, color:"var(--sky)" }}>{fmt(totalDr)}</td>
-                  <td className="r" style={{ background:"var(--bg3)", padding:"10px 16px", fontFamily:"var(--mono)", fontWeight:700, color:"var(--green)" }}>{fmt(totalCr)}</td>
-                  <td className="r" style={{ background:"var(--bg3)", padding:"10px 16px", fontFamily:"var(--mono)", fontWeight:700, color: finalBal<0?"var(--red)":"var(--text)" }}>{fmt(finalBal)}</td>
+                <tr className="subtotal">
+                  <td colSpan={4}><strong>Totals</strong></td>
+                  <td className="right"><strong>{fmt(totalDr)}</strong></td>
+                  <td className="right"><strong>{fmt(totalCr)}</strong></td>
+                  <td className="right"><strong>{fmt(finalBal)}</strong></td>
                 </tr>
               </tfoot>
             </table>
           </div>
-        )}
-        <Pager pagination={pagination} onPage={setPage} />
-      </div>
+          <Pagination pagination={pagination} onPage={setPage} />
+        </>
+      )}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// ROOT MODULE
+// ROOT ACCOUNTING MODULE
 // ─────────────────────────────────────────────────────────────
 const TABS = [
-  { id:"coa",     label:"Chart of Accounts", icon:"📒" },
-  { id:"journal", label:"Journal Entries",   icon:"📝" },
-  { id:"ledger",  label:"General Ledger",    icon:"📚" },
-  { id:"trial",   label:"Trial Balance",     icon:"⚖️" },
-  { id:"pl",      label:"Profit & Loss",     icon:"📊" },
-  { id:"bs",      label:"Balance Sheet",     icon:"📑" },
+  { id: "coa",     label: "Chart of Accounts", icon: "" },
+  { id: "journal", label: "Journal Entries",   icon: "" },
+  { id: "ledger",  label: "General Ledger",    icon: "" },
+  { id: "trial",   label: "Trial Balance",     icon: "" },
+  { id: "pl",      label: "Profit & Loss",     icon: "" },
+  { id: "bs",      label: "Balance Sheet",     icon: "" },
+  { id: "details", label: "Account Details",   icon: "" },
 ];
 
-const TAB_TITLES = {
-  coa:     "Chart of Accounts",
-  journal: "Journal Entries",
-  ledger:  "General Ledger",
-  trial:   "Trial Balance",
-  pl:      "Profit & Loss",
-  bs:      "Balance Sheet",
-  details: "Account Details",
-};
+const AccountingModule = ({ companyId }) => {
+  const [tab, setTab] = useState("coa");
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [showBackButton, setShowBackButton] = useState(false);
 
-const AccountingModule = ({ companyId: _cid }) => {
-  const [tab, setTab]           = useState("coa");
-  const [selectedAcc, setAcc]   = useState(null);
+  const handleSelectAccount = (account) => {
+    setSelectedAccount(account);
+    setTab("details");
+    setShowBackButton(true);
+  };
 
-  const handleSelectAccount = (acc) => { setAcc(acc); setTab("details"); };
-  const handleBack          = ()    => { setAcc(null); setTab("coa"); };
+  const handleBackToCOA = () => {
+    setSelectedAccount(null);
+    setTab("coa");
+    setShowBackButton(false);
+  };
 
   return (
     <>
       <style>{STYLES}</style>
-      <div className="acc-layout">
-        {/* Sidebar */}
-        <div className="acc-sidebar">
-          <div className="acc-sidebar-logo">
-            <div className="acc-sidebar-logo-mark">General Ledger</div>
-            <div className="acc-sidebar-logo-name">Big God Susu</div>
+      <div className="acc-module">
+        {/* Top Bar */}
+        {/* <div className="acc-topbar">
+          <div className="acc-topbar-logo">
+            📒 <span>General Ledger</span>
           </div>
-
-          <div className="acc-sidebar-section">Accounts</div>
-          {TABS.slice(0,2).map(t => (
-            <button key={t.id} className={`acc-nav-item ${tab===t.id?"active":""}`}
-              onClick={() => { setTab(t.id); setAcc(null); }}>
-              <span className="nav-icon">{t.icon}</span>{t.label}
+          {showBackButton && (
+            <button 
+              className="acc-btn ghost sm" 
+              onClick={handleBackToCOA}
+              style={{ marginLeft: 8 }}
+            >
+              ← Back to Chart of Accounts
             </button>
-          ))}
+          )}
+          <div className="acc-topbar-sep"></div>
+          <div className="acc-topbar-badge">Double‑entry</div>
+        </div> */}
 
-          <div className="acc-sidebar-section">Ledger</div>
-          {TABS.slice(2,3).map(t => (
-            <button key={t.id} className={`acc-nav-item ${tab===t.id?"active":""}`}
-              onClick={() => { setTab(t.id); setAcc(null); }}>
-              <span className="nav-icon">{t.icon}</span>{t.label}
-            </button>
-          ))}
-
-          <div className="acc-sidebar-section">Reports</div>
-          {TABS.slice(3).map(t => (
-            <button key={t.id} className={`acc-nav-item ${tab===t.id?"active":""}`}
-              onClick={() => { setTab(t.id); setAcc(null); }}>
-              <span className="nav-icon">{t.icon}</span>{t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Main */}
-        <div className="acc-main">
-          <div className="acc-topbar">
-            <div className="acc-topbar-title">
-              {tab === "details" && selectedAcc
-                ? `${selectedAcc.code} — ${selectedAcc.name}`
-                : TAB_TITLES[tab]}
-            </div>
-            <div className="acc-topbar-right">
-              <span className="acc-topbar-date">{fmtDateLong(new Date().toISOString())}</span>
-            </div>
+        {tab !== "details" && (
+          <div className="acc-nav">
+            {TABS.filter(t => t.id !== "details").map(t => (
+              <button key={t.id}
+                className={`acc-nav-btn ${tab === t.id ? "active" : ""}`}
+                onClick={() => setTab(t.id)}>
+                <span style={{ marginRight: 6 }}>{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
           </div>
+        )}
 
-          <div className="acc-body">
-            {tab === "coa"     && <ChartOfAccounts onSelectAccount={handleSelectAccount} />}
-            {tab === "journal" && <JournalEntries />}
-            {tab === "ledger"  && <GeneralLedger />}
-            {tab === "trial"   && <TrialBalance />}
-            {tab === "pl"      && <ProfitAndLoss />}
-            {tab === "bs"      && <BalanceSheet />}
-            {tab === "details" && selectedAcc && (
-              <AccountDetail account={selectedAcc} onBack={handleBack} />
-            )}
-          </div>
+        <div className="acc-body">
+          {tab === "coa" && <ChartOfAccounts companyId={companyId} onSelectAccount={handleSelectAccount} />}
+          {tab === "journal" && <JournalEntries companyId={companyId} />}
+          {tab === "ledger" && <GeneralLedger companyId={companyId} />}
+          {tab === "trial" && <TrialBalance companyId={companyId} />}
+          {tab === "pl" && <ProfitAndLoss companyId={companyId} />}
+          {tab === "bs" && <BalanceSheet companyId={companyId} />}
+          {tab === "details" && selectedAccount && (
+            <LedgerDetail 
+              account={selectedAccount}
+              onBack={handleBackToCOA}
+            />
+          )}
         </div>
       </div>
     </>
