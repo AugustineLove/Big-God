@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   X, DollarSign, AlertTriangle, Save, Settings, TrendingDown,
   Shield, Bell, CreditCard, RefreshCw, Lock, Phone, Mail,
   Smartphone, Clock, ChevronDown, ChevronUp, Eye, EyeOff,
-  Activity, RotateCcw, Banknote, Wifi, WifiOff, CheckCircle
+  Activity, RotateCcw, Banknote, Wifi, WifiOff, CheckCircle,
+  Percent, History, ArrowRight, Loader2,
 } from 'lucide-react';
+
+const API_BASE = 'https://susu-pro-backend.onrender.com/api';
 
 const SectionHeader = ({ icon: Icon, title, subtitle, color = 'blue', isOpen, onToggle }) => (
   <button
@@ -85,12 +88,19 @@ const Badge = ({ label, color }) => {
 
 const CARD_STATUSES = ['ACTIVE', 'BLOCKED', 'EXPIRED', 'LOST', 'STOLEN', 'INACTIVE'];
 
+const RATE_TYPE_LABELS = {
+  interest_rate: { label: 'Interest rate', suffix: '%', hint: 'Annual rate applied to the balance' },
+  daily_rate: { label: 'Daily rate', suffix: 'GHS', hint: 'Flat daily susu contribution amount' },
+};
+
+const todayISO = () => new Date().toISOString().split('T')[0];
+
 const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [openSections, setOpenSections] = useState({
-    balance: true, card: false, notifications: false, risk: false, lifecycle: false,
+    balance: true, rate: false, card: false, notifications: false, risk: false, lifecycle: false,
   });
 
   const [settings, setSettings] = useState({
@@ -115,10 +125,31 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
     // Lifecycle
     status: 'Active',
     description: '',
-    interestRate: '',
-    dailyRate: '',
     frequency: '',
   });
+
+  // ── Rate management: current live values (read-only display) ──────────
+  const [currentRates, setCurrentRates] = useState({
+    interest_rate: null,
+    daily_rate: null,
+    rate_last_changed_at: null,
+  });
+
+  // ── Rate management: the "apply a new rate" form (independent of Save) ─
+  const [rateForm, setRateForm] = useState({
+    rateType: 'daily_rate',
+    newRate: '',
+    effectiveDate: todayISO(),
+    reason: '',
+  });
+  const [isApplyingRate, setIsApplyingRate] = useState(false);
+  const [rateError, setRateError] = useState('');
+  const [rateSuccess, setRateSuccess] = useState('');
+
+  // ── Rate management: history list ───────────────────────────────────────
+  const [rateHistory, setRateHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   useEffect(() => {
     if (account) {
@@ -139,17 +170,126 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
         lockedUntil: account.locked_until ? account.locked_until.split('T')[0] : '',
         status: account.status || 'Active',
         description: account.description || '',
-        interestRate: account.interest_rate || '',
-        dailyRate: account.daily_rate || '',
         frequency: account.frequency || '',
       });
+      setCurrentRates({
+        interest_rate: account.interest_rate ?? null,
+        daily_rate: account.daily_rate ?? null,
+        rate_last_changed_at: account.rate_last_changed_at || null,
+      });
+      // Reset rate-history cache whenever the account changes
+      setRateHistory([]);
+      setHistoryLoaded(false);
+      setRateError('');
+      setRateSuccess('');
     }
   }, [account]);
 
-  const toggleSection = (key) =>
+  const toggleSection = (key) => {
     setOpenSections((s) => ({ ...s, [key]: !s[key] }));
+  };
 
   const set = (key, val) => setSettings((s) => ({ ...s, [key]: val }));
+  const setRate = (key, val) => setRateForm((f) => ({ ...f, [key]: val }));
+
+  // ── Fetch rate history (lazy, only when the section is first opened) ───
+  const fetchRateHistory = useCallback(async () => {
+    if (!account?.id) return;
+    setIsLoadingHistory(true);
+    try {
+      const res = await fetch(`${API_BASE}/accounts/${account.id}/rate-history`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('susupro_token')}` },
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setRateHistory(data);
+      setHistoryLoaded(true);
+    } catch {
+      // Non-fatal: history is supplementary, don't block the form
+      setHistoryLoaded(true);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [account?.id]);
+
+  useEffect(() => {
+    if (openSections.rate && !historyLoaded) {
+      fetchRateHistory();
+    }
+  }, [openSections.rate, historyLoaded, fetchRateHistory]);
+
+  // ── Apply rate change — independent of the main Save settings button ───
+  const handleApplyRateChange = async () => {
+    setRateError('');
+    setRateSuccess('');
+
+    const parsedRate = parseFloat(rateForm.newRate);
+    if (rateForm.newRate === '' || isNaN(parsedRate) || parsedRate < 0) {
+      return setRateError('Enter a valid, non-negative rate.');
+    }
+    if (!rateForm.effectiveDate) {
+      return setRateError('Choose an effective date.');
+    }
+
+    const existingForDate = rateHistory.find(
+      (h) => h.rate_type === rateForm.rateType && h.effective_date?.split('T')[0] === rateForm.effectiveDate
+    );
+
+    if (existingForDate) {
+      const confirmReplace = window.confirm(
+        `A ${RATE_TYPE_LABELS[rateForm.rateType].label.toLowerCase()} change already exists for ${rateForm.effectiveDate} ` +
+        `(${existingForDate.new_rate}). Applying now will replace it. Continue?`
+      );
+      if (!confirmReplace) return;
+    }
+
+    setIsApplyingRate(true);
+    try {
+      const res = await fetch(`${API_BASE}/accounts/${account.id}/rate-change`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('susupro_token')}`,
+        },
+        body: JSON.stringify({
+          rate_type: rateForm.rateType,
+          new_rate: parsedRate,
+          effective_date: rateForm.effectiveDate,
+          reason: rateForm.reason || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to apply rate change.');
+      }
+
+      const data = await res.json();
+
+      setCurrentRates({
+        interest_rate: data.account.interest_rate,
+        daily_rate: data.account.daily_rate,
+        rate_last_changed_at: data.account.rate_last_changed_at,
+      });
+
+      // Upsert the new/updated history row into local state instead of refetching
+      setRateHistory((prev) => {
+        const others = prev.filter(
+          (h) => !(h.rate_type === data.rate_change.rate_type && h.effective_date?.split('T')[0] === data.rate_change.effective_date?.split('T')[0])
+        );
+        return [data.rate_change, ...others].sort((a, b) => new Date(b.effective_date) - new Date(a.effective_date));
+      });
+
+      setRateSuccess(`${RATE_TYPE_LABELS[rateForm.rateType].label} updated to ${parsedRate}.`);
+      setRateForm((f) => ({ ...f, newRate: '', reason: '' }));
+
+      if (onSave) onSave({ ...account, ...data.account });
+    } catch (err) {
+      setRateError(err.message || 'Something went wrong applying the rate change.');
+    } finally {
+      setIsApplyingRate(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -165,6 +305,9 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
       .map((n) => n.trim())
       .filter(Boolean);
 
+    // Note: interest_rate / daily_rate are intentionally NOT sent here.
+    // They're managed exclusively via the Rate management section's
+    // "Apply rate change" flow so every change is logged with who/when/why.
     const body = {
       minimum_balance: settings.minimumBalance,
       allow_negative_balance: settings.allowNegativeBalance,
@@ -181,16 +324,13 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
       locked_until: settings.lockedUntil || null,
       status: settings.status,
       description: settings.description,
-      interest_rate: settings.interestRate !== '' ? parseFloat(settings.interestRate) : null,
-      daily_rate: settings.dailyRate !== '' ? parseFloat(settings.dailyRate) : null,
       frequency: settings.frequency || null,
     };
 
     setIsSubmitting(true);
     try {
-      const accountId = account.id
-      console.log(`Account id: ${accountId}`)
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/${accountId}/settings`, {
+      const accountId = account.id;
+      const res = await fetch(`${API_BASE}/accounts/${accountId}/settings`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -218,7 +358,7 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
   const handleReplaceCard = async () => {
     if (!window.confirm('Request a physical card replacement for this account?')) return;
     try {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/${account.id}/card/replace`, {
+      const res = await fetch(`${API_BASE}/accounts/${account.id}/card/replace`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('susupro_token')}` },
       });
@@ -233,7 +373,7 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
 
   const handleUnlockAccount = async () => {
     try {
-      const res = await fetch(`https://susu-pro-backend.onrender.com/api/accounts/${account.id}/unlock`, {
+      const res = await fetch(`${API_BASE}/accounts/${account.id}/unlock`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('susupro_token')}` },
       });
@@ -253,6 +393,9 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
 
   const formatDate = (d) =>
     d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+
+  const formatDateTime = (d) =>
+    d ? new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
   const isLocked = settings.lockedUntil && new Date(settings.lockedUntil) > new Date();
   const balanceBelowMin = Number(account?.balance) < settings.minimumBalance;
@@ -282,7 +425,7 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
           </button>
         </div>
 
-        {/* Alerts */}
+        {/* Alerts (main settings form) */}
         {successMessage && (
           <div className="mx-6 mt-4 bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
             <CheckCircle className="text-green-600 flex-shrink-0" size={18} />
@@ -370,20 +513,6 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
                 <GhsInput value={settings.lowBalanceThreshold} onChange={(e) => set('lowBalanceThreshold', parseFloat(e.target.value) || 0)} />
               </FieldRow>
 
-              <div className="grid grid-cols-2 gap-3">
-                <FieldRow label="Interest rate (%)" hint="Annual rate, if applicable">
-                  <div className="relative">
-                    <input type="number" step="0.01" min="0" value={settings.interestRate}
-                      onChange={(e) => set('interestRate', e.target.value)} placeholder="e.g. 12.5"
-                      className="w-full pl-4 pr-8 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
-                  </div>
-                </FieldRow>
-                <FieldRow label="Daily rate" hint="Flat daily contribution">
-                  <GhsInput value={settings.dailyRate} onChange={(e) => set('dailyRate', e.target.value)} placeholder="0.00" />
-                </FieldRow>
-              </div>
-
               <FieldRow label="Contribution frequency" hint="How often deposits are expected">
                 <select value={settings.frequency} onChange={(e) => set('frequency', e.target.value)}
                   className="w-full py-2.5 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -400,6 +529,168 @@ const AccountSettingsModal = ({ account, isOpen, onClose, onSave }) => {
                   placeholder="Optional internal notes about this account..."
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none" />
               </FieldRow>
+            </div>
+          )}
+
+          {/* ── SECTION: Rate management (independent apply flow) ── */}
+          <SectionHeader
+            icon={Percent} title="Rate management" subtitle="Change interest/daily rate — applies immediately, fully logged"
+            isOpen={openSections.rate} onToggle={() => toggleSection('rate')}
+          />
+          {openSections.rate && (
+            <div className="px-1 pt-2 pb-4 space-y-4">
+
+              {/* Current rates */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                  <p className="text-xs text-gray-500">Interest rate</p>
+                  <p className="text-xl font-bold text-gray-800 mt-1">
+                    {currentRates.interest_rate !== null ? `${currentRates.interest_rate}%` : '—'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                  <p className="text-xs text-gray-500">Daily rate</p>
+                  <p className="text-xl font-bold text-gray-800 mt-1">
+                    {currentRates.daily_rate !== null ? formatCurrency(currentRates.daily_rate) : '—'}
+                  </p>
+                </div>
+              </div>
+              {currentRates.rate_last_changed_at && (
+                <p className="text-xs text-gray-400 -mt-2">
+                  Last changed {formatDateTime(currentRates.rate_last_changed_at)}
+                </p>
+              )}
+
+              {/* Apply-a-change alerts (scoped to this section, independent of the main form) */}
+              {rateSuccess && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
+                  <CheckCircle className="text-green-600 flex-shrink-0" size={16} />
+                  <p className="text-green-800 text-xs font-medium">{rateSuccess}</p>
+                </div>
+              )}
+              {rateError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
+                  <AlertTriangle className="text-red-600 flex-shrink-0" size={16} />
+                  <p className="text-red-800 text-xs font-medium">{rateError}</p>
+                </div>
+              )}
+
+              {/* Apply a new rate */}
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+                <p className="text-sm font-semibold text-blue-900">Apply a rate change</p>
+
+                <FieldRow label="Rate type">
+                  <select
+                    value={rateForm.rateType}
+                    onChange={(e) => setRate('rateType', e.target.value)}
+                    className="w-full py-2.5 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    <option value="daily_rate">Daily rate</option>
+                    <option value="interest_rate">Interest rate</option>
+                  </select>
+                </FieldRow>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FieldRow label={`New ${RATE_TYPE_LABELS[rateForm.rateType].label.toLowerCase()}`} hint={RATE_TYPE_LABELS[rateForm.rateType].hint}>
+                    {rateForm.rateType === 'interest_rate' ? (
+                      <div className="relative">
+                        <input
+                          type="number" step="0.01" min="0"
+                          value={rateForm.newRate}
+                          onChange={(e) => setRate('newRate', e.target.value)}
+                          placeholder="e.g. 12.5"
+                          className="w-full pl-4 pr-8 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                      </div>
+                    ) : (
+                      <GhsInput value={rateForm.newRate} onChange={(e) => setRate('newRate', e.target.value)} placeholder="0.00" />
+                    )}
+                  </FieldRow>
+
+                  <FieldRow label="Effective date">
+                    <input
+                      type="date"
+                      value={rateForm.effectiveDate}
+                      onChange={(e) => setRate('effectiveDate', e.target.value)}
+                      className="w-full py-2.5 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </FieldRow>
+                </div>
+
+                <FieldRow label="Reason / note" hint="Optional — shown in the change history below">
+                  <input
+                    type="text"
+                    value={rateForm.reason}
+                    onChange={(e) => setRate('reason', e.target.value)}
+                    placeholder="e.g. Annual review adjustment"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </FieldRow>
+
+                <button
+                  type="button"
+                  onClick={handleApplyRateChange}
+                  disabled={isApplyingRate}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {isApplyingRate ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Applying…
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight size={14} />
+                      Apply rate change
+                    </>
+                  )}
+                </button>
+                <p className="text-[11px] text-blue-700/70 text-center">
+                  This saves immediately and independently of the "Save settings" button below.
+                </p>
+              </div>
+
+              {/* Rate change history */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <History size={14} className="text-gray-400" />
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Change history</p>
+                </div>
+
+                {isLoadingHistory ? (
+                  <div className="flex items-center gap-2 text-gray-400 text-sm py-4 justify-center">
+                    <Loader2 size={14} className="animate-spin" /> Loading history…
+                  </div>
+                ) : rateHistory.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-3 text-center bg-gray-50 rounded-lg border border-gray-100">
+                    No rate changes recorded yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {rateHistory.map((h) => (
+                      <div key={h.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+                            <Percent size={13} className="text-gray-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-700">
+                              {RATE_TYPE_LABELS[h.rate_type]?.label || h.rate_type}
+                              <span className="text-gray-400 font-normal"> · effective {formatDate(h.effective_date)}</span>
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {h.previous_rate !== null ? h.previous_rate : '—'} <ArrowRight size={10} className="inline mx-1 text-gray-300" /> <span className="font-semibold text-gray-700">{h.new_rate}</span>
+                              {h.changed_by_name && <span className="text-gray-400"> · by {h.changed_by_name}</span>}
+                            </p>
+                            {h.reason && <p className="text-[11px] text-gray-400 mt-0.5 italic">"{h.reason}"</p>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
