@@ -325,7 +325,7 @@ const LoanManagement = () => {
   const applications = useLoanApplications();
   const activeLoans = useActiveLoans();
   const { customers } = useCustomers();
-
+  console.log(companyLoans);
   useEffect(() => {
     if (companyId) fetchLoanAccounts(companyId);
   }, [companyId]);
@@ -358,7 +358,7 @@ const LoanManagement = () => {
 
   /* ── Filtered/sorted loans ── */
   const filteredLoans = useMemo(() => {
-    let list = [...(activeLoans ?? [])];
+    let list = [...(allCompanyLoans ?? [])];
     const q = loanSearch.toLowerCase();
     if (q) {
       list = list.filter(l =>
@@ -1433,7 +1433,7 @@ const DaysRemaining = ({ dueDate }) => {
   /* ────────── Tab config ────────── */
   const tabs: { id: TabId; label: string; badge?: number }[] = [
     { id: 'overview',      label: 'Overview' },
-    { id: 'loans',         label: 'All Loans',     badge: activeLoans?.length || 0 },
+    { id: 'loans',         label: 'All Loans',     badge: allCompanyLoans?.length || 0 },
     { id: 'applications',  label: 'Applications',  badge: applications?.length || 0 },
   ];
 
