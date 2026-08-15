@@ -11,6 +11,7 @@ import { companyId, getDisplayName, userPermissions, userRole, userUUID } from '
 import { useFinance } from '../../contexts/dashboard/Finance';
 import { useCommissionStats } from '../../contexts/dashboard/Commissions';
 import BulkTransactionModal from './Components/buildTransactionModal';
+import TellerFloatCard from './Components/TellerFloatCard';
 
 const Overview: React.FC = () => {
  
@@ -221,145 +222,7 @@ const Overview: React.FC = () => {
   </div>
 </div>
 
-      {/* localStats Grid */}
-      {userPermissions.VIEW_BRIEFING && (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-    {localStats.map((stat, index) => {
-      const Icon = stat.icon;
-      const isPositive = stat.change?.startsWith('+');
-
-      return (
-        <div 
-          key={index} 
-          className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-lg hover:shadow-md hover:border-blue-100 transition-all duration-300"
-        >
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                {stat.title}
-              </span>
-              <div className="flex items-baseline gap-1">
-                <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-                  {stat.value}
-                </h3>
-              </div>
-            </div>
-
-            {/* Icon Container with subtle background wrap */}
-            <div className={`p-2.5 rounded-xl transition-colors duration-300 bg-${stat.color}-50 group-hover:bg-${stat.color}-100`}>
-              <Icon className={`h-5 w-5 text-${stat.color}-600`} />
-            </div>
-          </div>
-
-          <div className="mt-2 pt-4 border-t border-gray-50 flex items-center justify-between">
-            {/* <div className="flex items-center">
-              {stat.change && (
-                <span className={`flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-                  isPositive 
-                    ? 'bg-emerald-50 text-emerald-600' 
-                    : 'bg-rose-50 text-rose-600'
-                }`}>
-                  {isPositive ? '↑' : '↓'} {stat.change.replace('+', '').replace('-', '')}
-                </span>
-              )}
-              <span className="text-[11px] text-gray-400 ml-2 font-medium">
-                vs last month
-              </span>
-            </div> */}
-            
-            <p className="text-[11px] font-medium text-gray-500 italic">
-              {stat.subtitle}
-            </p>
-          </div>
-        </div>
-      );
-    })}
-  </div>
-)}
-    {userRole === 'Teller' && (
-  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-    {/* Header Section */}
-    <div className="px-6 py-5 border-b border-gray-50 flex justify-between items-center">
-      <h3 className="text-base font-bold text-gray-800 tracking-tight">
-        Daily Budget
-      </h3>
-      <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-        Live Tracking
-      </span>
-    </div>
-
-    <div className="p-6">
-      {todayBudgets.length === 0 ? (
-        <div className="py-8 text-center">
-          <p className="text-gray-400 text-sm">No active budget for today.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {todayBudgets.map((budget) => {
-            const percentage = budget.allocated ? Math.round((budget.spent / budget.allocated) * 100) : 0;
-            const remaining = budget.allocated - budget.spent;
-            const isOver = remaining < 0;
-
-            return (
-              <div
-                key={budget.id}
-                onClick={() => navigate(`expenses/budgets/${budget.id}`, { state: { budget } })}
-                className="group relative p-5 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-white hover:border-blue-200 hover:shadow-md transition-all duration-300 cursor-pointer"
-              >
-                <div className="flex justify-between items-start mb-5">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase mb-1">Total Spent</p>
-                    <h4 className="text-2xl font-bold text-gray-900">
-                      ₵{budget.spent.toLocaleString()}
-                      <span className="text-sm font-normal text-gray-400 ml-2">
-                        / ₵{budget.allocated.toLocaleString()}
-                      </span>
-                    </h4>
-                  </div>
-                  
-                  {/* Status Badge */}
-                  <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                    isOver ? "bg-red-50 text-red-600" : 
-                    percentage > 80 ? "bg-orange-50 text-orange-600" : "bg-emerald-50 text-emerald-600"
-                  }`}>
-                    {isOver ? "Limit Exceeded" : `${percentage}% Used`}
-                  </div>
-                </div>
-
-                {/* Modern Progress Bar */}
-                <div className="relative w-full h-2 bg-gray-200/60 rounded-full overflow-hidden mb-4">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ease-out ${
-                      percentage > 90 ? "bg-red-500" : 
-                      percentage > 70 ? "bg-orange-400" : "bg-blue-500"
-                    }`}
-                    style={{ width: `${Math.min(percentage, 100)}%` }}
-                  />
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-400 uppercase font-semibold">Remaining</span>
-                    <span className={`text-sm font-bold ${isOver ? "text-red-500" : "text-gray-700"}`}>
-                      ₵{Math.abs(remaining).toLocaleString()} {isOver && "over"}
-                    </span>
-                  </div>
-                  <div className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center text-xs font-semibold">
-                    View Details
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  </div>
-)}
-
+          <TellerFloatCard />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 

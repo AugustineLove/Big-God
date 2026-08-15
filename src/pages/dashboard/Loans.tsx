@@ -464,6 +464,7 @@ const LoanManagement = () => {
           {[
             { label: 'Active Loans',      count: metrics.activeCount,    icon: <CheckCircle size={18} />, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
             { label: 'Pending Approval',  count: metrics.pendingCount,   icon: <Clock size={18} />,       color: 'text-amber-600',   bg: 'bg-amber-50',   border: 'border-amber-100' },
+            
             { label: 'Overdue',           count: metrics.overdueCount,   icon: <XCircle size={18} />,     color: 'text-red-600',     bg: 'bg-red-50',     border: 'border-red-100' },
             { label: 'Completed',         count: metrics.completedCount, icon: <FileText size={18} />,    color: 'text-blue-600',    bg: 'bg-blue-50',    border: 'border-blue-100' },
           ].map(({ label, count, icon, color, bg, border }) => (

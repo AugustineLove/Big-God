@@ -66,6 +66,7 @@ import PayrollDashboard from './pages/dashboard/Payroll/PayrollDashboard';
 import PayrollNavDashboard from './pages/dashboard/accounting/AccountingNavDashboard';
 import AccountingNavDashboard from './pages/dashboard/accounting/AccountingNavDashboard';
 import CashVarianceModule from './pages/dashboard/CashVarianceModule';
+import TellerFloatDetails from './pages/dashboard/TellerFloatDetails';
 
 function App() {
   return (
@@ -159,6 +160,7 @@ function App() {
             <Route path="day-end" element={<DayEndDashboard />} />
             <Route path='balance-tracer' element={<BalanceTracer />} />
             <Route path='variance' element={<CashVarianceModule />} />
+            <Route path="my-float/:staffId" element={<TellerFloatDetails />} />
           </Route>
         </Routes>
       </Router>
