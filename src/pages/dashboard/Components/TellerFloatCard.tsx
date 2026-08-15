@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
-import { companyId, userUUID } from '../../../constants/appConstants';
+import { companyId, userRole, userUUID } from '../../../constants/appConstants';
 // Adjust this import to whatever HTTP client / base URL you already use
 // elsewhere in the app (e.g. an `api` axios instance) — this file assumes
 // a plain fetch against your API host.
@@ -36,7 +36,6 @@ export const TellerFloatCard: React.FC = () => {
         );
         if (!res.ok) throw new Error('Failed to load float balance');
         const json = await res.json();
-        console.log('TellerFloatCard fetch response:', json);
         if (!cancelled) setFloat(json.data);
       } catch (err) {
         if (!cancelled) setError('Could not load your float balance.');
@@ -51,6 +50,8 @@ export const TellerFloatCard: React.FC = () => {
   }, []);
 
   return (
+    <>
+        {userRole === "Teller" && (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-50 flex justify-between items-center">
         <h3 className="text-base font-bold text-gray-800 tracking-tight">
@@ -116,7 +117,9 @@ export const TellerFloatCard: React.FC = () => {
           </button>
         )}
       </div>
-    </div>
+    </div>)}
+
+    </>
   );
 };
 
