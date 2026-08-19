@@ -3,7 +3,7 @@ import { BookOpen, FileText, Layers, Scale, TrendingUp, PieChart } from "lucide-
 import { companyId, userUUID } from "../../../constants/appConstants";
 
 const API = `https://susu-pro-backend.onrender.com/api/accounting/${companyId}`;
-const COMPANY_NAME = "SusuPro Finance Ltd";
+const COMPANY_NAME = "Big God Susu Enterprise";
 
 // ─────────────────────────────────────────────────────────────
 // FORMATTERS
