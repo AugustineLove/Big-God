@@ -1289,8 +1289,8 @@ const SalesManagerDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <LocationTable />
               <StaffTable />
+              <LocationTable />
               <CustomerTable />
             </>
           )}
