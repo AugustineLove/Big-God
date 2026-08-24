@@ -529,10 +529,11 @@ const SalesManagerDashboard: React.FC = () => {
         <div className="flex items-end gap-1 h-40">
           {fieldReport.dailyTrend.map((day, idx) => {
             const height = maxDeposit > 0 ? (day.deposits / maxDeposit) * 100 : 0;
+            console.log(`Height for ${day.day}: ${height}%`);
             return (
               <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full bg-primary-100 rounded-t-lg transition-all duration-300" style={{ height: `${height}%`, minHeight: '2px' }}>
-                  <div className="w-full bg-primary-500 rounded-t-lg" style={{ height: `${height}%` }} />
+                <div className="w-full bg-red-500 rounded-t-lg transition-all duration-300" style={{ height: height, minHeight: '2px' }}>
+                  <div className="w-full bg-blue-500 rounded-t-lg" style={{ height: height }} />
                 </div>
                 <span className="text-[10px] text-gray-400 rotate-45 origin-left">
                   {new Date(day.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

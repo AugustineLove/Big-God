@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { BookOpen, FileText, Layers, Scale, TrendingUp, PieChart } from "lucide-react";
 import { Chip, Empty, fmt, fmtDate, Pager, Spinner, useFetch } from "../../pages/dashboard/Components/AccountingModule";
 import { companyId } from "../../constants/appConstants";
+import { JournalModal } from "./JournalModal";
 export const API = `https://susu-pro-backend.onrender.com/api/accounting/${companyId}`;
 
 
