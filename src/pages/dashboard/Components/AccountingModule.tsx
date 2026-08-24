@@ -30,7 +30,7 @@ export const fmtDateLong = (d) =>
 // ─────────────────────────────────────────────────────────────
 // AUTH HELPER
 // ─────────────────────────────────────────────────────────────
-const authHeaders = () => {
+export const authHeaders = () => {
   const token = localStorage.getItem("susupro_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };

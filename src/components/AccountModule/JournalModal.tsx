@@ -1,10 +1,10 @@
 // ─── Journal Modal (QuickBooks-style) ────────────────────────
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { BookOpen, FileText, Layers, Scale, TrendingUp, PieChart } from "lucide-react";
-import { Chip, Empty, fmt, fmtDate, Pager, Spinner, useFetch } from "../../pages/dashboard/Components/AccountingModule";
+import { authHeaders, Chip, Empty, fmt, fmtDate, Pager, Spinner, useFetch } from "../../pages/dashboard/Components/AccountingModule";
 import { companyId } from "../../constants/appConstants";
 export const API = `https://susu-pro-backend.onrender.com/api/accounting/${companyId}`;
-
+import { userUUID } from "../../constants/appConstants";
 
 export function JournalModal({ entry, onClose, onSaved }) {
   const isEdit = !!entry;
