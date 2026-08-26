@@ -365,7 +365,7 @@ const Contributions: React.FC = () => {
 
   const eligibleStaff = staffList.filter(s => {
     const role = s.role?.toLowerCase() ?? '';
-    return role === 'teller' || role === 'mobile_banker' || role === 'mobile banker' || role === 'accountant';
+    return role === 'teller' || role === 'mobile_banker' || role === 'mobile banker' || role === 'accountant' || role === 'data_entry' || role === 'data entry';
   });
 
   // ── Render ─────────────────────────────────────────────────────────────────
