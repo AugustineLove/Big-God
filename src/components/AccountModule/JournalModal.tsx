@@ -15,7 +15,7 @@ export function JournalModal({ entry, onClose, onSaved }) {
   const [date, setDate]       = useState(entry?.entry_date?.slice(0,10) || new Date().toISOString().slice(0,10));
   const [memo, setMemo]       = useState(entry?.memo || "");
   const [lines, setLines]     = useState(() => {
-    if (entry?.lines && entry.lines.length > 0) {
+    if (entry?.lines && entry.lines.length > 0) { 
       return entry.lines.map(l => ({
         coa_id:      l.coa_id || "",
         debit_credit: l.debit_credit,

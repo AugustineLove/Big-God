@@ -51,7 +51,7 @@ const StaffManagement = () => {
   }, []);
 
   
-    const mobileBankers = dashboardStaffList.filter(staff => staff.role === 'mobile_banker' || staff.role === 'teller' || staff.role === 'accountant');
+    const mobileBankers = dashboardStaffList.filter(staff => staff.role === 'mobile_banker' || staff.role === 'teller' || staff.role === 'accountant' || staff.role === 'data_entry' || staff.role === 'data entry');
     const otherStaff = dashboardStaffList.filter(staff => staff.role !== 'mobile_banker');
     
   // Sample data for mobile bankers
