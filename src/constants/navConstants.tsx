@@ -180,6 +180,11 @@ export const buildNavigation = () => {
           icon: ArrowUpDownIcon,
         },
         {
+          name: "Quick Transfer",
+          tab: "transfer",
+          icon: Workflow,
+        },
+        {
           name: "Backdated Transactions",
           tab: "backfill",
           icon: Calendar,
