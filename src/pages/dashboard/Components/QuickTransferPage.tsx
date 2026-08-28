@@ -837,7 +837,7 @@ export default function QuickTransferPage() {
   const [toId, setToId] = useState("");
   const fromAccount = allAccounts.find((a: Account) => a.id === fromId);
   const toAccount = allAccounts.find((a: Account) => a.id === toId);
-
+  
   // Owner name lookups for both legs — this is the safety net that a
   // customer-detail-page transfer normally gets "for free" (you already
   // know whose page you're on). On a blind, company-wide picker it's the
@@ -847,7 +847,9 @@ export default function QuickTransferPage() {
   const [fromCustomerLoading, setFromCustomerLoading] = useState(false);
   const [toCustomerName, setToCustomerName] = useState<string | null>(null);
   const [toCustomerLoading, setToCustomerLoading] = useState(false);
-
+  const [toCustomerId, setToCustomerId] = useState<string | null>(null);
+  const [toCustomerPhone, setToCustomerPhone] = useState<string | null>(null);
+  const [toCustomerAccountNumber, setToCustomerAccountNumber ] = useState<string | null>(null);
   const lookupCustomerName = useCallback(async (accountNumber: string, setName: (v: string | null) => void, setLoading: (v: boolean) => void) => {
     if (!accountNumber) { setName(null); return; }
     const baseNumber = getCustomerBaseNumber(accountNumber);
@@ -858,6 +860,9 @@ export default function QuickTransferPage() {
       const data = await res.json();
       const results: CustomerSearchResult[] = data.data ?? [];
       setName(results[0]?.name ?? null);
+      setToCustomerId(results[0]?.id ?? null);
+      setToCustomerPhone(results[0]?.phone_number ?? null);
+      setToCustomerAccountNumber(results[0]?.account_number ?? null);
     } catch {
       setName(null);
     } finally {
@@ -921,6 +926,9 @@ export default function QuickTransferPage() {
       sms_receiver: receiverOn,
       sms_receiver_template: receiverOn ? smsReceiver : null,
       sms_receiver_name: toCustomerName,
+      sms_receiver_id: toCustomerId,
+      sms_receiver_phone: toCustomerPhone,
+      sms_receiver_account_number: toCustomerAccountNumber,
       to_acc_type: toAccount?.account_type,
       to_acc: toAccount?.account_number,
       sms_sender: senderOn,
