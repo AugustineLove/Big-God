@@ -67,6 +67,7 @@ import PayrollNavDashboard from './pages/dashboard/accounting/AccountingNavDashb
 import AccountingNavDashboard from './pages/dashboard/accounting/AccountingNavDashboard';
 import CashVarianceModule from './pages/dashboard/CashVarianceModule';
 import TellerFloatDetails from './pages/dashboard/TellerFloatDetails';
+import DailyCollectionReport from './pages/dashboard/DailyCollectionReport';
 
 function App() {
   return (
@@ -149,6 +150,7 @@ function App() {
             <Route path="finance/commissions/:date" element={<CommissionDay />} />
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="reports" element={<ReportsDashboard />} />
+            <Route path='daily-collections' element={<DailyCollectionReport />} />
             <Route path="chat" element={<Chat />} />
             <Route path="updates" element={<UpdatesPage />} />
             <Route path="finance" element={<FinancialDashboard />} />

@@ -56,12 +56,12 @@ export const buildNavigation = () => {
         icon: Wallet,
       },
 
-      {
+      can("PROCESS_WITHDRAWALS") && {
         name: "Withdrawals",
         href: "/dashboard/withdrawals",
         icon: ArrowLeftRight,
       },
-    ];
+    ].filter(Boolean);
   }
 
   const navigation = [
@@ -103,7 +103,7 @@ export const buildNavigation = () => {
       icon: Wallet,
     },
 
-    {
+    can("PROCESS_WITHDRAWAL") && {
       name: "Withdrawals",
       href: "/dashboard/withdrawals",
       icon: ArrowLeftRight,
@@ -235,7 +235,7 @@ export const buildNavigation = () => {
       icon: BriefcaseIcon,
     },
 
-    {
+    can("MANAGE_CASHACCOUNTS") && {
       name: "Day-End Operations",
       href: "/dashboard/day-end",
       icon: CalendarClock,
@@ -262,6 +262,12 @@ export const buildNavigation = () => {
     },
 
     {
+      name: "Daily Collections",
+      href: "/dashboard/daily-collections",
+      icon: "DollarSign"
+    },
+
+    {
       name: "Team Chat",
       href: "/dashboard/chat",
       icon: MessagesSquare,
@@ -271,7 +277,7 @@ export const buildNavigation = () => {
       name: "System Updates",
       href: "/dashboard/updates",
       icon: Sparkles,
-      badge: "v2.0",
+      badge: "v2.4.0",
     },
   ];
 

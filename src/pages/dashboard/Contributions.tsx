@@ -12,7 +12,7 @@ import { useStaff } from '../../contexts/dashboard/Staff';
 import DeleteTransactionModal from '../../components/deleteTransactionModal';
 import toast from 'react-hot-toast';
 import { useCustomers } from '../../contexts/dashboard/Customers';
-import { userPermissions } from '../../constants/appConstants';
+import { userPermissions, userUUID, getDisplayName } from '../../constants/appConstants';
 import { handlePdfExport } from '../../utils/helper';
 import { useNavigate } from 'react-router-dom';
 import { useTabContext } from '../../layouts/DashboardLayout';
@@ -25,6 +25,22 @@ interface PaginationMeta {
   currentPage: number;
   isSearching: boolean;
 }
+
+// ─── Status / type color tokens — matches Overview's STATUS_COLOR ────────────
+
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  completed: { bg: 'rgba(47,74,50,0.1)', color: 'var(--forest)' },
+  approved:  { bg: 'rgba(173,127,58,0.14)', color: 'var(--brass)' },
+  pending:   { bg: 'rgba(184,150,63,0.14)', color: '#b8963f' },
+  failed:    { bg: 'rgba(169,74,62,0.1)', color: 'var(--clay)' },
+  reversed:  { bg: 'var(--paper)', color: 'var(--ink-faint)' },
+};
+
+const TYPE_STYLES: Record<string, string> = {
+  deposit: 'var(--forest)',
+  withdrawal: 'var(--clay)',
+  commission: 'var(--brass)',
+};
 
 // ─── Pagination Component ─────────────────────────────────────────────────────
 
@@ -57,12 +73,12 @@ const Pagination: React.FC<PaginationProps> = ({ meta, currentPage, loading, onP
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm">
-      <p className="text-sm text-gray-600 whitespace-nowrap">
-        Page <span className="font-semibold text-gray-900">{currentPage}</span> of{' '}
-        <span className="font-semibold text-gray-900">{meta.totalPages}</span>
-        <span className="text-gray-400 mx-1">·</span>
-        <span className="font-semibold text-gray-900">{meta.total}</span> total transactions
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-[var(--card)] border border-[var(--paper-line)] rounded-2xl shadow-sm">
+      <p className="text-sm text-[var(--ink-soft)] whitespace-nowrap">
+        Page <span className="cd-mono font-semibold text-[var(--ink)]">{currentPage}</span> of{' '}
+        <span className="cd-mono font-semibold text-[var(--ink)]">{meta.totalPages}</span>
+        <span className="text-[var(--ink-faint)] mx-1">·</span>
+        <span className="cd-mono font-semibold text-[var(--ink)]">{meta.total}</span> total transactions
       </p>
 
       <div className="flex items-center gap-1">
@@ -70,8 +86,8 @@ const Pagination: React.FC<PaginationProps> = ({ meta, currentPage, loading, onP
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1 || loading}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg
-                     hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-[var(--paper-line)] rounded-lg
+                     text-[var(--ink-soft)] hover:bg-[var(--paper)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft className="h-4 w-4" />
           Prev
@@ -80,16 +96,16 @@ const Pagination: React.FC<PaginationProps> = ({ meta, currentPage, loading, onP
         <div className="flex items-center gap-1">
           {getPageNumbers().map((page, i) =>
             page === 'ellipsis' ? (
-              <span key={`ellipsis-${i}`} className="w-9 text-center text-gray-400 text-sm">…</span>
+              <span key={`ellipsis-${i}`} className="w-9 text-center text-[var(--ink-faint)] text-sm">…</span>
             ) : (
               <button
                 key={page}
                 onClick={() => onPageChange(page as number)}
                 disabled={loading}
-                className={`w-9 h-9 text-sm font-medium rounded-lg border transition-colors
+                className={`cd-mono w-9 h-9 text-sm font-medium rounded-lg border transition-colors
                   ${page === currentPage
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'bg-[var(--forest)] text-white border-[var(--forest)] shadow-sm'
+                    : 'border-[var(--paper-line)] text-[var(--ink-soft)] hover:bg-[var(--paper)]'
                   } disabled:cursor-not-allowed`}
               >
                 {page}
@@ -102,8 +118,8 @@ const Pagination: React.FC<PaginationProps> = ({ meta, currentPage, loading, onP
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= meta.totalPages || loading}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg
-                     hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-[var(--paper-line)] rounded-lg
+                     text-[var(--ink-soft)] hover:bg-[var(--paper)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Next
           <ChevronRight className="h-4 w-4" />
@@ -116,13 +132,17 @@ const Pagination: React.FC<PaginationProps> = ({ meta, currentPage, loading, onP
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const Contributions: React.FC = () => {
+  // Permission: can this staff member see everyone's contributions, or only their own?
+  const canViewReports = !!userPermissions?.VIEW_REPORTS;
+
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all');
   const [dateRange, setDateRange] = useState('all');
   const [staffFilter, setStaffFilter] = useState('all');
-  const [officeStaffFilter, setOfficeStaffFilter] = useState('all');
+  // Staff without VIEW_REPORTS are locked to their own recorded transactions
+  const [officeStaffFilter, setOfficeStaffFilter] = useState(canViewReports ? 'all' : userUUID);
   const [transactionTypeFilter, setTransactionTypeFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -326,25 +346,17 @@ const Contributions: React.FC = () => {
     setStatusFilter('all');
     setStaffFilter('all');
     setTransactionTypeFilter('all');
-    setOfficeStaffFilter('all');
+    // Staff without VIEW_REPORTS stay locked to their own transactions
+    setOfficeStaffFilter(canViewReports ? 'all' : userUUID);
     setDateRange('all');
     setStartDate('');
     setEndDate('');
   };
 
   // ── Helpers ────────────────────────────────────────────────────────────────
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'pending':   return 'bg-yellow-100 text-yellow-800';
-      case 'failed':    return 'bg-red-100 text-red-800';
-      case 'approved':  return 'bg-blue-100 text-blue-800';
-      default:          return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const getStatusColor = (status: string) => STATUS_STYLES[status] ?? STATUS_STYLES.reversed;
 
-  const getTransactionTypeColor = (type: string) =>
-    type === 'withdrawal' ? 'text-red-500' : 'text-green-500';
+  const getTransactionTypeColor = (type: string) => TYPE_STYLES[type] ?? 'var(--ink-soft)';
 
   const formatMethod = (method: string) => {
     switch (method) {
@@ -368,6 +380,10 @@ const Contributions: React.FC = () => {
     return role === 'teller' || role === 'mobile_banker' || role === 'mobile banker' || role === 'accountant' || role === 'data_entry' || role === 'data entry';
   });
 
+  const currentStaffLabel = getStaffName(userUUID) !== 'Unknown Staff'
+    ? getStaffName(userUUID)
+    : (getDisplayName?.() ?? 'You');
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
@@ -375,11 +391,11 @@ const Contributions: React.FC = () => {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Contributions</h1>
-          <p className="text-gray-600">
-            Track and manage all client contributions
+          <h1 className="cd-display text-2xl font-semibold text-[var(--ink)]">Deposits</h1>
+          <p className="text-[var(--ink-soft)]">
+            {canViewReports ? 'Track and manage all client deposits' : 'Your recorded client deposits'}
             {filteredContributions.length !== transactions.length && (
-              <span className="text-indigo-600 ml-2">
+              <span className="text-[var(--forest)] ml-2">
                 ({filteredContributions.length} of {transactions.length} showing)
               </span>
             )}
@@ -387,7 +403,7 @@ const Contributions: React.FC = () => {
         </div>
         <div className="flex space-x-3">
           <button
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
+            className="bg-[var(--card)] border border-[var(--paper-line)] text-[var(--ink-soft)] px-4 py-2 rounded-xl hover:border-[var(--forest)] hover:text-[var(--forest)] transition-colors flex items-center"
             onClick={() => handlePdfExport(filteredContributions)}
           >
             <Download className="h-5 w-5 mr-2" />
@@ -396,7 +412,7 @@ const Contributions: React.FC = () => {
           {userPermissions.PROCESS_TRANSACTIONS && (
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+              className="bg-[var(--forest)] text-white px-4 py-2 rounded-xl hover:bg-[var(--forest-deep)] transition-colors flex items-center"
             >
               <Plus className="h-5 w-5 mr-2" />
               Log Contribution
@@ -408,54 +424,54 @@ const Contributions: React.FC = () => {
       {/* ── Stats Cards ── */}
       {userPermissions.VIEW_BRIEFING && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--paper-line)] p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Overall received deposits</p>
-                <p className="text-2xl font-bold text-green-600">¢{filteredStats.totalAmount.toLocaleString()}</p>
-                <p className="text-xs text-gray-500 mt-1">{filteredStats.completedCount} transactions</p>
+                <p className="text-sm text-[var(--ink-soft)]">Overall received deposits</p>
+                <p className="cd-mono text-2xl font-bold text-[var(--forest)]">¢{filteredStats.totalAmount.toLocaleString()}</p>
+                <p className="text-xs text-[var(--ink-faint)] mt-1">{filteredStats.completedCount} transactions</p>
               </div>
-              <div className="bg-green-100 p-3 rounded-lg">
-                <PiggyBank className="h-6 w-6 text-green-600" />
+              <div className="bg-[rgba(47,74,50,0.1)] p-3 rounded-xl">
+                <PiggyBank className="h-6 w-6" style={{ color: 'var(--forest)' }} />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--paper-line)] p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total amounts due</p>
-                <p className="text-2xl font-bold text-blue-600">¢{stats?.totalBalance.toLocaleString()}</p>
-                <p className="text-xs text-gray-500 mt-1">Filtered period</p>
+                <p className="text-sm text-[var(--ink-soft)]">Total amounts due</p>
+                <p className="cd-mono text-2xl font-bold" style={{ color: 'var(--brass)' }}>¢{stats?.totalBalance.toLocaleString()}</p>
+                <p className="text-xs text-[var(--ink-faint)] mt-1">Filtered period</p>
               </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Calendar className="h-6 w-6 text-blue-600" />
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(173,127,58,0.14)' }}>
+                <Calendar className="h-6 w-6" style={{ color: 'var(--brass)' }} />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--paper-line)] p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Pending Amount</p>
-                <p className="text-2xl font-bold text-yellow-600">¢{filteredStats.pendingAmount.toLocaleString()}</p>
-                <p className="text-xs text-gray-500 mt-1">Awaiting approval</p>
+                <p className="text-sm text-[var(--ink-soft)]">Pending Amount</p>
+                <p className="cd-mono text-2xl font-bold" style={{ color: '#b8963f' }}>¢{filteredStats.pendingAmount.toLocaleString()}</p>
+                <p className="text-xs text-[var(--ink-faint)] mt-1">Awaiting approval</p>
               </div>
-              <div className="bg-yellow-100 p-3 rounded-lg">
-                <Eye className="h-6 w-6 text-yellow-600" />
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(184,150,63,0.14)' }}>
+                <Eye className="h-6 w-6" style={{ color: '#b8963f' }} />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--paper-line)] p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Average Amount</p>
-                <p className="text-2xl font-bold text-teal-600">¢{Math.round(filteredStats.averageAmount).toLocaleString()}</p>
-                <p className="text-xs text-gray-500 mt-1">Per transaction</p>
+                <p className="text-sm text-[var(--ink-soft)]">Average Amount</p>
+                <p className="cd-mono text-2xl font-bold text-[var(--ink)]">¢{Math.round(filteredStats.averageAmount).toLocaleString()}</p>
+                <p className="text-xs text-[var(--ink-faint)] mt-1">Per transaction</p>
               </div>
-              <div className="bg-teal-100 p-3 rounded-lg">
-                <PiggyBank className="h-6 w-6 text-teal-600" />
+              <div className="bg-[var(--paper)] p-3 rounded-xl">
+                <PiggyBank className="h-6 w-6 text-[var(--ink-soft)]" />
               </div>
             </div>
           </div>
@@ -463,15 +479,15 @@ const Contributions: React.FC = () => {
       )}
 
       {/* ── Filters ── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--paper-line)] p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <Filter className="h-5 w-5 mr-2" />
+          <h3 className="cd-display text-lg font-medium text-[var(--ink)] flex items-center">
+            <Filter className="h-5 w-5 mr-2 text-[var(--ink-faint)]" />
             Filters
           </h3>
           <button
             onClick={clearFilters}
-            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+            className="text-sm text-[var(--forest)] hover:text-[var(--forest-deep)] font-medium"
           >
             Clear All
           </button>
@@ -480,43 +496,53 @@ const Contributions: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           {/* Search */}
           <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search Client</label>
+            <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Search Client</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-faint)] h-5 w-5" />
               <input
                 type="text"
                 placeholder="Search by client name…"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full pl-10 pr-4 py-2 border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)] outline-none"
               />
             </div>
           </div>
 
-          {/* Staff Filter */}
+          {/* Staff Filter — locked to the current staff when they lack VIEW_REPORTS */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Staff</label>
-            <select
-              value={officeStaffFilter}
-              onChange={e => setOfficeStaffFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="all">All Staff</option>
-              {eligibleStaff.map(staff => (
-                <option key={staff.id} value={staff.id}>
-                  {staff.full_name}{staff.staff_id ? ` (${staff.staff_id})` : ''}
-                </option>
-              ))}
-            </select>
+            <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Staff</label>
+            {canViewReports ? (
+              <select
+                value={officeStaffFilter}
+                onChange={e => setOfficeStaffFilter(e.target.value)}
+                className="w-full border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)] outline-none"
+              >
+                <option value="all">All Staff</option>
+                {eligibleStaff.map(staff => (
+                  <option key={staff.id} value={staff.id}>
+                    {staff.full_name}{staff.staff_id ? ` (${staff.staff_id})` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div
+                className="w-full border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink-faint)] rounded-lg px-3 py-2 flex items-center gap-1.5 cursor-not-allowed"
+                title="You can only view your own recorded transactions"
+              >
+                <User className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{currentStaffLabel}</span>
+              </div>
+            )}
           </div>
 
           {/* Transaction Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Type</label>
             <select
               value={transactionTypeFilter}
               onChange={e => setTransactionTypeFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)] outline-none"
             >
               <option value="all">All Types</option>
               <option value="deposit">Deposit</option>
@@ -527,11 +553,11 @@ const Contributions: React.FC = () => {
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Status</label>
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)] outline-none"
             >
               <option value="all">All Status</option>
               <option value="completed">Completed</option>
@@ -543,11 +569,11 @@ const Contributions: React.FC = () => {
 
           {/* Date Range */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+            <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Date Range</label>
             <select
               value={dateRange}
               onChange={e => setDateRange(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)] outline-none"
             >
               <option value="all">All Time</option>
               <option value="today">Today</option>
@@ -562,23 +588,23 @@ const Contributions: React.FC = () => {
 
         {/* Custom Date Range */}
         {dateRange === 'custom' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-[var(--paper-line)]">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Start Date</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)] outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">End Date</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)] outline-none"
               />
             </div>
           </div>
@@ -586,54 +612,58 @@ const Contributions: React.FC = () => {
       </div>
 
       {/* ── Table ── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--paper-line)] overflow-hidden">
         {loading && (
-          <div className="flex items-center justify-center py-6 border-b border-gray-100">
-            <div className="h-5 w-5 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin mr-2" />
-            <span className="text-sm text-gray-500">Loading transactions…</span>
+          <div className="flex items-center justify-center py-6 border-b border-[var(--paper-line)]">
+            <div className="h-5 w-5 rounded-full border-2 border-[var(--forest)] border-t-transparent animate-spin mr-2" />
+            <span className="text-sm text-[var(--ink-faint)]">Loading transactions…</span>
           </div>
         )}
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-[var(--paper)] border-b border-[var(--paper-line)]">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Client</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Date</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Type</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Notes</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-[var(--paper-line)]">
               {filteredContributions.length > 0 ? (
                 filteredContributions.map(contribution => {
                   const isDeleted = contribution.is_deleted;
+                  const statusStyle = getStatusColor(contribution.status);
+                  const typeColor = getTransactionTypeColor(contribution.type || contribution.status);
+
                   return (
                     <tr
                       key={contribution.transaction_id}
                       className={`transition ${
                         isDeleted
-                          ? 'bg-gray-100 text-gray-400 opacity-70'
-                          : 'hover:bg-gray-50'
+                          ? 'bg-[var(--paper)] text-[var(--ink-faint)] opacity-70'
+                          : 'hover:bg-[var(--paper)]'
                       }`}
                     >
                       {/* Customer */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDeleted ? 'bg-gray-200' : 'bg-indigo-100'}`}>
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center border ${isDeleted ? 'bg-[var(--paper)] border-[var(--paper-line)]' : 'bg-gray-100 border-gray-200'}`}>
                             <span
-                              className={`font-medium text-sm cursor-pointer ${isDeleted ? 'text-gray-400' : 'text-indigo-600'}`}
+                              className="font-medium text-sm cursor-pointer"
+                              style={{ color: isDeleted ? 'var(--ink-faint)' : 'var(--forest-deep)' }}
                               onClick={() => openInNewTab(contribution.customer_name,`/dashboard/clients/customer-details/${contribution.customer_id}`, Users)}
                             >
                               {contribution.customer_name.split(' ').map(n => n[0]).join('')}
                             </span>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium">{contribution.customer_name}</div>
-                            <div className="text-xs text-gray-400">
+                            <div className="text-sm font-medium text-[var(--ink)]">{contribution.customer_name}</div>
+                            <div className="text-xs text-[var(--ink-faint)]">
                               Assigned Banker:{' '}
                               {contribution.mobile_banker_id
                                 ? getStaffName(contribution.mobile_banker_id)
@@ -645,43 +675,49 @@ const Contributions: React.FC = () => {
 
                       {/* Amount */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-lg font-semibold ${getTransactionTypeColor(contribution.type)}`}>
+                        <div className="cd-mono text-lg font-semibold" style={{ color: typeColor }}>
                           {contribution.type === 'withdrawal' ? '-' : '+'}¢{Number(contribution.amount).toLocaleString()}
                         </div>
                       </td>
 
                       {/* Date */}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--ink-soft)]">
                         {new Date(contribution.transaction_date).toLocaleDateString()}
                       </td>
 
                       {/* Type */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${isDeleted ? 'opacity-60' : ''} ${getTransactionTypeColor(contribution.type || contribution.status)}`}>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize ${isDeleted ? 'opacity-60' : ''}`}
+                          style={{ color: typeColor }}
+                        >
                           {formatMethod(contribution.type || contribution.status)}
                         </span>
                       </td>
 
                       {/* Status */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(contribution.status)}`}>
+                        <span
+                          className="inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize"
+                          style={{ background: statusStyle.bg, color: statusStyle.color }}
+                        >
                           {contribution.status}
                         </span>
                         {isDeleted && (
-                          <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-300 text-gray-700">
+                          <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-[var(--paper)] text-[var(--ink-faint)] border border-[var(--paper-line)]">
                             Reversed
                           </span>
                         )}
                       </td>
 
                       {/* Notes */}
-                      <td className="px-6 py-4 text-sm max-w-xs truncate">
+                      <td className="px-6 py-4 text-sm max-w-xs truncate text-[var(--ink-soft)]">
                         {contribution.description ? (
                           <div>
                             <p>{contribution.description}</p>
-                            <div className="text-[11px] flex mt-0.5">
+                            <div className="text-[11px] flex mt-0.5 text-[var(--ink-faint)]">
                               <p className="mr-1">Recorded by</p>
-                              <span className="font-semibold">
+                              <span className="font-semibold text-[var(--ink-soft)]">
                                 {getStaffName(contribution.recorded_staff_id ?? '')}
                               </span>
                             </div>
@@ -689,7 +725,7 @@ const Contributions: React.FC = () => {
                         ) : (
                           <span>
                             Recorded by{' '}
-                            <span className="font-semibold">
+                            <span className="font-semibold text-[var(--ink-soft)]">
                               {getStaffName(contribution.recorded_staff_id ?? '')}
                             </span>
                           </span>
@@ -707,8 +743,8 @@ const Contributions: React.FC = () => {
                               if (!isDeleted) handleDeleteClick(contribution.transaction_id);
                             }}
                           >
-                            <Undo2 className={`h-4 w-4 ${isDeleted ? 'text-gray-400' : 'text-red-600'}`} />
-                            <span className={`text-sm font-medium ${isDeleted ? 'text-gray-400' : 'text-red-600'}`}>
+                            <Undo2 className="h-4 w-4" style={{ color: isDeleted ? 'var(--ink-faint)' : 'var(--clay)' }} />
+                            <span className="text-sm font-medium" style={{ color: isDeleted ? 'var(--ink-faint)' : 'var(--clay)' }}>
                               Reverse
                             </span>
                           </div>
@@ -721,9 +757,9 @@ const Contributions: React.FC = () => {
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center">
-                      <Search className="h-12 w-12 text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No contributions found</h3>
-                      <p className="text-gray-500">Try adjusting your filters to see more results.</p>
+                      <Search className="h-12 w-12 text-[var(--paper-line)] mb-4" />
+                      <h3 className="cd-display text-lg font-medium text-[var(--ink)] mb-2">No contributions found</h3>
+                      <p className="text-[var(--ink-soft)]">Try adjusting your filters to see more results.</p>
                     </div>
                   </td>
                 </tr>

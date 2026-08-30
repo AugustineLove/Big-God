@@ -3,10 +3,9 @@ import {
   CreditCard, Search, CheckCircle, X,
   ArrowUpCircle, ArrowDownCircle, AlertCircle,
   Smartphone, Landmark, Coins, MessageSquare,
-  MessageSquareOff, Shield, ShieldAlert, ShieldOff,
+  MessageSquareOff, ShieldAlert, ShieldOff,
   Lock, Unlock, AlertTriangle, Clock, TrendingDown,
-  BadgeCheck, Info, Building2, Eye, EyeOff,
-  ChevronRight, Zap,
+  Zap,
 } from "lucide-react";
 import { useCustomers } from "../../../contexts/dashboard/Customers";
 import { useStaff } from "../../../contexts/dashboard/Staff";
@@ -88,6 +87,10 @@ interface Transaction {
 
 interface TransactionModalProps {
   transaction?: Transaction | null;
+  /** Lock the modal to a single flow (used by the "Deposit" / "Withdrawal" quick
+   *  action buttons). When set, the deposit/withdrawal toggle is hidden and the
+   *  type can't be changed. Leave undefined to keep the toggle (e.g. editing). */
+  transactionType?: "deposit" | "withdrawal";
   onSave: (transaction: any) => void;
   onClose: () => void;
 }
@@ -112,27 +115,20 @@ const daysSince = (d?: string) => {
   return Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
 };
 
-const ACCOUNT_TYPE_ICONS: Record<string, string> = {
-  savings: "", susu: "", current: "", default: "",
-};
-
-const getAccountEmoji = (type: string) =>
-  ACCOUNT_TYPE_ICONS[type.toLowerCase()] ?? ACCOUNT_TYPE_ICONS.default;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FieldError = ({ msg }: { msg?: string }) =>
   msg ? (
-    <p className="flex items-center gap-1 text-[11.5px] text-red-500 mt-1.5">
+    <p className="flex items-center gap-1 text-[11.5px] mt-1.5" style={{ color: "var(--clay)" }}>
       <AlertCircle className="w-3 h-3 flex-shrink-0" /> {msg}
     </p>
   ) : null;
 
 const Label = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
-  <p className="text-[11.5px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-    {children}{required && <span className="text-red-400 ml-0.5">*</span>}
+  <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-faint)] mb-1.5">
+    {children}{required && <span className="ml-0.5" style={{ color: "var(--clay)" }}>*</span>}
   </p>
 );
 
@@ -146,18 +142,21 @@ const AlertBanner = ({
   sub?: string;
 }) => {
   const styles = {
-    warn:    { wrap: "bg-amber-50 border-amber-200 text-amber-800", sub: "text-amber-600", icon: "text-amber-500" },
-    danger:  { wrap: "bg-red-50 border-red-200 text-red-800",       sub: "text-red-500",   icon: "text-red-500" },
-    info:    { wrap: "bg-blue-50 border-blue-100 text-blue-800",     sub: "text-blue-500",  icon: "text-blue-400" },
-    success: { wrap: "bg-emerald-50 border-emerald-100 text-emerald-800", sub: "text-emerald-500", icon: "text-emerald-500" },
+    warn:    { bg: "var(--brass-soft)", text: "var(--forest-deep)", sub: "var(--forest-deep)", icon: "var(--brass)" },
+    danger:  { bg: "var(--clay-soft)",  text: "var(--clay)",        sub: "var(--clay)",        icon: "var(--clay)" },
+    info:    { bg: "var(--paper)",      text: "var(--ink-soft)",    sub: "var(--ink-faint)",   icon: "var(--ink-faint)" },
+    success: { bg: "rgba(47,74,50,0.1)",text: "var(--forest)",      sub: "var(--forest)",      icon: "var(--forest)" },
   };
   const s = styles[type];
   return (
-    <div className={`flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl border text-[12px] ${s.wrap}`}>
-      <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${s.icon}`} />
+    <div
+      className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl border text-[12px]"
+      style={{ background: s.bg, borderColor: "var(--paper-line)", color: s.text }}
+    >
+      <Icon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: s.icon }} />
       <div>
         <span className="font-semibold">{title}</span>
-        {sub && <span className={`ml-1 font-normal ${s.sub}`}>{sub}</span>}
+        {sub && <span className="ml-1 font-normal" style={{ color: s.sub }}>{sub}</span>}
       </div>
     </div>
   );
@@ -238,37 +237,38 @@ const AccountHealthPanel = ({
 
   // ── Stats row ─────────────────────────────────────────────────────────────
   const stats = [
-    { label: "Balance", value: `¢${fmt(balance)}`, color: balance < 0 ? "text-red-600" : "text-gray-900" },
-    { label: "Minimum", value: `¢${fmt(minBalance)}`, color: "text-gray-600" },
+    { label: "Balance", value: `¢${fmt(balance)}`, color: balance < 0 ? "var(--clay)" : "var(--ink)" },
+    { label: "Minimum", value: `¢${fmt(minBalance)}`, color: "var(--ink-soft)" },
     ...(account.allow_negative_balance
-      ? [{ label: "Overdraft", value: `¢${fmt(overdraftLimit)}`, color: "text-orange-600" }]
+      ? [{ label: "Overdraft", value: `¢${fmt(overdraftLimit)}`, color: "var(--brass)" }]
       : []),
-    ...(dailyLimit ? [{ label: "Daily limit", value: `¢${fmt(dailyLimit)}`, color: "text-gray-600" }] : []),
-    ...(account.interest_rate ? [{ label: "Rate", value: `${account.interest_rate}%`, color: "text-emerald-600" }] : []),
-    ...(account.frequency ? [{ label: "Freq.", value: account.frequency, color: "text-blue-600" }] : []),
-    ...(account.daily_rate ? [{ label: "Rate", value: account.daily_rate, color: "text-green-600" }] : []),
+    ...(dailyLimit ? [{ label: "Daily limit", value: `¢${fmt(dailyLimit)}`, color: "var(--ink-soft)" }] : []),
+    ...(account.interest_rate ? [{ label: "Rate", value: `${account.interest_rate}%`, color: "var(--forest)" }] : []),
+    ...(account.frequency ? [{ label: "Freq.", value: account.frequency, color: "var(--ink-soft)" }] : []),
+    ...(account.daily_rate ? [{ label: "Rate", value: account.daily_rate, color: "var(--forest)" }] : []),
   ];
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-gray-50 overflow-hidden">
+    <div className="rounded-2xl border border-[var(--paper-line)] bg-[var(--paper)] overflow-hidden">
       {/* Stats bar */}
-      <div className="grid divide-x divide-gray-100 border-b border-gray-100"
+      <div className="grid divide-x divide-[var(--paper-line)] border-b border-[var(--paper-line)]"
         style={{ gridTemplateColumns: `repeat(${Math.min(stats.length, 4)}, 1fr)` }}>
         {stats.slice(0, 4).map((s) => (
           <div key={s.label} className="px-3 py-2.5 text-center">
-            <p className="text-[9.5px] uppercase tracking-wider font-semibold text-gray-400 mb-0.5">{s.label}</p>
-            <p className={`text-[13px] font-bold tabular-nums ${s.color}`}>{s.value}</p>
+            <p className="text-[9.5px] uppercase tracking-wider font-semibold text-[var(--ink-faint)] mb-0.5">{s.label}</p>
+            <p className="cd-mono text-[13px] font-bold tabular-nums" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Projected balance pill (if amount entered) */}
       {numAmount > 0 && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-          <span className="text-[11.5px] text-gray-400">Projected balance after transaction</span>
-          <span className={`text-[13px] font-bold tabular-nums ${
-            projectedBalance < 0 ? "text-red-600" : projectedBalance < lowThreshold ? "text-amber-600" : "text-emerald-600"
-          }`}>
+        <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--paper-line)]">
+          <span className="text-[11.5px] text-[var(--ink-faint)]">Projected balance after transaction</span>
+          <span
+            className="cd-mono text-[13px] font-bold tabular-nums"
+            style={{ color: projectedBalance < 0 ? "var(--clay)" : projectedBalance < lowThreshold ? "#b8963f" : "var(--forest)" }}
+          >
             {projectedBalance < 0 ? "−" : ""}¢{fmt(Math.abs(projectedBalance))}
           </span>
         </div>
@@ -277,13 +277,19 @@ const AccountHealthPanel = ({
       {/* Card + PIN status row */}
       <div className="flex items-center gap-3 px-4 py-2.5 flex-wrap">
         {/* Card chip */}
-        <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg ${
-          cardStatus === "ACTIVE"   ? "bg-emerald-100 text-emerald-700" :
-          cardStatus === "BLOCKED"  ? "bg-red-100 text-red-700" :
-          cardStatus === "LOST" || cardStatus === "STOLEN" ? "bg-red-100 text-red-700" :
-          cardStatus === "EXPIRED"  ? "bg-amber-100 text-amber-700" :
-          "bg-gray-100 text-gray-500"
-        }`}>
+        <div
+          className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg"
+          style={{
+            background:
+              cardStatus === "ACTIVE" ? "rgba(47,74,50,0.1)" :
+              cardStatus === "BLOCKED" || cardStatus === "LOST" || cardStatus === "STOLEN" ? "var(--clay-soft)" :
+              cardStatus === "EXPIRED" ? "var(--brass-soft)" : "var(--card)",
+            color:
+              cardStatus === "ACTIVE" ? "var(--forest)" :
+              cardStatus === "BLOCKED" || cardStatus === "LOST" || cardStatus === "STOLEN" ? "var(--clay)" :
+              cardStatus === "EXPIRED" ? "var(--forest-deep)" : "var(--ink-faint)",
+          }}
+        >
           <CreditCard className="w-3 h-3" />
           Card: {cardStatus ?? "—"}
           {account.card_replacement_count && account.card_replacement_count > 0
@@ -293,9 +299,13 @@ const AccountHealthPanel = ({
 
         {/* PIN chip */}
         {account.transaction_pin_enabled && (
-          <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg ${
-            pinLocked ? "bg-red-100 text-red-700" : "bg-blue-50 text-blue-600"
-          }`}>
+          <div
+            className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg"
+            style={{
+              background: pinLocked ? "var(--clay-soft)" : "var(--card)",
+              color: pinLocked ? "var(--clay)" : "var(--ink-soft)",
+            }}
+          >
             {pinLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
             PIN: {pinLocked ? "Locked" : "Enabled"}
           </div>
@@ -303,7 +313,7 @@ const AccountHealthPanel = ({
 
         {/* Overdraft chip */}
         {account.allow_negative_balance && (
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: "var(--brass-soft)", color: "var(--forest-deep)" }}>
             <Zap className="w-3 h-3" />
             Overdraft on
           </div>
@@ -311,7 +321,7 @@ const AccountHealthPanel = ({
 
         {/* Last activity */}
         {days !== null && (
-          <span className="text-[11px] text-gray-400 ml-auto">
+          <span className="text-[11px] text-[var(--ink-faint)] ml-auto">
             Last activity: {days === 0 ? "today" : `${days}d ago`}
           </span>
         )}
@@ -319,7 +329,7 @@ const AccountHealthPanel = ({
 
       {/* Warnings */}
       {warnings.length > 0 && (
-        <div className="flex flex-col gap-1.5 px-3 pb-3 pt-1 border-t border-gray-100">
+        <div className="flex flex-col gap-1.5 px-3 pb-3 pt-1 border-t border-[var(--paper-line)]">
           {warnings}
         </div>
       )}
@@ -340,30 +350,32 @@ const SmsToggle = ({
   onChange: (v: boolean) => void;
   accountDefault?: boolean;
 }) => (
-  <div className={`flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all ${
-    enabled
-      ? "border-emerald-200 bg-emerald-50"
-      : "border-gray-100 bg-gray-50"
-  }`}>
+  <div
+    className="flex items-center justify-between px-4 py-3 rounded-2xl border-2 transition-all"
+    style={{
+      borderColor: enabled ? 'var(--forest)' : 'var(--paper-line)',
+      background: enabled ? 'rgba(47,74,50,0.06)' : 'var(--paper)',
+    }}
+  >
     <div className="flex items-center gap-2.5">
       {enabled
-        ? <MessageSquare className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-        : <MessageSquareOff className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+        ? <MessageSquare className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--forest)' }} />
+        : <MessageSquareOff className="w-4 h-4 text-[var(--ink-faint)] flex-shrink-0" />}
       <div>
-        <p className={`text-[13px] font-semibold ${enabled ? "text-emerald-800" : "text-gray-500"}`}>
+        <p className="text-[13px] font-semibold" style={{ color: enabled ? 'var(--forest-deep)' : 'var(--ink-soft)' }}>
           SMS notification
           {accountDefault === false && enabled && (
-            <span className="ml-1.5 text-[10px] bg-amber-100 text-amber-600 font-semibold px-1.5 py-0.5 rounded-md">
+            <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-md" style={{ background: 'var(--brass-soft)', color: 'var(--forest-deep)' }}>
               Override
             </span>
           )}
         </p>
-        <p className="text-[11px] text-gray-400 mt-0.5">
+        <p className="text-[11px] text-[var(--ink-faint)] mt-0.5">
           {enabled
             ? "Customer will receive an SMS for this transaction"
             : "No SMS will be sent for this transaction"}
           {accountDefault !== undefined && (
-            <span className="ml-1 opacity-60">
+            <span className="ml-1 opacity-70">
               · account default: {accountDefault ? "on" : "off"}
             </span>
           )}
@@ -373,9 +385,8 @@ const SmsToggle = ({
     <button
       type="button"
       onClick={() => onChange(!enabled)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-        enabled ? "bg-emerald-500" : "bg-gray-300"
-      }`}
+      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0"
+      style={{ background: enabled ? 'var(--forest)' : 'var(--paper-line)' }}
     >
       <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
         enabled ? "translate-x-6" : "translate-x-1"
@@ -388,11 +399,15 @@ const SmsToggle = ({
 // Main Modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave, onClose }) => {
+const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, transactionType, onSave, onClose }) => {
   const { customerLoading, refreshCustomers } = useCustomers();
   const { staffList, loading: staffLoading } = useStaff();
   const { accounts, refreshAccounts, setAccounts } = useAccounts();
   const { addTransaction, refreshTransactions, loading } = useTransactions();
+
+  // If a transactionType was handed in (from the Deposit/Withdrawal quick
+  // action buttons) the flow is locked to that type — no toggle shown.
+  const isTypeLocked = !!transactionType && !transaction;
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -407,7 +422,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
   const [formData, setFormData] = useState({
     account_id: transaction?.account_id || "",
     amount: transaction?.amount?.toString() || "",
-    transaction_type: (transaction?.transaction_type || "deposit") as "deposit" | "withdrawal",
+    transaction_type: (transaction?.transaction_type || transactionType || "deposit") as "deposit" | "withdrawal",
     withdrawal_type: "",
     payment_method: transaction?.payment_method || "cash",
     description: transaction?.description || "",
@@ -535,77 +550,75 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
 
   const isWithdrawal = formData.transaction_type === "withdrawal";
   const isDeposit = !isWithdrawal;
+  const accent = isDeposit ? "var(--forest)" : "var(--clay)";
+  const accentSoft = isDeposit ? "rgba(47,74,50,0.1)" : "var(--clay-soft)";
+  const accentDeep = isDeposit ? "var(--forest-deep)" : "var(--clay)";
+
+  const inputCls =
+    "w-full px-3.5 py-2.5 border rounded-2xl text-[13px] bg-[var(--paper)] focus:bg-white focus:outline-none transition-all placeholder:text-[var(--ink-faint)]";
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.45)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[rgba(6,20,10,0.55)] backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-2xl w-full max-w-xl flex flex-col" style={{ maxHeight: "92vh" }}>
+      <div className="cd-root bg-[var(--card)] rounded-3xl w-full max-w-xl flex flex-col overflow-hidden shadow-[0_1px_2px_rgba(20,32,20,0.08),0_24px_48px_-16px_rgba(20,32,20,0.45)]" style={{ maxHeight: "92vh" }}>
 
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-              isDeposit ? "bg-emerald-50" : "bg-red-50"
-            }`}>
-              {isDeposit
-                ? <ArrowUpCircle className="w-5 h-5 text-emerald-600" />
-                : <ArrowDownCircle className="w-5 h-5 text-red-500" />}
-            </div>
-            <div>
-              <p className="text-[15px] font-semibold text-gray-900">
-                {transaction ? "Edit transaction" : "New transaction"}
-              </p>
-              <p className="text-[12px] text-gray-400 mt-0.5">
-                Record a deposit or withdrawal
-              </p>
-            </div>
-          </div>
+        {/* ── Cover: dark passbook face ── */}
+        <div className="cd-stitch relative overflow-hidden bg-[linear-gradient(145deg,#062e1b_0%,#0b4325_55%,#14532d_100%)] px-6 pt-5 pb-6 flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.18)] flex items-center justify-center transition-colors"
           >
-            <X className="w-4 h-4 text-gray-500" />
+            <X className="w-4 h-4 text-white" />
           </button>
-        </div>
 
-        {/* ── Body ── */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-6">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[rgba(255,255,255,0.5)]">
+            {transaction ? "Edit transaction" : "New transaction"}
+          </p>
+          <h2 className="cd-display text-xl font-medium text-white mt-1">
+            {transaction ? "Update transaction" : isDeposit ? "Record a deposit" : "Record a withdrawal"}
+          </h2>
 
-          {/* ── Transaction type toggle — first so context is set ── */}
-          <div>
-            <Label>Transaction type</Label>
-            <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl">
+          {/* Locked-type badge, or the toggle when the type is editable */}
+          {isTypeLocked ? (
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[rgba(255,255,255,0.12)]">
+              {isDeposit
+                ? <ArrowUpCircle className="w-4 h-4 text-white" />
+                : <ArrowDownCircle className="w-4 h-4 text-white" />}
+              <span className="text-[12px] font-semibold text-white capitalize">{formData.transaction_type}</span>
+            </div>
+          ) : (
+            <div className="mt-4 flex gap-2 p-1 bg-[rgba(255,255,255,0.1)] rounded-2xl max-w-xs">
               {(["deposit", "withdrawal"] as const).map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setFormData((p) => ({ ...p, transaction_type: type, withdrawal_type: "" }))}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-semibold transition-all
-                    ${formData.transaction_type === type
-                      ? type === "deposit"
-                        ? "bg-white text-emerald-600 shadow-sm"
-                        : "bg-white text-red-500 shadow-sm"
-                      : "text-gray-400 hover:text-gray-600"}`}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-semibold transition-all
+                    ${formData.transaction_type === type ? "bg-white" : "text-[rgba(255,255,255,0.6)] hover:text-white"}`}
+                  style={formData.transaction_type === type ? { color: type === "deposit" ? "var(--forest)" : "var(--clay)" } : undefined}
                 >
                   {type === "deposit"
-                    ? <ArrowUpCircle className="w-4 h-4" />
-                    : <ArrowDownCircle className="w-4 h-4" />}
+                    ? <ArrowUpCircle className="w-3.5 h-3.5" />
+                    : <ArrowDownCircle className="w-3.5 h-3.5" />}
                   {type.charAt(0).toUpperCase() + type.slice(1)}
                 </button>
               ))}
             </div>
-          </div>
+          )}
+        </div>
+
+        {/* ── Body ── */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-6">
 
           {/* ── Customer search ── */}
           <div>
             <Label>Customer</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--ink-faint)] pointer-events-none" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -620,49 +633,49 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                 }}
                 onFocus={() => setShowDropdown(true)}
                 placeholder="Search by name, phone or account number…"
-                className={`w-full pl-10 pr-10 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none transition-all
-                  ${errors.account_id
-                    ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100"
-                    : "border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"}`}
+                className={`${inputCls} pl-10 pr-10`}
+                style={{
+                  borderColor: errors.account_id ? 'var(--clay)' : 'var(--paper-line)',
+                }}
               />
               {selectedCustomer && (
-                <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+                <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--forest)' }} />
               )}
 
               {showDropdown && customerSearch && (
                 <div
                   ref={dropdownRef}
-                  className="absolute z-20 w-full mt-1.5 bg-white border border-gray-100 rounded-2xl shadow-lg overflow-hidden"
+                  className="absolute z-20 w-full mt-1.5 bg-[var(--card)] border border-[var(--paper-line)] rounded-2xl shadow-lg overflow-hidden"
                   style={{ maxHeight: 220, overflowY: "auto" }}
                 >
                   {searchLoading ? (
-                    <div className="py-4 text-center text-[13px] text-gray-400">Searching…</div>
+                    <div className="py-4 text-center text-[13px] text-[var(--ink-faint)]">Searching…</div>
                   ) : searchResults.length > 0 ? (
                     searchResults.map((c) => (
                       <div
                         key={c.id}
                         onClick={() => selectCustomer(c)}
-                        className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0"
+                        className="flex items-center justify-between px-4 py-3 hover:bg-[var(--paper)] cursor-pointer border-b border-dashed border-[var(--paper-line)] last:border-0"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-700 text-[11px] font-bold flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-[var(--brass-soft)] flex items-center justify-center text-[var(--forest-deep)] text-[11px] font-bold flex-shrink-0 cd-mono">
                             {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-[13px] font-semibold text-gray-900">{c.name}</p>
-                            <p className="text-[11px] text-gray-400">{c.phone_number} · {c.account_number || "—"}</p>
+                            <p className="text-[13px] font-semibold text-[var(--ink)]">{c.name}</p>
+                            <p className="text-[11px] text-[var(--ink-faint)]">{c.phone_number} · {c.account_number || "—"}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-[13px] font-semibold text-emerald-600">
+                          <p className="cd-mono text-[13px] font-semibold" style={{ color: 'var(--forest)' }}>
                             ¢{parseFloat(c.total_balance_across_all_accounts || "0").toLocaleString()}
                           </p>
-                          <p className="text-[11px] text-gray-400">{c.total_transactions} txns</p>
+                          <p className="text-[11px] text-[var(--ink-faint)]">{c.total_transactions} txns</p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="py-4 text-center text-[13px] text-gray-400">No customers found</div>
+                    <div className="py-4 text-center text-[13px] text-[var(--ink-faint)]">No customers found</div>
                   )}
                 </div>
               )}
@@ -671,22 +684,22 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
 
             {/* Selected customer chip */}
             {selectedCustomer && (
-              <div className="mt-2.5 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 flex items-center justify-between">
+              <div className="mt-2.5 bg-[var(--paper)] border border-[var(--paper-line)] rounded-2xl px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 text-[12px] font-bold flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0 cd-mono" style={{ background: 'var(--brass-soft)', color: 'var(--forest-deep)' }}>
                     {selectedCustomer.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-[13px] font-semibold text-gray-900">{selectedCustomer.name}</p>
-                    <p className="text-[11px] text-gray-500">{selectedCustomer.phone_number}
+                    <p className="text-[13px] font-semibold text-[var(--ink)]">{selectedCustomer.name}</p>
+                    <p className="text-[11px] text-[var(--ink-faint)]">{selectedCustomer.phone_number}
                       {selectedCustomer.area && ` · ${selectedCustomer.area}`}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[15px] font-bold text-emerald-600">
+                  <p className="cd-mono text-[15px] font-bold" style={{ color: 'var(--forest)' }}>
                     ¢{fmt(parseFloat(selectedCustomer.total_balance_across_all_accounts || "0"), 0)}
                   </p>
-                  <p className="text-[10px] text-gray-400">{selectedCustomer.total_transactions} total txns</p>
+                  <p className="text-[10px] text-[var(--ink-faint)]">{selectedCustomer.total_transactions} total txns</p>
                 </div>
               </div>
             )}
@@ -697,8 +710,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
             <div>
               <Label>Account</Label>
               {loadingAccounts ? (
-                <div className="flex items-center gap-3 py-5 text-[13px] text-gray-400">
-                  <svg className="w-5 h-5 animate-spin text-emerald-500" fill="none" viewBox="0 0 24 24">
+                <div className="flex items-center gap-3 py-5 text-[13px] text-[var(--ink-faint)]">
+                  <svg className="w-5 h-5 animate-spin" style={{ color: 'var(--forest)' }} fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
                   </svg>
@@ -719,45 +732,38 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                         <div
                           onClick={() => !restricted && selectAccount(account)}
                           className={`flex items-center justify-between px-4 py-3.5 border-2 rounded-2xl transition-all
-                            ${restricted ? "opacity-40 cursor-not-allowed bg-gray-50" : "cursor-pointer"}
-                            ${selected
-                              ? isDeposit
-                                ? "border-emerald-400 bg-emerald-50"
-                                : "border-red-300 bg-red-50"
-                              : "border-gray-100 hover:border-gray-200 bg-white"}`}
+                            ${restricted ? "opacity-40 cursor-not-allowed bg-[var(--paper)]" : "cursor-pointer"}`}
+                          style={{
+                            borderColor: selected ? accent : 'var(--paper-line)',
+                            background: selected ? accentSoft : 'var(--card)',
+                          }}
                         >
                           <div className="flex items-center gap-3">
-                            {/* <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg
-                              ${selected
-                                ? isDeposit ? "bg-emerald-100" : "bg-red-100"
-                                : "bg-gray-100"}`}>
-                              {getAccountEmoji(account.account_type)}
-                            </div> */}
                             <div>
-                              <p className="text-[13px] font-semibold text-gray-900 capitalize">
+                              <p className="text-[13px] font-semibold text-[var(--ink)] capitalize">
                                 {account.account_type} account
                               </p>
-                              <p className="text-[11px] text-gray-400 font-mono">····{account.account_number.slice(-4)}</p>
+                              <p className="cd-mono text-[11px] text-[var(--ink-faint)]">····{account.account_number.slice(-4)}</p>
 
                               {/* inline status chips on card row */}
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                 {account.status && account.status !== "Active" && (
-                                  <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                                  <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--brass-soft)', color: 'var(--forest-deep)' }}>
                                     {account.status}
                                   </span>
                                 )}
                                 {cardBad && (
-                                  <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                                  <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--clay-soft)', color: 'var(--clay)' }}>
                                     Card {account.card_status}
                                   </span>
                                 )}
                                 {pinLk && (
-                                  <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                                  <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--clay-soft)', color: 'var(--clay)' }}>
                                     PIN locked
                                   </span>
                                 )}
                                 {restricted && (
-                                  <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">
+                                  <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-[var(--paper-line)] text-[var(--ink-faint)]">
                                     Restricted
                                   </span>
                                 )}
@@ -766,21 +772,16 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                           </div>
                           <div className="flex items-center gap-2.5">
                             <div className="text-right">
-                              <p className={`text-[14px] font-bold tabular-nums ${
-                                account.balance < 0
-                                  ? "text-red-600"
-                                  : selected
-                                    ? isDeposit ? "text-emerald-600" : "text-red-500"
-                                    : "text-gray-900"
-                              }`}>
+                              <p
+                                className="cd-mono text-[14px] font-bold tabular-nums"
+                                style={{ color: account.balance < 0 ? 'var(--clay)' : selected ? accentDeep : 'var(--ink)' }}
+                              >
                                 {account.balance < 0 ? "−" : ""}¢{fmt(Math.abs(account.balance), 0)}
                               </p>
-                              <p className="text-[10px] text-gray-400">Available</p>
+                              <p className="text-[10px] text-[var(--ink-faint)]">Available</p>
                             </div>
                             {selected && (
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                isDeposit ? "bg-emerald-500" : "bg-red-400"
-                              }`}>
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: accent }}>
                                 <CheckCircle className="w-3 h-3 text-white" />
                               </div>
                             )}
@@ -802,7 +803,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                   })}
                 </div>
               ) : (
-                <div className="py-6 text-center text-[13px] text-gray-400 bg-gray-50 rounded-2xl">
+                <div className="py-6 text-center text-[13px] text-[var(--ink-faint)] bg-[var(--paper)] rounded-2xl">
                   No accounts found for this customer
                 </div>
               )}
@@ -826,22 +827,17 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                     key={method.value}
                     type="button"
                     onClick={() => setFormData((p) => ({ ...p, payment_method: method.value }))}
-                    className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-2xl border-2 transition-all
-                      ${isSel
-                        ? isDeposit
-                          ? "border-emerald-300 bg-emerald-50"
-                          : "border-red-300 bg-red-50"
-                        : "border-gray-100 bg-white hover:border-gray-200"}`}
+                    className="flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-2xl border-2 transition-all"
+                    style={{
+                      borderColor: isSel ? accent : 'var(--paper-line)',
+                      background: isSel ? accentSoft : 'var(--card)',
+                    }}
                   >
-                    <Icon className={`w-5 h-5 ${isSel
-                      ? isDeposit ? "text-emerald-600" : "text-red-600"
-                      : "text-gray-400"}`} />
-                    <p className={`text-[12px] font-semibold ${isSel
-                      ? isDeposit ? "text-emerald-700" : "text-red-700"
-                      : "text-gray-700"}`}>
+                    <Icon className="w-5 h-5" style={{ color: isSel ? accentDeep : 'var(--ink-faint)' }} />
+                    <p className="text-[12px] font-semibold" style={{ color: isSel ? accentDeep : 'var(--ink)' }}>
                       {method.label}
                     </p>
-                    <p className="text-[9.5px] text-gray-400 text-center">{method.desc}</p>
+                    <p className="text-[9.5px] text-[var(--ink-faint)] text-center">{method.desc}</p>
                   </button>
                 );
               })}
@@ -864,15 +860,16 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                       setFormData((p) => ({ ...p, withdrawal_type: opt.value }));
                       if (errors.withdrawal_type) setErrors((p) => ({ ...p, withdrawal_type: "" }));
                     }}
-                    className={`text-left px-4 py-3 rounded-2xl border-2 transition-all
-                      ${formData.withdrawal_type === opt.value
-                        ? "border-red-300 bg-red-50"
-                        : "border-gray-100 bg-white hover:border-gray-200"}`}
+                    className="text-left px-4 py-3 rounded-2xl border-2 transition-all"
+                    style={{
+                      borderColor: formData.withdrawal_type === opt.value ? 'var(--clay)' : 'var(--paper-line)',
+                      background: formData.withdrawal_type === opt.value ? 'var(--clay-soft)' : 'var(--card)',
+                    }}
                   >
-                    <p className={`text-[13px] font-semibold ${formData.withdrawal_type === opt.value ? "text-red-600" : "text-gray-900"}`}>
+                    <p className="text-[13px] font-semibold" style={{ color: formData.withdrawal_type === opt.value ? 'var(--clay)' : 'var(--ink)' }}>
                       {opt.label}
                     </p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{opt.desc}</p>
+                    <p className="text-[11px] text-[var(--ink-faint)] mt-0.5">{opt.desc}</p>
                   </button>
                 ))}
               </div>
@@ -885,7 +882,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
             <div>
               <Label required>Amount</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-bold text-gray-400">¢</span>
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[var(--ink-faint)]">¢</span>
                 <input
                   name="amount"
                   value={formData.amount}
@@ -893,10 +890,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                   placeholder="0.00"
                   step="0.01"
                   min="0"
-                  className={`w-full pl-7 pr-3 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none transition-all
-                    ${errors.amount
-                      ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
-                      : "border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"}`}
+                  className={`${inputCls} pl-7 pr-3`}
+                  style={{ borderColor: errors.amount ? 'var(--clay)' : 'var(--paper-line)' }}
                 />
               </div>
               <FieldError msg={errors.amount} />
@@ -908,7 +903,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
                 name="transaction_date"
                 value={formData.transaction_date}
                 onChange={handleChange}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 focus:outline-none transition-all"
+                className={inputCls}
+                style={{ borderColor: 'var(--paper-line)' }}
               />
             </div>
           </div>
@@ -922,15 +918,13 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
               onChange={handleChange}
               rows={2}
               placeholder="e.g. Monthly contribution, emergency withdrawal…"
-              className={`w-full px-4 py-2.5 border rounded-2xl text-[13px] bg-gray-50 focus:bg-white focus:outline-none resize-none transition-all
-                ${errors.description
-                  ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
-                  : "border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"}`}
+              className={`${inputCls} resize-none`}
+              style={{ borderColor: errors.description ? 'var(--clay)' : 'var(--paper-line)' }}
             />
             <FieldError msg={errors.description} />
           </div>
 
-         
+
           {/* ── SMS toggle ── */}
           <SmsToggle
             enabled={sendSms}
@@ -941,11 +935,11 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex gap-2.5 px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-white">
+        <div className="flex gap-2.5 px-6 py-4 border-t border-[var(--paper-line)] flex-shrink-0 bg-[var(--card)]">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 border border-gray-200 rounded-2xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 py-3 border border-[var(--paper-line)] rounded-2xl text-[13px] font-medium text-[var(--ink-soft)] hover:bg-[var(--paper)] transition-colors"
           >
             Cancel
           </button>
@@ -953,11 +947,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, onSave
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className={`flex-[2] py-3 rounded-2xl text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 ${
-              isDeposit
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                : "bg-gray-900 hover:bg-gray-800 text-white"
-            }`}
+            className="flex-[2] py-3 rounded-2xl text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 text-white"
+            style={{ background: isDeposit ? 'var(--forest)' : '#062e1b' }}
           >
             {loading ? (
               <>

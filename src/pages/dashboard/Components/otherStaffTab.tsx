@@ -19,7 +19,7 @@ const OtherStaffTab = () => {
   const filtered = dashboardStaffList.filter(
     staff => staff.role !== 'mobile_banker'
   );
-  setOtherStaff(filtered);
+  setOtherStaff(dashboardStaffList);
 }, [dashboardStaffList]);
 
   // Edit Modal Form State
@@ -175,12 +175,12 @@ const OtherStaffTab = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Other Staff</h2>
-          <p className="text-gray-600">Manage office staff and permissions</p>
+          <h2 className="cd-display text-2xl font-semibold text-[var(--ink)]">Other Staff</h2>
+          <p className="text-[var(--ink-soft)]">Manage office staff and permissions</p>
         </div>
         <button 
           onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-[var(--forest)] hover:bg-[var(--forest-deep)] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors"
         >
           <UserPlus size={18} />
           Add Staff Member
@@ -189,63 +189,70 @@ const OtherStaffTab = () => {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-faint)]" size={18} />
         <input
           type="text"
           placeholder="Search staff members..."
-          className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full pl-10 pr-4 py-2 border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)]"
         />
       </div>
 
       {/* Staff table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-[var(--card)] rounded-2xl border border-[var(--paper-line)] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-[var(--paper)] border-b border-[var(--paper-line)]">
               <tr>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Staff Member</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Role & Department</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Contact</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Permissions</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Status</th>
-                <th className="text-left py-3 px-6 font-semibold text-gray-900">Actions</th>
+                <th className="text-left py-3 px-6 text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Staff Member</th>
+                <th className="text-left py-3 px-6 text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Role & Department</th>
+                <th className="text-left py-3 px-6 text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Contact</th>
+                <th className="text-left py-3 px-6 text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Permissions</th>
+                <th className="text-left py-3 px-6 text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Status</th>
+                <th className="text-left py-3 px-6 text-xs font-medium text-[var(--ink-faint)] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-[var(--paper-line)]">
               {otherStaff.map((staff) => (
-                <tr key={staff.id} className="hover:bg-gray-50">
+                <tr key={staff.id} className="hover:bg-[var(--paper)] transition-colors">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                        <Users className="text-purple-600" size={20} />
+                      <div className="w-10 h-10 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center">
+                        <Users style={{ color: 'var(--forest-deep)' }} size={20} />
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">{staff.name}</div>
-                        <div className="text-sm text-gray-600">Joined {staff.joinDate}</div>
+                        <div className="font-medium text-[var(--ink)]">{staff.name}</div>
+                        <div className="text-sm text-[var(--ink-faint)]">Joined {staff.joinDate}</div>
                       </div>
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <div className="font-medium text-gray-900">{staff.role}</div>
-                    <div className="text-sm text-gray-600">{staff.department}</div>
+                    <div className="font-medium text-[var(--ink)]">{staff.role}</div>
+                    <div className="text-sm text-[var(--ink-soft)]">{staff.department}</div>
                   </td>
                   <td className="py-4 px-6">
-                    <div className="text-sm text-gray-900">{staff.phone}</div>
-                    <div className="text-sm text-gray-600">{staff.email}</div>
+                    <div className="text-sm text-[var(--ink)]">{staff.phone}</div>
+                    <div className="text-sm text-[var(--ink-soft)]">{staff.email}</div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex flex-wrap gap-1">
                       {Object.entries(staff.permissions)
                         .filter(([_, value]) => value === true)
                         .map(([key], index) => (
-                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded uppercase">
+                          <span
+                            key={index}
+                            className="px-2 py-1 text-xs rounded uppercase font-medium"
+                            style={{ background: 'rgba(47,74,50,0.1)', color: 'var(--forest-deep)' }}
+                          >
                             {key.replace(/_/g, ' ')}
                           </span>
                         ))}
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-sm rounded-full">
+                    <span
+                      className="px-2 py-1 text-sm rounded-full font-medium"
+                      style={{ background: 'rgba(47,74,50,0.1)', color: 'var(--forest)' }}
+                    >
                       {staff.status}
                     </span>
                   </td>
@@ -253,21 +260,23 @@ const OtherStaffTab = () => {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => handleEditClick(staff)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        className="text-[var(--forest)] hover:text-[var(--forest-deep)] transition-colors"
                         title="Edit Staff"
                       >
                         <Edit size={16} />
                       </button>
                       <button 
                         onClick={() => handlePermissionsClick(staff)}
-                        className="text-green-600 hover:text-green-800 transition-colors"
+                        className="hover:opacity-75 transition-opacity"
+                        style={{ color: 'var(--brass)' }}
                         title="Manage Permissions"
                       >
                         <Shield size={16} />
                       </button>
                       <button 
                         onClick={() => handleDeleteClick(staff)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
+                        className="hover:opacity-75 transition-opacity"
+                        style={{ color: 'var(--clay)' }}
                         title="Delete Staff"
                       >
                         <Trash2 size={16} />
@@ -284,21 +293,21 @@ const OtherStaffTab = () => {
       {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--card)] rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between p-6 border-b border-[var(--paper-line)]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Edit className="text-blue-600" size={20} />
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(47,74,50,0.1)' }}>
+                  <Edit style={{ color: 'var(--forest)' }} size={20} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Edit Staff Member</h3>
-                  <p className="text-sm text-gray-600">Update staff information</p>
+                  <h3 className="cd-display text-xl font-semibold text-[var(--ink)]">Edit Staff Member</h3>
+                  <p className="text-sm text-[var(--ink-soft)]">Update staff information</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition-colors"
               >
                 <X size={24} />
               </button>
@@ -309,7 +318,7 @@ const OtherStaffTab = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Full Name */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[var(--ink-soft)] mb-2">
                     Full Name *
                   </label>
                   <input
@@ -317,14 +326,14 @@ const OtherStaffTab = () => {
                     required
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)]"
                     placeholder="Enter full name"
                   />
                 </div>
 
                 {/* Role */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[var(--ink-soft)] mb-2">
                     Role *
                   </label>
                   <input
@@ -332,21 +341,21 @@ const OtherStaffTab = () => {
                     required
                     value={editForm.role}
                     onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)]"
                     placeholder="e.g., Office Manager"
                   />
                 </div>
 
                 {/* Department */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[var(--ink-soft)] mb-2">
                     Department *
                   </label>
                   <select
                     required
                     value={editForm.department}
                     onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)]"
                   >
                     <option value="">Select department</option>
                     <option value="Administration">Administration</option>
@@ -360,7 +369,7 @@ const OtherStaffTab = () => {
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[var(--ink-soft)] mb-2">
                     Phone Number *
                   </label>
                   <input
@@ -368,14 +377,14 @@ const OtherStaffTab = () => {
                     required
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)]"
                     placeholder="+1 234-567-8900"
                   />
                 </div>
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[var(--ink-soft)] mb-2">
                     Email Address *
                   </label>
                   <input
@@ -383,21 +392,21 @@ const OtherStaffTab = () => {
                     required
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)]"
                     placeholder="staff@hospital.com"
                   />
                 </div>
 
                 {/* Status */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[var(--ink-soft)] mb-2">
                     Status *
                   </label>
                   <select
                     required
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-[var(--paper-line)] bg-[var(--paper)] text-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(47,74,50,0.15)] focus:border-[var(--forest)]"
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
@@ -407,18 +416,18 @@ const OtherStaffTab = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+              <div className="flex gap-3 mt-6 pt-6 border-t border-[var(--paper-line)]">
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-[var(--paper-line)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--paper)] transition-colors"
                   disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:bg-blue-400"
+                  className="flex-1 px-4 py-2 bg-[var(--forest)] text-white rounded-lg hover:bg-[var(--forest-deep)] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
@@ -446,34 +455,37 @@ const OtherStaffTab = () => {
     style={{ background: 'rgba(0,0,0,0.4)' }}
     onClick={(e) => { if (e.target === e.currentTarget) setShowPermissionsModal(false); }}
   >
-    <div className="bg-white rounded-3xl w-full max-w-lg flex flex-col" style={{ maxHeight: '88vh' }}>
+    <div className="bg-[var(--card)] rounded-3xl w-full max-w-lg flex flex-col" style={{ maxHeight: '88vh' }}>
 
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--paper-line)] flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <Shield className="w-5 h-5 text-emerald-600" />
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(47,74,50,0.1)' }}>
+            <Shield className="w-5 h-5" style={{ color: 'var(--forest)' }} />
           </div>
           <div>
-            <p className="text-[15px] font-semibold text-gray-900">Manage permissions</p>
-            <p className="text-[12px] text-gray-400 mt-0.5">{selectedStaff?.name}</p>
+            <p className="text-[15px] font-semibold text-[var(--ink)]">Manage permissions</p>
+            <p className="text-[12px] text-[var(--ink-faint)] mt-0.5">{selectedStaff?.name}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Enabled count badge */}
-          <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-800 rounded-full px-2.5 py-1">
+          <span
+            className="text-[11px] font-semibold rounded-full px-2.5 py-1"
+            style={{ background: 'rgba(47,74,50,0.1)', color: 'var(--forest-deep)' }}
+          >
             {Object.values(permissionsForm).filter(Boolean).length} enabled
           </span>
           <button
             onClick={() => setShowPermissionsModal(false)}
-            className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-xl bg-[var(--paper)] hover:bg-[var(--paper-line)] flex items-center justify-center transition-colors"
           >
-            <X className="w-4 h-4 text-gray-500" />
+            <X className="w-4 h-4 text-[var(--ink-faint)]" />
           </button>
         </div>
       </div>
 
-      <p className="px-6 pt-3 pb-1 text-[12px] text-gray-400 flex-shrink-0">
+      <p className="px-6 pt-3 pb-1 text-[12px] text-[var(--ink-faint)] flex-shrink-0">
         Toggle the permissions you want to grant to this staff member.
       </p>
 
@@ -496,24 +508,34 @@ const OtherStaffTab = () => {
             { key: 'SETTINGS_ACCESS',       label: 'Access settings',       desc: 'Access company setting details',            icon: <Settings className="w-3.5 h-3.5" /> },
             { key: 'CUSTOMER_CREATE',       label: 'Create Customer',       descl: 'Can create new customers',                 icon: <User className='w-3.5 h-3.5' />},
             { key: 'DELETE_CUSTOMER',       label: 'Delete customer',       desc: 'Remove customers from the system',          icon: <Trash2 className="w-3.5 h-3.5" /> },
+            { key: 'PROCESS_DEPOSITS',      label: 'Process Deposits',      desc: 'Stake amount into customer account',        icon: <DollarSign className="w-3.5 h-3.5" />},
+            { key: 'PROCESS_WITHDRAWAL',    label: 'Process Withdrawals',   desc: 'Can withdraw from customer account',        icon: <DollarSign className="w-3.5 h-3.5" />}
           ].map((perm) => {
             const enabled = permissionsForm[perm.key] || false;
             return (
               <label
                 key={perm.key}
-                className={`flex items-center justify-between px-4 py-3.5 border rounded-2xl cursor-pointer transition-all
-                  ${enabled
-                    ? 'border-emerald-200 bg-emerald-50/50'
-                    : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50/50'}`}
+                className="flex items-center justify-between px-4 py-3.5 border rounded-2xl cursor-pointer transition-all"
+                style={
+                  enabled
+                    ? { borderColor: 'rgba(47,74,50,0.35)', background: 'rgba(47,74,50,0.05)' }
+                    : { borderColor: 'var(--paper-line)', background: 'var(--card)' }
+                }
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors
-                    ${enabled ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
+                    style={
+                      enabled
+                        ? { background: 'rgba(47,74,50,0.14)', color: 'var(--forest)' }
+                        : { background: 'var(--paper)', color: 'var(--ink-faint)' }
+                    }
+                  >
                     {perm.icon}
                   </div>
                   <div>
-                    <p className="text-[13px] font-semibold text-gray-900">{perm.label}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{perm.desc}</p>
+                    <p className="text-[13px] font-semibold text-[var(--ink)]">{perm.label}</p>
+                    <p className="text-[11px] text-[var(--ink-faint)] mt-0.5">{perm.desc}</p>
                   </div>
                 </div>
 
@@ -528,7 +550,8 @@ const OtherStaffTab = () => {
                     }
                   />
                   <div
-                    className={`w-9 h-5 rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                    className="w-9 h-5 rounded-full transition-colors"
+                    style={{ background: enabled ? 'var(--forest)' : 'var(--paper-line)' }}
                   />
                   <div
                     className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0'}`}
@@ -540,19 +563,19 @@ const OtherStaffTab = () => {
         </div>
 
         {/* Footer */}
-        <div className="flex gap-2.5 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+        <div className="flex gap-2.5 px-6 py-4 border-t border-[var(--paper-line)] flex-shrink-0">
           <button
             type="button"
             onClick={() => setShowPermissionsModal(false)}
             disabled={isSubmitting}
-            className="flex-1 py-3 border border-gray-200 rounded-2xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1 py-3 border border-[var(--paper-line)] rounded-2xl text-[13px] font-medium text-[var(--ink-soft)] hover:bg-[var(--paper)] transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-[2] py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl text-[13px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            className="flex-[2] py-3 bg-[var(--forest)] hover:bg-[var(--forest-deep)] text-white rounded-2xl text-[13px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
@@ -579,18 +602,18 @@ const OtherStaffTab = () => {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className="bg-[var(--card)] rounded-xl shadow-2xl max-w-md w-full">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between p-6 border-b border-[var(--paper-line)]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="text-red-600" size={20} />
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(169,74,62,0.1)' }}>
+                  <AlertTriangle style={{ color: 'var(--clay)' }} size={20} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Delete Staff Member</h3>
+                <h3 className="cd-display text-xl font-semibold text-[var(--ink)]">Delete Staff Member</h3>
               </div>
               <button 
                 onClick={() => setShowDeleteModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition-colors"
               >
                 <X size={24} />
               </button>
@@ -598,29 +621,30 @@ const OtherStaffTab = () => {
 
             {/* Modal Body */}
             <div className="p-6">
-              <p className="text-gray-700 mb-4">
-                Are you sure you want to delete <strong>{selectedStaff?.name}</strong>? 
+              <p className="text-[var(--ink-soft)] mb-4">
+                Are you sure you want to delete <strong className="text-[var(--ink)]">{selectedStaff?.name}</strong>? 
               </p>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-800">
+              <div className="rounded-lg p-4 border" style={{ background: 'rgba(169,74,62,0.08)', borderColor: 'rgba(169,74,62,0.2)' }}>
+                <p className="text-sm" style={{ color: 'var(--clay)' }}>
                   <strong>Warning:</strong> This action cannot be undone. All data associated with this staff member will be permanently removed from the system.
                 </p>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="flex gap-3 p-6 border-t border-gray-200">
+            <div className="flex gap-3 p-6 border-t border-[var(--paper-line)]">
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-[var(--paper-line)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--paper)] transition-colors"
                 disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteSubmit}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:bg-red-400"
+                className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ background: 'var(--clay)' }}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

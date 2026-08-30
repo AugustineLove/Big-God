@@ -1,0 +1,91 @@
+/* Susu passbook theme — customer details
+   Ground concept: a physical susu passbook, digitized. Ledger rhythm,
+   a stamped status seal, stitched card edges. Keep the boldness here;
+   everything downstream should stay quiet and let this carry it. */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --paper: #f2f4ee;
+  --paper-line: #dfe5d6;
+  --card: #fbfcf9;
+  --ink: #1e2a1f;
+  --ink-soft: #5c6b5d;
+  --ink-faint: #97a395;
+  --forest: #2f4a32;
+  --forest-deep: #142014;
+  --forest-mid: #3e6142;
+  --brass: #ad7f3a;
+  --brass-soft: #efe1c2;
+  --clay: #a94a3e;
+  --clay-soft: #f3e1dd;
+}
+
+.cd-root {
+  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.cd-display {
+  font-family: 'Fraunces', ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+.cd-mono {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Horizontal scroll strips (tabs, action bars, chip rows) with no visible
+   scrollbar, but still fully scrollable on touch + trackpad. */
+.cd-scroller {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.cd-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+/* Faint dot-grid, used only on the dark header — evokes ledger paper
+   texture without being a decorative gradient blob. */
+.cd-ledger-bg {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+/* Dashed inset border suggesting a stitched passbook cover. */
+.cd-stitch {
+  position: relative;
+}
+.cd-stitch::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  pointer-events: none;
+}
+
+/* The one bold signature element: a rotated wax-seal status stamp. */
+.cd-seal {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  transform: rotate(-7deg);
+}
+
+/* Dotted leader between a label and a value, receipt/ledger style.
+   Use sparingly — a couple of places, not everywhere. */
+.cd-leader {
+  flex: 1 1 auto;
+  border-bottom: 1.5px dotted var(--paper-line);
+  margin: 0 6px 3px;
+  min-width: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-root * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

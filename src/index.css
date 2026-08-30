@@ -1,12 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-root * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
 
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(-5px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -34,4 +44,87 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.5);
+}
+
+:root {
+  --paper: #f5f7f4;
+  --paper-line: #dfe5df;
+  --card: #ffffff;
+
+  --ink: #17231b;
+  --ink-soft: #617066;
+  --ink-faint: #8b9890;
+
+  --forest: #14532d;
+  --forest-deep: #062e1b;
+  --forest-mid: #1f6b3a;
+
+  --lime: #65d83a;
+  --lime-soft: #dff6d5;
+
+  --brass: #d4a94f;
+  --brass-soft: #f7e8bf;
+
+  --clay: #b84f43;
+  --clay-soft: #f5dfdc;
+}
+
+.cd-root {
+  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.cd-display {
+  font-family: 'Fraunces', ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+.cd-mono {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.cd-scroller {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+
+.cd-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.cd-ledger-bg {
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.07) 1px,
+    transparent 1px
+  );
+  background-size: 14px 14px;
+}
+
+.cd-stitch {
+  position: relative;
+}
+
+.cd-stitch::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  pointer-events: none;
+}
+
+.cd-seal {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  transform: rotate(-7deg);
+}
+
+.cd-leader {
+  flex: 1 1 auto;
+  border-bottom: 1.5px dotted var(--paper-line);
+  margin: 0 6px 3px;
+  min-width: 12px;
 }
