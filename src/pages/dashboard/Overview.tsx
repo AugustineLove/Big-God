@@ -39,15 +39,23 @@ const FIELD_ROLES = ['Teller', 'Mobile Banker'];
    PERMISSIONS
 ============================================================ */
 
-const canDeposit =
-  (userPermissions as any)?.PROCESS_DEPOSITS
+const permissions = userPermissions ?? {};
 
-const canWithdraw =
-  (userPermissions as any)?.PROCESS_WITHDRAWALS
+const canDeposit = Boolean(
+  (permissions as any).PROCESS_DEPOSITS
+);
 
-/* ============================================================
-   COLORS / STATUS — matches OverviewTab's STATUS_COLOR
-============================================================ */
+const canWithdraw = Boolean(
+  (permissions as any).PROCESS_WITHDRAWALS
+);
+
+const canCreateCustomer = Boolean(
+  (permissions as any).CUSTOMER_CREATE
+);
+
+const canProcessTransactions = Boolean(
+  (permissions as any).PROCESS_TRANSACTIONS
+);
 
 const statusColor: Record<string, string> = {
   completed: 'var(--forest)',
@@ -252,6 +260,15 @@ const [transactionModalType, setTransactionModalType] = useState<
     setEditingTransaction(null);
   };
 
+    if (!userPermissions) {
+    window.location.reload()
+  };
+
+   if (userRole === 'Momo Agent'){
+      navigate('/dashboard/momo-agent')
+    }
+
+
   const handleEditClient = (
     updatedClient: Customer
   ) => {
@@ -291,7 +308,7 @@ const [transactionModalType, setTransactionModalType] = useState<
         <div className="grid grid-cols-2 gap-3">
 
           {/* ADD CUSTOMER */}
-          {userPermissions.CUSTOMER_CREATE && (
+          {canCreateCustomer && ( 
             <button
               type="button"
               onClick={() =>
@@ -455,7 +472,7 @@ const [transactionModalType, setTransactionModalType] = useState<
           )}
 
           {/* BULK TRANSACTION */}
-          {userPermissions.PROCESS_TRANSACTIONS && (
+          {canProcessTransactions && (
             <button
               type="button"
               onClick={() =>
