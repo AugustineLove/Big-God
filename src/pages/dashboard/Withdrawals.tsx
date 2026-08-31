@@ -22,6 +22,10 @@ import { useAccounts } from '../../contexts/dashboard/Account';
 import { useTabContext } from '../../layouts/DashboardLayout';
 import { useStaff } from '../../contexts/dashboard/Staff';
 
+// Adjust this path to wherever the shared passbook theme lives — same
+// file used by CustomerDetailsPage and StaffManagement.
+import './Components/CustomerDetails/theme.css';
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface PaginationMeta {
@@ -38,7 +42,7 @@ interface FilterState {
   withdrawalType: string;
 }
 
-// ─── Payment Method Icons ─────────────────────────────────────────────────────
+// ─── Payment Method Icons / Colors ─────────────────────────────────────────────
 
 const getPaymentMethodIcon = (method: string) => {
   switch (method?.toLowerCase()) {
@@ -53,16 +57,35 @@ const getPaymentMethodIcon = (method: string) => {
   }
 };
 
-const getPaymentMethodColor = (method: string) => {
+// Tokenized replacement for the old bg-*/text-* Tailwind pairs — each
+// method gets a background + matching text color pulled from the theme.
+const getPaymentMethodStyle = (method: string): React.CSSProperties => {
   switch (method?.toLowerCase()) {
     case 'momo':
-      return 'bg-purple-100 text-purple-700';
+      return { background: 'var(--brass-soft)', color: '#8a6224' };
     case 'bank':
-      return 'bg-blue-100 text-blue-700';
+      return { background: 'rgba(62,97,66,0.12)', color: 'var(--forest-mid)' };
     case 'cash':
-      return 'bg-emerald-100 text-emerald-700';
+      return { background: 'rgba(47,74,50,0.1)', color: 'var(--forest)' };
     default:
-      return 'bg-gray-100 text-gray-700';
+      return { background: 'var(--paper)', color: 'var(--ink-soft)' };
+  }
+};
+
+const getStatusStyle = (status: string): React.CSSProperties => {
+  switch (status) {
+    case 'pending':
+      return { background: 'var(--brass-soft)', color: '#8a6224' };
+    case 'approved':
+      return { background: 'rgba(62,97,66,0.12)', color: 'var(--forest-mid)' };
+    case 'completed':
+      return { background: 'rgba(47,74,50,0.1)', color: 'var(--forest)' };
+    case 'rejected':
+      return { background: 'var(--clay-soft)', color: 'var(--clay)' };
+    case 'reversed':
+      return { background: 'var(--brass-soft)', color: 'var(--brass)' };
+    default:
+      return { background: 'var(--paper)', color: 'var(--ink-soft)' };
   }
 };
 
@@ -97,20 +120,20 @@ const Pagination: React.FC<PaginationProps> = ({ meta, currentPage, loading, onP
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm">
-      <p className="text-sm text-gray-600 whitespace-nowrap">
-        Page <span className="font-semibold text-gray-900">{currentPage}</span> of{' '}
-        <span className="font-semibold text-gray-900">{meta.totalPages}</span>
-        <span className="text-gray-400 mx-1">·</span>
-        <span className="font-semibold text-gray-900">{meta.total}</span> total withdrawals
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-[var(--card)] border border-[var(--paper-line)] rounded-xl">
+      <p className="text-sm text-[var(--ink-soft)] whitespace-nowrap">
+        Page <span className="cd-mono font-semibold text-[var(--ink)]">{currentPage}</span> of{' '}
+        <span className="cd-mono font-semibold text-[var(--ink)]">{meta.totalPages}</span>
+        <span className="text-[var(--ink-faint)] mx-1">·</span>
+        <span className="cd-mono font-semibold text-[var(--ink)]">{meta.total}</span> total withdrawals
       </p>
 
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1 || loading}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg
-                     hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-[var(--paper-line)] rounded-lg
+                     text-[var(--ink-soft)] hover:bg-[var(--paper)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft className="h-4 w-4" />
           Prev
@@ -119,17 +142,18 @@ const Pagination: React.FC<PaginationProps> = ({ meta, currentPage, loading, onP
         <div className="flex items-center gap-1">
           {getPageNumbers().map((page, i) =>
             page === 'ellipsis' ? (
-              <span key={`ellipsis-${i}`} className="w-9 text-center text-gray-400 text-sm">…</span>
+              <span key={`ellipsis-${i}`} className="w-9 text-center text-[var(--ink-faint)] text-sm">…</span>
             ) : (
               <button
                 key={page}
                 onClick={() => onPageChange(page as number)}
                 disabled={loading}
-                className={`w-9 h-9 text-sm font-medium rounded-lg border transition-colors
-                  ${page === currentPage
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  } disabled:cursor-not-allowed`}
+                className="cd-mono w-9 h-9 text-sm font-medium rounded-lg border transition-colors disabled:cursor-not-allowed"
+                style={
+                  page === currentPage
+                    ? { background: 'var(--forest)', color: '#fff', borderColor: 'var(--forest)' }
+                    : { borderColor: 'var(--paper-line)', color: 'var(--ink-soft)' }
+                }
               >
                 {page}
               </button>
@@ -140,8 +164,8 @@ const Pagination: React.FC<PaginationProps> = ({ meta, currentPage, loading, onP
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= meta.totalPages || loading}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg
-                     hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-[var(--paper-line)] rounded-lg
+                     text-[var(--ink-soft)] hover:bg-[var(--paper)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Next
           <ChevronRight className="h-4 w-4" />
@@ -157,24 +181,31 @@ interface StatCardProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  color: string;
+  accent: 'brass' | 'forest';
   subtitle?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color, subtitle }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm text-gray-600">{title}</p>
-        <p className={`text-2xl font-bold ${color}`}>{value}</p>
-        {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
-      </div>
-      <div className={`${color.replace('text', 'bg')} bg-opacity-10 p-3 rounded-lg`}>
-        {icon}
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, accent, subtitle }) => {
+  const valueColor = accent === 'brass' ? '#8a6224' : 'var(--forest)';
+  const chipBg = accent === 'brass' ? 'var(--brass-soft)' : 'rgba(47,74,50,0.1)';
+
+  return (
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--paper-line)] p-5 sm:p-6 hover:shadow-[0_10px_24px_-16px_rgba(20,32,20,0.4)] transition-shadow">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-[var(--ink-soft)]">{title}</p>
+          <p className="cd-display text-2xl font-medium mt-0.5" style={{ color: valueColor }}>
+            {value}
+          </p>
+          {subtitle && <p className="text-xs text-[var(--ink-faint)] mt-1">{subtitle}</p>}
+        </div>
+        <div className="p-3 rounded-xl" style={{ background: chipBg, color: valueColor }}>
+          {icon}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
@@ -203,14 +234,14 @@ const Withdrawals: React.FC = () => {
   const [commissionTransactionId, setCommissionTransactionId] = useState('');
   const [commissionFormData, setCommissionFormData] = useState<FormDataState>({ amount: 0 });
   const { openInNewTab } = useTabContext();
-  
+
   // ── Action locks ─────────────────────────────────────────────────────────
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
-  
+
   const { dashboardStaffList } = useStaff();
-  
+
   // ── Debounce ref ──────────────────────────────────────────────────────────
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -238,7 +269,7 @@ const Withdrawals: React.FC = () => {
         payment_method: currentFilters.paymentMethod !== 'all' ? currentFilters.paymentMethod : undefined,
         withdrawal_type: currentFilters.withdrawalType !== 'all' ? currentFilters.withdrawalType : undefined,
       };
-      
+
       // Handle date range
       if (currentFilters.dateRange !== 'all') {
         const now = new Date();
@@ -260,7 +291,7 @@ const Withdrawals: React.FC = () => {
         apiFilters.start_date = startDate.toISOString();
         apiFilters.end_date = now.toISOString();
       }
-      
+
       const meta = await fetchWithdrawals(String(page), 20, apiFilters);
       if (meta) {
         setPaginationMeta({
@@ -307,16 +338,16 @@ const Withdrawals: React.FC = () => {
         !w.account_number?.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
-    
+
     // Status filter
     if (filters.status !== 'all' && w.status !== filters.status) return false;
-    
+
     // Payment method filter
     if (filters.paymentMethod !== 'all' && w.payment_method !== filters.paymentMethod) return false;
-    
+
     // Withdrawal type filter
     if (filters.withdrawalType !== 'all' && w.withdrawal_type !== filters.withdrawalType) return false;
-    
+
     return true;
   });
 
@@ -352,7 +383,7 @@ const Withdrawals: React.FC = () => {
     setIsApproving(true);
     const toastId = toast.loading('Approving transaction...');
     const tellers = dashboardStaffList?.filter(staff => staff.role === "teller");
-    
+
     try {
       const approvalSuccess = await approveTransaction(
         withdrawalId,
@@ -389,7 +420,7 @@ const Withdrawals: React.FC = () => {
         if (withdrawalType === 'commission') {
           setShowCommissionModal(true);
         }
-        
+
         // Refresh data
         doFetch(currentPage, filters);
       } else {
@@ -406,14 +437,14 @@ const Withdrawals: React.FC = () => {
   // ── Reject ────────────────────────────────────────────────────────────────
   const handleReject = async (withdrawalId: string, withdrawal: TransactionType) => {
     if (isRejecting) return;
-    
+
     // Custom confirmation dialog
     const userConfirmed = window.confirm(
       `Are you sure you want to reject this withdrawal request for ${withdrawal.customer_name}?\n\nAmount: GHS${Number(withdrawal.amount).toLocaleString()}\n\nThis action cannot be undone.`
     );
-    
+
     if (!userConfirmed) return;
-    
+
     setIsRejecting(true);
     const toastId = toast.loading('Rejecting transaction...');
     try {
@@ -431,7 +462,7 @@ const Withdrawals: React.FC = () => {
   // ── Finalize ──────────────────────────────────────────────────────────────
   const handleFinalize = async (withdrawalId: string) => {
     if (isFinalizing) return;
-    
+
     setIsFinalizing(true);
     const toastId = toast.loading('Finalizing transaction...');
     try {
@@ -451,9 +482,9 @@ const Withdrawals: React.FC = () => {
     const confirmed = window.confirm(
       `Are you sure you want to reverse this withdrawal for ${customerName}?\n\nThis will restore the amount to the customer's account.`
     );
-    
+
     if (!confirmed) return;
-    
+
     const toastId = toast.loading('Reversing transaction...');
     try {
       await reverseTransaction(userUUID, withdrawalId, 'Wrong amount paid');
@@ -504,12 +535,12 @@ const Withdrawals: React.FC = () => {
       'Account Number': w.account_number,
       'Withdrawal Type': w.withdrawal_type || 'N/A',
     }));
-    
+
     const csv = [
       Object.keys(exportData[0] || {}).join(','),
       ...exportData.map(row => Object.values(row).join(','))
     ].join('\n');
-    
+
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -541,17 +572,6 @@ const Withdrawals: React.FC = () => {
   };
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':   return 'bg-yellow-100 text-yellow-800';
-      case 'approved':  return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'rejected':  return 'bg-red-100 text-red-800';
-      case 'reversed':  return 'bg-orange-100 text-orange-800';
-      default:          return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'approved':
@@ -561,27 +581,33 @@ const Withdrawals: React.FC = () => {
     }
   };
 
+  const fieldClass =
+    'border border-[var(--paper-line)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--forest-mid)] focus:border-[var(--forest-mid)] bg-[var(--card)] text-[var(--ink)] text-sm';
+
+  const money = (amount: number) =>
+    `¢${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="cd-root space-y-5 sm:space-y-6">
 
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Withdrawals</h1>
-          <p className="text-gray-600">Manage and process client withdrawal requests</p>
+          <h1 className="cd-display text-2xl sm:text-3xl font-semibold text-[var(--ink)]">Withdrawals</h1>
+          <p className="text-[var(--ink-soft)] text-sm mt-0.5">Manage and process client withdrawal requests</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 border border-[var(--paper-line)] rounded-xl text-[var(--ink-soft)] hover:bg-[var(--paper)] transition-colors text-sm font-medium"
           >
             <Download className="h-4 w-4" />
             Export
           </button>
           <button
             onClick={() => doFetch(currentPage, filters)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--forest)] text-white rounded-xl hover:bg-[var(--forest-deep)] transition-colors text-sm font-medium"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -591,49 +617,49 @@ const Withdrawals: React.FC = () => {
 
       {/* ── Stats Cards ── */}
       {userPermissions.VIEW_BRIEFING && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <StatCard
-            title="Pending Requests"
+            title="Pending requests"
             value={pendingWithdrawals.length}
-            icon={<Clock className="h-6 w-6 text-yellow-600" />}
-            color="text-yellow-600"
+            icon={<Clock className="h-5 w-5 sm:h-6 sm:w-6" />}
+            accent="brass"
             subtitle="Awaiting approval"
           />
           <StatCard
-            title="Pending Amount"
-            value={`¢${totalPendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            icon={<DollarSign className="h-6 w-6 text-yellow-600" />}
-            color="text-yellow-600"
+            title="Pending amount"
+            value={money(totalPendingAmount)}
+            icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />}
+            accent="brass"
           />
           <StatCard
-            title="Approved This Month"
+            title="Approved this month"
             value={approvedWithdrawalsThisMonth.length}
-            icon={<CheckCircle className="h-6 w-6 text-green-600" />}
-            color="text-green-600"
+            icon={<CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />}
+            accent="forest"
           />
           <StatCard
-            title="Total Approved"
-            value={`¢${totalApprovedAmount.toLocaleString()}`}
-            icon={<Eye className="h-6 w-6 text-green-600" />}
-            color="text-green-600"
+            title="Total approved"
+            value={money(totalApprovedAmount)}
+            icon={<Eye className="h-5 w-5 sm:h-6 sm:w-6" />}
+            accent="forest"
           />
         </div>
       )}
 
       {/* ── Filters Section ── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-[var(--card)] rounded-2xl border border-[var(--paper-line)] p-4 sm:p-6">
         <div className="flex flex-col gap-4">
           {/* Primary filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)] h-5 w-5" />
                 <input
                   type="text"
                   placeholder="Search by name, code, account number or reason..."
                   value={filters.search}
                   onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border border-[var(--paper-line)] rounded-xl bg-[var(--paper)] text-sm text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:ring-2 focus:ring-[var(--forest-mid)] focus:border-[var(--forest-mid)] transition-all"
                 />
               </div>
             </div>
@@ -641,9 +667,9 @@ const Withdrawals: React.FC = () => {
               <select
                 value={filters.status}
                 onChange={e => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                className="border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                className="border border-[var(--paper-line)] rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[var(--forest-mid)] bg-[var(--card)] text-sm text-[var(--ink-soft)]"
               >
-                <option value="all">All Status</option>
+                <option value="all">All status</option>
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
                 <option value="completed">Completed</option>
@@ -652,15 +678,19 @@ const Withdrawals: React.FC = () => {
               </select>
               <button
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className={`flex items-center gap-2 px-4 py-2.5 border rounded-lg transition-colors
-                  ${showAdvancedFilters ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                className="flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-colors text-sm font-medium"
+                style={
+                  showAdvancedFilters
+                    ? { background: 'rgba(47,74,50,0.08)', borderColor: 'var(--forest-mid)', color: 'var(--forest)' }
+                    : { borderColor: 'var(--paper-line)', color: 'var(--ink-soft)' }
+                }
               >
                 <Filter className="h-4 w-4" />
                 Filters
               </button>
               <button
                 onClick={resetFilters}
-                className="px-4 py-2.5 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2.5 text-[var(--ink-soft)] hover:text-[var(--ink)] border border-[var(--paper-line)] rounded-xl hover:bg-[var(--paper)] transition-colors text-sm font-medium"
               >
                 Reset
               </button>
@@ -669,44 +699,44 @@ const Withdrawals: React.FC = () => {
 
           {/* Advanced filters */}
           {showAdvancedFilters && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-dashed border-[var(--paper-line)]">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Payment Method</label>
+                <label className="block text-xs font-medium text-[var(--ink-faint)] mb-1.5">Payment method</label>
                 <select
                   value={filters.paymentMethod}
                   onChange={e => setFilters(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  className={`w-full ${fieldClass}`}
                 >
-                  <option value="all">All Methods</option>
+                  <option value="all">All methods</option>
                   <option value="cash">Cash</option>
-                  <option value="momo">Mobile Money</option>
-                  <option value="bank">Bank Transfer</option>
+                  <option value="momo">Mobile money</option>
+                  <option value="bank">Bank transfer</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Withdrawal Type</label>
+                <label className="block text-xs font-medium text-[var(--ink-faint)] mb-1.5">Withdrawal type</label>
                 <select
                   value={filters.withdrawalType}
                   onChange={e => setFilters(prev => ({ ...prev, withdrawalType: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  className={`w-full ${fieldClass}`}
                 >
-                  <option value="all">All Types</option>
+                  <option value="all">All types</option>
                   <option value="advance">Advance</option>
                   <option value="commission">Commission</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Date Range</label>
+                <label className="block text-xs font-medium text-[var(--ink-faint)] mb-1.5">Date range</label>
                 <select
                   value={filters.dateRange}
                   onChange={e => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  className={`w-full ${fieldClass}`}
                 >
-                  <option value="all">All Time</option>
+                  <option value="all">All time</option>
                   <option value="today">Today</option>
-                  <option value="week">Last 7 Days</option>
-                  <option value="month">Last 30 Days</option>
-                  <option value="quarter">Last 90 Days</option>
+                  <option value="week">Last 7 days</option>
+                  <option value="month">Last 30 days</option>
+                  <option value="quarter">Last 90 days</option>
                 </select>
               </div>
             </div>
@@ -715,45 +745,218 @@ const Withdrawals: React.FC = () => {
       </div>
 
       {/* ── Results count ── */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          Showing <span className="font-semibold text-gray-900">{filteredWithdrawals.length}</span> of{' '}
-          <span className="font-semibold text-gray-900">{withdrawals.length}</span> withdrawals
-        </p>
-      </div>
+      <p className="text-sm text-[var(--ink-faint)]">
+        Showing <span className="cd-mono font-semibold text-[var(--ink)]">{filteredWithdrawals.length}</span> of{' '}
+        <span className="cd-mono font-semibold text-[var(--ink)]">{withdrawals.length}</span> withdrawals
+      </p>
 
       {/* ── Loading state ── */}
       {loading && (
-        <div className="flex items-center justify-center py-8 bg-white border border-gray-200 rounded-xl">
-          <div className="h-6 w-6 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin mr-3" />
-          <span className="text-sm text-gray-500">Loading withdrawals…</span>
+        <div className="flex items-center justify-center py-8 bg-[var(--card)] border border-[var(--paper-line)] rounded-2xl">
+          <div
+            className="h-6 w-6 rounded-full border-2 border-t-transparent animate-spin mr-3"
+            style={{ borderColor: 'var(--forest)', borderTopColor: 'transparent' }}
+          />
+          <span className="text-sm text-[var(--ink-faint)]">Loading withdrawals…</span>
         </div>
       )}
 
-      {/* ── Table ── */}
-      {!loading && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Request Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Processing</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredWithdrawals.length > 0 ? (
-                  filteredWithdrawals.map((withdrawal) => (
-                    <tr key={withdrawal.transaction_id} className="hover:bg-gray-50 transition-colors group">
+      {/* ── Empty state (shared by table + mobile list) ── */}
+      {!loading && filteredWithdrawals.length === 0 && (
+        <div className="bg-[var(--card)] border border-[var(--paper-line)] rounded-2xl px-6 py-14 text-center">
+          <div className="w-16 h-16 bg-[var(--paper)] rounded-full flex items-center justify-center mb-4 mx-auto">
+            <XCircle className="h-8 w-8 text-[var(--ink-faint)]" />
+          </div>
+          <h3 className="cd-display text-lg font-medium text-[var(--ink)] mb-1.5">No withdrawals found</h3>
+          <p className="text-[var(--ink-soft)] text-sm">
+            {filters.search || filters.status !== 'all' || filters.paymentMethod !== 'all'
+              ? 'Try adjusting your filters to see more results'
+              : 'No withdrawal requests available at this time'}
+          </p>
+          {(filters.search || filters.status !== 'all' || filters.paymentMethod !== 'all') && (
+            <button
+              onClick={resetFilters}
+              className="mt-4 text-sm font-medium"
+              style={{ color: 'var(--forest)' }}
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Withdrawal action buttons (shared render fn) ── */}
+      {!loading && filteredWithdrawals.length > 0 && (
+        <>
+          {/* Mobile: stacked ledger cards */}
+          <div className="md:hidden space-y-3">
+            {filteredWithdrawals.map((withdrawal) => (
+              <div
+                key={withdrawal.transaction_id}
+                className="bg-[var(--card)] border border-[var(--paper-line)] rounded-2xl p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div
+                    onClick={() =>
+                      openInNewTab(
+                        withdrawal.customer_name,
+                        `/dashboard/clients/customer-details/${withdrawal.customer_id}`,
+                        Users
+                      )
+                    }
+                    className="flex items-center gap-3 min-w-0 cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-[var(--brass-soft)] flex items-center justify-center shrink-0">
+                      <span className="cd-mono text-[var(--forest-deep)] font-semibold text-sm">
+                        {withdrawal.customer_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-[var(--ink)] truncate">
+                        {withdrawal.customer_name}
+                      </div>
+                      <div className="cd-mono text-[11px] text-[var(--ink-faint)] truncate">
+                        {withdrawal.account_number}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="cd-mono text-base font-bold text-[var(--ink)]">{money(withdrawal.amount)}</div>
+                    {withdrawal.withdrawal_type && (
+                      <span
+                        className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded mt-1"
+                        style={{ background: 'var(--brass-soft)', color: '#8a6224' }}
+                      >
+                        {withdrawal.withdrawal_type}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mt-3">
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                    style={getPaymentMethodStyle(withdrawal.payment_method)}
+                  >
+                    {getPaymentMethodIcon(withdrawal.payment_method)}
+                    {withdrawal.payment_method || 'CASH'}
+                  </span>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-full"
+                    style={getStatusStyle(withdrawal.status)}
+                  >
+                    {getStatusIcon(withdrawal.status)}
+                    {withdrawal.status}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-[var(--ink-faint)] mt-2">
+                  {new Date(withdrawal.transaction_date).toLocaleDateString()} ·{' '}
+                  {new Date(withdrawal.transaction_date).toLocaleTimeString()} ·{' '}
+                  {withdrawal.recorded_staff_name}
+                </p>
+
+                {/* Actions */}
+                <div className="mt-3 pt-3 border-t border-dashed border-[var(--paper-line)]">
+                  {withdrawal.status === 'pending' && withdrawal.processing_status === 'paid' && (
+                    <div className="flex gap-2">
+                      <button
+                        disabled={isApproving}
+                        onClick={() => {
+                          setCommissionData(withdrawal);
+                          handleApproveClick(
+                            withdrawal.transaction_id,
+                            withdrawal.withdrawal_type,
+                            withdrawal.customer_phone,
+                            withdrawal.customer_name,
+                            withdrawal.amount.toLocaleString(),
+                            withdrawal.customer_id,
+                            withdrawal.account_id,
+                            withdrawal.account_type,
+                            withdrawal.account_number
+                          );
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                        style={{ background: 'var(--forest)' }}
+                      >
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Approve
+                      </button>
+                      <button
+                        disabled={isRejecting}
+                        onClick={() => handleReject(withdrawal.transaction_id, withdrawal)}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                        style={{ background: 'var(--clay)' }}
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        Reject
+                      </button>
+                    </div>
+                  )}
+
+                  {withdrawal.status === 'pending' && withdrawal.processing_status === 'pending' && (
+                    <div className="flex flex-col gap-2">
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full w-fit"
+                        style={{ background: 'var(--brass-soft)', color: '#8a6224' }}
+                      >
+                        <Clock className="h-3 w-3" />
+                        Pending confirmation
+                      </span>
+                      <button
+                        disabled={isRejecting}
+                        onClick={() => handleReject(withdrawal.transaction_id, withdrawal)}
+                        className="flex items-center justify-center gap-1 px-3 py-2 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                        style={{ background: 'var(--clay)' }}
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        Reject
+                      </button>
+                    </div>
+                  )}
+
+                  {withdrawal.status === 'approved' && userPermissions?.MANAGE_CASHACCOUNTS && (
+                    <button
+                      onClick={() => handleReverse(withdrawal.transaction_id, withdrawal.customer_name)}
+                      className="w-full flex items-center justify-center gap-1 px-3 py-2 text-white rounded-lg text-xs font-medium transition-colors"
+                      style={{ background: 'var(--brass)' }}
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                      Reverse
+                    </button>
+                  )}
+
+                  {((withdrawal.status === 'approved' && withdrawal.processing_status === 'paid' && !userPermissions?.MANAGE_CASHACCOUNTS) ||
+                    withdrawal.status === 'rejected' || withdrawal.status === 'reversed') && (
+                    <span className="text-xs text-[var(--ink-faint)]">No actions available</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop / tablet: table */}
+          <div className="hidden md:block bg-[var(--card)] rounded-2xl border border-[var(--paper-line)] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[var(--paper)] border-b border-[var(--paper-line)]">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wider">Client</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wider">Payment</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wider">Request date</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wider">Processing</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--paper-line)]">
+                  {filteredWithdrawals.map((withdrawal) => (
+                    <tr key={withdrawal.transaction_id} className="hover:bg-[var(--paper)] transition-colors group">
                       {/* Client */}
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div 
+                          <div
                             onClick={() =>
                               openInNewTab(
                                 withdrawal.customer_name,
@@ -761,9 +964,9 @@ const Withdrawals: React.FC = () => {
                                 Users
                               )
                             }
-                            className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-full flex items-center justify-center shrink-0 cursor-pointer hover:from-indigo-200 hover:to-indigo-300 transition-all"
+                            className="w-10 h-10 bg-[var(--brass-soft)] rounded-full flex items-center justify-center shrink-0 cursor-pointer hover:brightness-95 transition-all"
                           >
-                            <span className="text-indigo-700 font-semibold text-sm">
+                            <span className="cd-mono text-[var(--forest-deep)] font-semibold text-sm">
                               {withdrawal.customer_name
                                 .split(" ")
                                 .map((n) => n[0])
@@ -773,13 +976,13 @@ const Withdrawals: React.FC = () => {
                             </span>
                           </div>
                           <div className="ml-3">
-                            <div className="text-sm font-semibold text-gray-900">
+                            <div className="text-sm font-semibold text-[var(--ink)]">
                               {withdrawal.customer_name}
                             </div>
-                            <div className="text-xs text-gray-500 font-mono">
+                            <div className="cd-mono text-xs text-[var(--ink-faint)]">
                               {withdrawal.account_number}
                             </div>
-                            <div className="text-xs text-gray-400 mt-0.5">
+                            <div className="text-xs text-[var(--ink-faint)] mt-0.5">
                               {withdrawal.recorded_staff_name}
                             </div>
                           </div>
@@ -788,13 +991,14 @@ const Withdrawals: React.FC = () => {
 
                       {/* Amount */}
                       <td className="px-6 py-4">
-                        <div className="text-base font-bold text-gray-900">
-                          ¢{Number(withdrawal.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <div className="cd-mono text-base font-bold text-[var(--ink)]">
+                          {money(withdrawal.amount)}
                         </div>
                         {withdrawal.withdrawal_type && (
-                          <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded mt-1 ${
-                            withdrawal.withdrawal_type === 'commission' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'
-                          }`}>
+                          <span
+                            className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded mt-1"
+                            style={{ background: 'var(--brass-soft)', color: '#8a6224' }}
+                          >
                             {withdrawal.withdrawal_type}
                           </span>
                         )}
@@ -802,7 +1006,10 @@ const Withdrawals: React.FC = () => {
 
                       {/* Payment Method */}
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${getPaymentMethodColor(withdrawal.payment_method)}`}>
+                        <span
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+                          style={getPaymentMethodStyle(withdrawal.payment_method)}
+                        >
                           {getPaymentMethodIcon(withdrawal.payment_method)}
                           {withdrawal.payment_method || "CASH"}
                         </span>
@@ -810,17 +1017,20 @@ const Withdrawals: React.FC = () => {
 
                       {/* Date */}
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-[var(--ink-soft)]">
                           {new Date(withdrawal.transaction_date).toLocaleDateString()}
                         </div>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-[var(--ink-faint)]">
                           {new Date(withdrawal.transaction_date).toLocaleTimeString()}
                         </div>
                       </td>
 
                       {/* Status */}
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusColor(withdrawal.status)}`}>
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full"
+                          style={getStatusStyle(withdrawal.status)}
+                        >
                           {getStatusIcon(withdrawal.status)}
                           {withdrawal.status}
                         </span>
@@ -829,26 +1039,29 @@ const Withdrawals: React.FC = () => {
                       {/* Processing Status */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
-                            withdrawal.processing_status === "pending"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : withdrawal.processing_status === "paid"
-                              ? "bg-green-100 text-green-700"
-                              : withdrawal.processing_status === "failed"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}>
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full w-fit"
+                            style={
+                              withdrawal.processing_status === 'pending'
+                                ? { background: 'var(--brass-soft)', color: '#8a6224' }
+                                : withdrawal.processing_status === 'paid'
+                                ? { background: 'rgba(47,74,50,0.1)', color: 'var(--forest)' }
+                                : withdrawal.processing_status === 'failed'
+                                ? { background: 'var(--clay-soft)', color: 'var(--clay)' }
+                                : { background: 'var(--paper)', color: 'var(--ink-soft)' }
+                            }
+                          >
                             {withdrawal.processing_status === "pending" && <Clock className="h-3 w-3" />}
                             {withdrawal.processing_status === "paid" && <Send className="h-3 w-3" />}
                             {withdrawal.processing_status || "N/A"}
                           </span>
                           {withdrawal.agent_note && (
-                            <span className="text-[10px] text-gray-400 font-mono">
+                            <span className="cd-mono text-[10px] text-[var(--ink-faint)]">
                               Ref: {withdrawal.agent_note.slice(0, 25)}...
                             </span>
                           )}
                           {withdrawal.processed_at && (
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-[10px] text-[var(--ink-faint)]">
                               {new Date(withdrawal.processed_at).toLocaleString()}
                             </span>
                           )}
@@ -876,7 +1089,8 @@ const Withdrawals: React.FC = () => {
                                   withdrawal.account_number
                                 );
                               }}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                              className="flex items-center gap-1 px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                              style={{ background: 'var(--forest)' }}
                             >
                               <CheckCircle className="h-3.5 w-3.5" />
                               Approve
@@ -884,7 +1098,8 @@ const Withdrawals: React.FC = () => {
                             <button
                               disabled={isRejecting}
                               onClick={() => handleReject(withdrawal.transaction_id, withdrawal)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                              className="flex items-center gap-1 px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                              style={{ background: 'var(--clay)' }}
                             >
                               <XCircle className="h-3.5 w-3.5" />
                               Reject
@@ -895,14 +1110,18 @@ const Withdrawals: React.FC = () => {
                         {/* Approved & Waiting for agent - Show Reject (but not Approve) */}
                         {withdrawal.status === "pending" && withdrawal.processing_status === "pending" && (
                           <div className="flex flex-col gap-2">
-                            <span className="inline-flex items-center gap-1 text-yellow-600 text-xs font-medium bg-yellow-50 px-2 py-1 rounded-full">
+                            <span
+                              className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full w-fit"
+                              style={{ background: 'var(--brass-soft)', color: '#8a6224' }}
+                            >
                               <Clock className="h-3 w-3" />
                               Pending confirmation
                             </span>
                             <button
                               disabled={isRejecting}
                               onClick={() => handleReject(withdrawal.transaction_id, withdrawal)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                              className="flex items-center gap-1 px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                              style={{ background: 'var(--clay)' }}
                             >
                               <XCircle className="h-3.5 w-3.5" />
                               Reject
@@ -910,23 +1129,12 @@ const Withdrawals: React.FC = () => {
                           </div>
                         )}
 
-                        {/* Approved & paid - Show Finalize */}
-                        {/* {withdrawal.status === "approved" && withdrawal.processing_status === "paid" && (
-                          <button
-                            disabled={isFinalizing}
-                            onClick={() => handleFinalize(withdrawal.transaction_id)}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                          >
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Finalize
-                          </button>
-                        )} */}
-
                         {/* Completed - Show Reverse */}
                         {withdrawal.status === "approved" && userPermissions?.MANAGE_CASHACCOUNTS && (
                           <button
                             onClick={() => handleReverse(withdrawal.transaction_id, withdrawal.customer_name)}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-orange-600 text-white rounded-lg text-xs font-medium hover:bg-orange-700 transition-colors"
+                            className="flex items-center gap-1 px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors"
+                            style={{ background: 'var(--brass)' }}
                           >
                             <Undo2 className="h-3.5 w-3.5" />
                             Reverse
@@ -935,45 +1143,19 @@ const Withdrawals: React.FC = () => {
 
                         {/* Rejected/Reversed - Show nothing or view details */}
                         {withdrawal.status === "approved" && withdrawal.processing_status === "paid" && !userPermissions?.MANAGE_CASHACCOUNTS && (
-                          <span className="text-xs text-gray-400">No actions available</span>
+                          <span className="text-xs text-[var(--ink-faint)]">No actions available</span>
                         )}
                         {(withdrawal.status === "rejected" || withdrawal.status === "reversed") && (
-                          <span className="text-xs text-gray-400">No actions available</span>
+                          <span className="text-xs text-[var(--ink-faint)]">No actions available</span>
                         )}
                        </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                          <XCircle className="h-8 w-8 text-gray-400" />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                          No withdrawals found
-                        </h3>
-                        <p className="text-gray-500">
-                          {filters.search || filters.status !== 'all' || filters.paymentMethod !== 'all'
-                            ? "Try adjusting your filters to see more results"
-                            : "No withdrawal requests available at this time"}
-                        </p>
-                        {(filters.search || filters.status !== 'all' || filters.paymentMethod !== 'all') && (
-                          <button
-                            onClick={resetFilters}
-                            className="mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-                          >
-                            Clear all filters
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* ── Pagination ── */}
