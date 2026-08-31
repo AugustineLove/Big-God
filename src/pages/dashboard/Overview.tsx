@@ -46,7 +46,7 @@ const canDeposit = Boolean(
 );
 
 const canWithdraw = Boolean(
-  (permissions as any).PROCESS_WITHDRAWALS
+  (permissions as any).PROCESS_WITHDRAWAL
 );
 
 const canCreateCustomer = Boolean(
