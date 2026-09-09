@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Save, Shield, AlertTriangle, Edit, Trash2, Users, UserPlus, Search, Building2, Verified } from 'lucide-react';
+import { X, Save, Shield, AlertTriangle, Edit, Trash2, Users, UserPlus, Search, Building2, Verified, ClipboardCheck } from 'lucide-react';
 import { useStaff } from '../../../contexts/dashboard/Staff';
 import {  User, ArrowUpDown, FileText, CreditCard,
   RefreshCcw, UserCog, DollarSign, PlusCircle,
@@ -509,7 +509,9 @@ const OtherStaffTab = () => {
             { key: 'CUSTOMER_CREATE',       label: 'Create Customer',       descl: 'Can create new customers',                 icon: <User className='w-3.5 h-3.5' />},
             { key: 'DELETE_CUSTOMER',       label: 'Delete customer',       desc: 'Remove customers from the system',          icon: <Trash2 className="w-3.5 h-3.5" /> },
             { key: 'PROCESS_DEPOSITS',      label: 'Process Deposits',      desc: 'Stake amount into customer account',        icon: <DollarSign className="w-3.5 h-3.5" />},
-            { key: 'PROCESS_WITHDRAWAL',    label: 'Process Withdrawals',   desc: 'Can withdraw from customer account',        icon: <DollarSign className="w-3.5 h-3.5" />}
+            { key: 'PROCESS_WITHDRAWAL',    label: 'Process Withdrawals',   desc: 'Can withdraw from customer account',        icon: <DollarSign className="w-3.5 h-3.5" />},
+            { key: 'FIELD_SHEET_ENTRY',      label: 'Field sheet entry',     desc: 'Can enter field sheet data',                 icon: <FileText className="w-3.5 h-3.5" />},
+            { key: 'FIELD_SHEET_APPROVE',    label: 'Approve field sheets',  desc: 'Can approve field sheet entries',           icon: <ClipboardCheck className="w-3.5 h-3.5" />},
           ].map((perm) => {
             const enabled = permissionsForm[perm.key] || false;
             return (

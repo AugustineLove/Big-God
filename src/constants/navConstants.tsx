@@ -28,6 +28,8 @@ import {
   ArrowUpDownIcon,
   Calendar,
   Settings,
+  NotebookPen,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { userPermissions, userRole } from "./appConstants";
@@ -107,6 +109,26 @@ export const buildNavigation = () => {
       name: "Withdrawals",
       href: "/dashboard/withdrawals",
       icon: ArrowLeftRight,
+    },
+
+    (can("FIELD_SHEET_ENTRY") || can("FIELD_SHEET_APPROVE")) && {
+      name: "Field Sheets",
+      href: "/dashboard/field-sheets",
+      icon: NotebookPen,
+
+      children: [
+        can("FIELD_SHEET_ENTRY") && {
+          name: "New Entry Sheet",
+          tab: "entry",
+          icon: NotebookPen,
+        },
+
+        can("FIELD_SHEET_APPROVE") && {
+          name: "Approve Sheets",
+          tab: "approvals",
+          icon: ClipboardCheck,
+        },
+      ].filter(Boolean),
     },
 
     {

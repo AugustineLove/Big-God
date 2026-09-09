@@ -68,6 +68,8 @@ import AccountingNavDashboard from './pages/dashboard/accounting/AccountingNavDa
 import CashVarianceModule from './pages/dashboard/CashVarianceModule';
 import TellerFloatDetails from './pages/dashboard/TellerFloatDetails';
 import DailyCollectionReport from './pages/dashboard/DailyCollectionReport';
+import FieldEntrySheet from './pages/dashboard/Components/FieldEntrySheet';
+import FieldSheetsPage from './pages/dashboard/FieldSheetsPage';
 
 function App() {
   return (
@@ -141,6 +143,7 @@ function App() {
           }>
             <Route index element={<Overview />} />
             <Route path="clients" element={<CustomerDashboard />} />
+            <Route path="field-sheets" element={<FieldSheetsPage />} />
             <Route path="momo-agent" element={<MomoAgentDashboard />} />
             <Route path="momo-agent/history" element={<AgentHistory/>} />
             <Route path="contributions" element={<Contributions />} />

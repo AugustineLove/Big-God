@@ -28,6 +28,7 @@ import {
 import { useFinance } from '../../contexts/dashboard/Finance';
 import BulkTransactionModal from './Components/buildTransactionModal';
 import TellerFloatCard from './Components/TellerFloatCard';
+import { NotebookPen, ClipboardCheck } from "lucide-react";
 
 /* ============================================================
    ROLES
@@ -51,6 +52,14 @@ const canWithdraw = Boolean(
 
 const canCreateCustomer = Boolean(
   (permissions as any).CUSTOMER_CREATE
+);
+
+const canEnterFieldSheet = Boolean(
+  (permissions as any).FIELD_SHEET_ENTRY
+);
+
+const canApproveEntrySheets = Boolean(
+  (permissions as any).MANAGE_CASHACCOUNTS
 );
 
 const canProcessTransactions = Boolean(
@@ -77,6 +86,8 @@ const Overview: React.FC = () => {
   } = useTransactions();
 
 const [showAddModal, setShowAddModal] = useState(false);
+const [showFieldEntrySheet, setShowFieldEntrySheet] = useState(false);
+const [showEntryBatchApprovals, setShowEntryBatchApprovals] = useState(false);
 
 const [transactionModalType, setTransactionModalType] = useState<
   'deposit' | 'withdrawal' | null
@@ -524,6 +535,40 @@ const [transactionModalType, setTransactionModalType] = useState<
               </div>
             </button>
           )}
+
+          {/* FIELD ENTRY SHEET */}
+        {canEnterFieldSheet && (
+          <button
+            type="button"
+            onClick={() => setShowFieldEntrySheet(true)}
+            className="group flex flex-col items-center justify-center gap-3 py-6 px-4 rounded-xl border border-[var(--paper-line)] bg-[var(--paper)] hover:bg-[var(--card)] hover:border-[var(--forest)] hover:shadow-sm transition-all"
+          >
+            <div className="w-11 h-11 rounded-xl bg-[var(--card)] border border-[var(--paper-line)] shadow-sm flex items-center justify-center">
+              <NotebookPen className="w-5 h-5" style={{ color: 'var(--forest)' }} />
+            </div>
+            <div className="text-center">
+              <p className="text-[12px] font-semibold text-[var(--ink)]">Field entry sheet</p>
+              <p className="text-[10px] text-[var(--ink-faint)] mt-0.5">Enter a mobile banker's paper sheet</p>
+            </div>
+          </button>
+        )}
+
+        {/* APPROVE ENTRY SHEETS */}
+        {canApproveEntrySheets && (
+          <button
+            type="button"
+            onClick={() => setShowEntryBatchApprovals(true)}
+            className="group flex flex-col items-center justify-center gap-3 py-6 px-4 rounded-xl border border-[var(--paper-line)] bg-[var(--paper)] hover:bg-[var(--card)] hover:border-[var(--forest)] hover:shadow-sm transition-all"
+          >
+            <div className="w-11 h-11 rounded-xl bg-[var(--card)] border border-[var(--paper-line)] shadow-sm flex items-center justify-center">
+              <ClipboardCheck className="w-5 h-5" style={{ color: 'var(--forest)' }} />
+            </div>
+            <div className="text-center">
+              <p className="text-[12px] font-semibold text-[var(--ink)]">Approve sheets</p>
+              <p className="text-[10px] text-[var(--ink-faint)] mt-0.5">Review & approve pending sheets</p>
+            </div>
+          </button>
+        )}
         </div>
       </div>
     </div>
