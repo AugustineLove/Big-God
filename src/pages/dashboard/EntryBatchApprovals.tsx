@@ -84,7 +84,7 @@ export default function EntryBatchApprovals({ onClose }: EntryBatchApprovalsProp
   const closeDetail = () => { setDetail(null); loadPending(); };
 
   return (
-    <div className="max-w-5xl mx-auto py-6 px-4">
+    <div className="mx-auto py-6 px-4">
       {/* Code lookup */}
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-[15px] font-semibold text-[var(--ink)]">Field sheet approvals</h1>
@@ -322,7 +322,7 @@ function BatchDetailModal({ detail, onClose }: { detail: BatchDetail; onClose: (
 
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--paper-line)]">
-          <div className="text-[12px] text-[var(--ink-faint)]">
+          <div className="text-[14px] font-bold text-[var(--ink)]">
             {rows.length} rows · deposits ¢{fmt(rows.filter(r=>r.type==="deposit").reduce((s,r)=>s+parseFloat(r.amount),0))} · withdrawals ¢{fmt(rows.filter(r=>r.type==="withdrawal").reduce((s,r)=>s+parseFloat(r.amount),0))}
           </div>
 

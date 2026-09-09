@@ -362,7 +362,7 @@ export default function FieldEntrySheet({ onClose }: FieldEntrySheetProps) {
 
   // ── Grid ─────────────────────────────────────────────────────
   return (
-    <div className="max-w-6xl mx-auto py-6 px-4">
+    <div className="max-w-auto mx-auto py-6">
       {/* Sheet header: date + mobile banker, both apply to every row */}
       <div className="flex flex-wrap items-end gap-4 mb-5 bg-[var(--card)] border border-[var(--paper-line)] rounded-2xl px-5 py-4">
         <div>
