@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           body: JSON.stringify({ email, password }),
         }
       );
-      console.log(res);
+      console.log(`Login in response: ${res}`);
       const data = await res.json();
 
       if (!res.ok) {

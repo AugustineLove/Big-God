@@ -212,6 +212,11 @@ export const buildNavigation = () => {
           icon: Calendar,
         },
         {
+          name: "Investments",
+          tab: "investment",
+          icon: TrendingUp,
+        },
+        {
           name: "Settings",
           tab: "settings",
           icon: Settings,
