@@ -31,6 +31,7 @@ import {
   NotebookPen,
   ClipboardCheck,
   LifeBuoy,
+  DollarSign,
 } from "lucide-react";
 
 import { userPermissions, userRole } from "./appConstants";
@@ -292,7 +293,7 @@ export const buildNavigation = () => {
     {
       name: "Daily Collections",
       href: "/dashboard/daily-collections",
-      icon: "DollarSign"
+      icon: FileSpreadsheet,
     },
 
     { name: "Log Issue", 

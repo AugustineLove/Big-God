@@ -512,14 +512,14 @@ export default function IssuesPage() {
   ] : [];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fff", padding: "28px 20px 60px" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: "#fff", padding: "28px 20px"}}>
+      <div style={{ maxWidth: '85%', margin: "0 auto" }}>
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 600, color: "#1a1a18" }}>Issues</div>
             <div style={{ fontSize: 12.5, color: "#888780", marginTop: 2 }}>
-              {showAll ? "Every issue reporteds." : "Issues you have reported."}
+              {showAll ? "Every issue reported" : "Issues you have reported"}
             </div>
           </div>
           <PrimaryBtn onClick={() => setShowReport(true)}>+ Report an issue</PrimaryBtn>
@@ -599,7 +599,7 @@ export default function IssuesPage() {
           ) : issues.length === 0 ? (
             <div style={{ padding: 48, textAlign: "center" }}>
               <div style={{ fontSize: 14, color: "#1a1a18", marginBottom: 4 }}>No issues match these filters</div>
-              <div style={{ fontSize: 12.5, color: "#888780" }}>Seen something wrong in the system? Use “Report an issue” so it gets fixed.</div>
+              <div style={{ fontSize: 12.5, color: "#888780" }}>Use “Report an issue” to log your issue.</div>
             </div>
           ) : (
             issues.map((i, idx) => (
