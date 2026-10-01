@@ -30,6 +30,7 @@ import {
   Settings,
   NotebookPen,
   ClipboardCheck,
+  LifeBuoy,
 } from "lucide-react";
 
 import { userPermissions, userRole } from "./appConstants";
@@ -294,6 +295,11 @@ export const buildNavigation = () => {
       icon: "DollarSign"
     },
 
+    { name: "Log Issue", 
+      href: "/dashboard/issues", 
+      icon: LifeBuoy 
+    },
+
     {
       name: "Team Chat",
       href: "/dashboard/chat",
@@ -306,6 +312,7 @@ export const buildNavigation = () => {
       icon: Sparkles,
       badge: "v2.4.0",
     },
+
   ];
 
   return navigation.filter(Boolean);

@@ -70,6 +70,7 @@ import TellerFloatDetails from './pages/dashboard/TellerFloatDetails';
 import DailyCollectionReport from './pages/dashboard/DailyCollectionReport';
 import FieldEntrySheet from './pages/dashboard/Components/FieldEntrySheet';
 import FieldSheetsPage from './pages/dashboard/FieldSheetsPage';
+import IssuesPage from './pages/dashboard/IssuesPage';
 
 function App() {
   return (
@@ -161,6 +162,7 @@ function App() {
             <Route path="loans" element={<LoanManagement/>} />
             <Route path="clients/customer-details/:id" element={<CustomerDetailsPage />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="issues" element={<IssuesPage />} />
             <Route path="security" element={<SecurityTab />} />
             <Route path="day-end" element={<DayEndDashboard />} />
             <Route path='balance-tracer' element={<BalanceTracer />} />
